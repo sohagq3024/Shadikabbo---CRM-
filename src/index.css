@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
+
+  :root {
+    --shadi-navy: #181e54;
+    --shadi-navy-hover: #121642;
+    --shadi-navy-light: #252e7d;
+    --shadi-red: #d81124;
+    --shadi-red-hover: #b80e1c;
+    --shadi-red-light: #ff334b;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Custom scrollbars for clean luxury feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

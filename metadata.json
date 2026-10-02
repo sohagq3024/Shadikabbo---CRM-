@@ -1,0 +1,6 @@
+{
+  "name": "Shadikabbo CRM",
+  "description": "Shadikabbo CRM - Premium Matrimonial Customer Relationship Management System",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

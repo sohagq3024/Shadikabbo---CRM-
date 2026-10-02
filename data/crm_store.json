@@ -1,0 +1,112 @@
+{
+  "users": [
+    {
+      "id": "usr_super_admin",
+      "phone": "01723867646",
+      "name": "Sohag",
+      "role": "Super Admin",
+      "passwordHash": "30b81cd0b46b7c04bf43424463eb94cd61db1fef173f1adafa00244de2d55e49"
+    },
+    {
+      "id": "usr_mk_1",
+      "phone": "01700000001",
+      "name": "MK - Tanvir Ahmed",
+      "role": "MK",
+      "passwordHash": "7c3b953d84eff96733716dc7b2786b21f3f9d74585f89cf6c3418e5f20b23ada"
+    },
+    {
+      "id": "usr_mk_2",
+      "phone": "01700000002",
+      "name": "MK - Rashedul Islam",
+      "role": "MK",
+      "passwordHash": "7c3b953d84eff96733716dc7b2786b21f3f9d74585f89cf6c3418e5f20b23ada"
+    },
+    {
+      "id": "usr_cro_1",
+      "phone": "01800000001",
+      "name": "CRO - Farhana Khan",
+      "role": "CRO",
+      "passwordHash": "caa575eb9ff288330f61a92b83d60cacdccdafd72e86ebca32433bd11ce89b94"
+    },
+    {
+      "id": "usr_cro_2",
+      "phone": "01800000002",
+      "name": "CRO - Mahmud Hasan",
+      "role": "CRO",
+      "passwordHash": "caa575eb9ff288330f61a92b83d60cacdccdafd72e86ebca32433bd11ce89b94"
+    }
+  ],
+  "traffics": [],
+  "paymentRequests": [],
+  "payments": [],
+  "sessions": [
+    {
+      "token": "9b9d38918e66851d34c0d3abbe85fb41219f81863fed3f1f39a75bc286c1cefd",
+      "userId": "usr_super_admin",
+      "createdAt": 1790764568292
+    },
+    {
+      "token": "72c853682d419b6a81d24963e7b24ca9b79e8c135d3c99457b5e0eef79defc31",
+      "userId": "usr_super_admin",
+      "createdAt": 1790923332560
+    }
+  ],
+  "nextSerial": 1,
+  "leads": [
+    {
+      "id": "LD-0001",
+      "serialNumber": 1,
+      "createdAt": "2026-10-02",
+      "createdTimestamp": 1790939194940,
+      "name": "Nasrin islam",
+      "phone": "01552955264",
+      "email": "",
+      "profession": "Chartered Accountant",
+      "dateOfBirth": "",
+      "maritalStatus": "Never Married",
+      "gender": "Female",
+      "height": "5'6\" (168 cm)",
+      "religion": "Islam (Other)",
+      "qualification": "Bachelor's / Honors",
+      "presentCity": "Dhaka",
+      "presentCountry": "Bangladesh",
+      "permanentCity": "Dhaka",
+      "permanentCountry": "Bangladesh",
+      "images": [],
+      "pdf": null,
+      "createdBy": "Sohag",
+      "creatorRole": "Super Admin",
+      "status": "trash",
+      "completeness": 90,
+      "stars": 5
+    },
+    {
+      "id": "LD-0002",
+      "serialNumber": 2,
+      "createdAt": "2026-10-02",
+      "createdTimestamp": 1790940581760,
+      "name": "Sharmin akter",
+      "phone": "01752955264",
+      "email": "",
+      "profession": "",
+      "dateOfBirth": "",
+      "maritalStatus": "",
+      "gender": "",
+      "height": "",
+      "religion": "",
+      "qualification": "",
+      "presentCity": "",
+      "presentCountry": "Bangladesh",
+      "permanentCity": "",
+      "permanentCountry": "Bangladesh",
+      "images": [],
+      "pdf": null,
+      "createdBy": "Sohag",
+      "creatorRole": "Super Admin",
+      "status": "active",
+      "completeness": 20,
+      "stars": 1
+    }
+  ],
+  "nextLeadSerial": 3
+}
