@@ -4,6 +4,12 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
+import {
+  DEFAULT_FIELD_SEEDINGS,
+  DEFAULT_AGENCY_SETTINGS,
+  CrmFieldSeedings,
+  AgencySettings,
+} from './src/constants/defaultFieldSeedings';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,6 +49,8 @@ interface DatabaseSchema {
   sessions: { token: string; userId: string; createdAt: number }[];
   nextSerial: number;
   nextLeadSerial: number;
+  customFields?: CrmFieldSeedings;
+  agencySettings?: AgencySettings;
 }
 
 function computeLeadCompleteness(data: any): { percentage: number; stars: number } {
@@ -130,8 +138,63 @@ function loadDB(): DatabaseSchema {
   try {
     const content = fs.readFileSync(DB_FILE, 'utf-8');
     const parsed = JSON.parse(content);
+    if (!parsed.traffics) parsed.traffics = [];
     if (!parsed.leads) parsed.leads = [];
+    if (!parsed.paymentRequests) parsed.paymentRequests = [];
+    if (!parsed.payments) parsed.payments = [];
+    let didAutoSync = false;
+    if (!parsed.sessions) parsed.sessions = [];
+    if (!parsed.nextSerial) parsed.nextSerial = (parsed.traffics.length || 0) + 1;
     if (!parsed.nextLeadSerial) parsed.nextLeadSerial = (parsed.leads.length || 0) + 1;
+    if (!parsed.customFields) {
+      parsed.customFields = { ...DEFAULT_FIELD_SEEDINGS };
+      didAutoSync = true;
+    }
+    if (!parsed.agencySettings) {
+      parsed.agencySettings = { ...DEFAULT_AGENCY_SETTINGS };
+      didAutoSync = true;
+    }
+
+    // Auto-sync any existing traffic with pending paid amounts into paymentRequests
+    (parsed.traffics || []).forEach((t: any) => {
+      if (t.status !== 'trash' && Number(t.paidAmount) > 0 && t.paymentStatus !== 'accepted') {
+        const hasReq = parsed.paymentRequests.some(
+          (pr: any) => pr.trafficId === t.id && (pr.status === 'pending' || pr.status === 'accepted')
+        );
+        if (!hasReq) {
+          const prId = `PR-${String(parsed.paymentRequests.length + 1).padStart(4, '0')}`;
+          parsed.paymentRequests.push({
+            id: prId,
+            trafficId: t.id,
+            trafficName: t.name,
+            phone: t.phone,
+            date: t.createdAt || '2026-10-03',
+            formattedDate: t.createdAt ? `${t.createdAt} 10:00` : '2026-10-03 10:00',
+            timestamp: t.createdTimestamp || Date.now(),
+            paidAmount: Number(t.paidAmount) || 0,
+            dueAmount: Number(t.dueAmount) || 0,
+            afterMarriageFee: Number(t.afterMarriageFee) || 0,
+            package: t.package || 'Standard',
+            paymentMethod: t.paymentMethod || 'bKash',
+            assignedBy: t.assignBy || t.createdBy || 'Sohag',
+            createdBy: t.createdBy || 'Sohag',
+            creatorRole: t.creatorRole || 'Super Admin',
+            creatorPhone: t.phone || '',
+            role: t.creatorRole || 'Super Admin',
+            status: 'pending',
+            images: t.images || [],
+            gender: t.gender || '',
+          });
+          t.paymentStatus = 'pending';
+          didAutoSync = true;
+        }
+      }
+    });
+
+    if (didAutoSync) {
+      fs.writeFileSync(DB_FILE, JSON.stringify(parsed, null, 2), 'utf-8');
+    }
+
     return parsed;
   } catch (err) {
     console.error('Error reading db file, resetting:', err);
@@ -886,9 +949,9 @@ app.post('/api/leads/:id/convert-traffic', authMiddleware, (req, res) => {
 // --- TRAFFIC API ---
 app.get('/api/traffic', authMiddleware, (req, res) => {
   const db = loadDB();
-  // Filter out records marked as trash
+  // Filter out records marked as trash AND records that have been accepted/moved to Paid Traffic
   const activeTraffics = (db.traffics || [])
-    .filter(t => t.status !== 'trash')
+    .filter(t => t.status !== 'trash' && t.paymentStatus !== 'accepted')
     // Sequential order (1, 2, 3...) with newest at the bottom as requested
     .sort((a, b) => a.serialNumber - b.serialNumber)
     .map(t => ({
@@ -987,39 +1050,42 @@ app.post('/api/traffic', authMiddleware, (req, res) => {
     paymentMethod: data.paymentMethod || '',
     afterMarriageFee,
     // Status
-    paymentStatus: 'pending',
+    paymentStatus: paidAmount > 0 ? 'pending' : 'unpaid',
     assignedTo: data.assignBy ? { name: data.assignBy, role: 'MK' } : null,
     status: 'active',
   };
 
   db.traffics.push(newTraffic);
 
-  // When a Traffic form is submitted with payment, it becomes a Payment Request in Payment section
-  const formattedTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  const newPaymentRequest = {
-    id: `PR-${String(db.paymentRequests.length + 1).padStart(4, '0')}`,
-    trafficId: newTraffic.id,
-    trafficName: newTraffic.name,
-    phone: newTraffic.phone,
-    date: formattedDate,
-    formattedDate: `${formattedDate} ${formattedTime}`,
-    timestamp: Date.now(),
-    paidAmount,
-    dueAmount,
-    afterMarriageFee,
-    package: newTraffic.package,
-    paymentMethod: newTraffic.paymentMethod,
-    assignedBy: newTraffic.assignBy || creatorName,
-    createdBy: creatorName,
-    creatorRole: creatorRole,
-    creatorPhone: creator?.phone || '',
-    creatorId: creator?.id || '',
-    role: creatorRole,
-    status: 'pending',
-    images: newTraffic.images || [],
-    gender: newTraffic.gender || '',
-  };
-  db.paymentRequests.push(newPaymentRequest);
+  // When a Traffic form is submitted with payment (paidAmount > 0), it becomes a Payment Request in Payment section
+  if (paidAmount > 0) {
+    if (!db.paymentRequests) db.paymentRequests = [];
+    const formattedTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const newPaymentRequest = {
+      id: `PR-${String(db.paymentRequests.length + 1).padStart(4, '0')}`,
+      trafficId: newTraffic.id,
+      trafficName: newTraffic.name,
+      phone: newTraffic.phone,
+      date: formattedDate,
+      formattedDate: `${formattedDate} ${formattedTime}`,
+      timestamp: Date.now(),
+      paidAmount,
+      dueAmount,
+      afterMarriageFee,
+      package: newTraffic.package || 'Standard',
+      paymentMethod: newTraffic.paymentMethod || 'bKash',
+      assignedBy: newTraffic.assignBy || creatorName,
+      createdBy: creatorName,
+      creatorRole: creatorRole,
+      creatorPhone: creator?.phone || '',
+      creatorId: creator?.id || '',
+      role: creatorRole,
+      status: 'pending',
+      images: newTraffic.images || [],
+      gender: newTraffic.gender || '',
+    };
+    db.paymentRequests.push(newPaymentRequest);
+  }
 
   saveDB(db);
   res.status(201).json(newTraffic);
@@ -1041,6 +1107,19 @@ app.put('/api/traffic/:id', authMiddleware, (req, res) => {
   const discount = updates.discount !== undefined ? Number(updates.discount) : existing.discount;
   const paidAmount = updates.paidAmount !== undefined ? Number(updates.paidAmount) : existing.paidAmount;
   const dueAmount = Math.max(0, price - discount - paidAmount);
+  const afterMarriageFee = updates.afterMarriageFee !== undefined ? Number(updates.afterMarriageFee) : (existing.afterMarriageFee || 0);
+
+  const actor = (req as any).user;
+  const actorName = actor?.name || updates.createdByName || existing.createdBy || 'Sohag';
+  const actorRole = actor?.role || updates.createdByRole || existing.creatorRole || 'Super Admin';
+  const actorPhone = actor?.phone || '';
+  const actorId = actor?.id || '';
+
+  // Determine updated payment status
+  let updatedPaymentStatus = existing.paymentStatus || 'unpaid';
+  if (existing.paymentStatus !== 'accepted') {
+    updatedPaymentStatus = paidAmount > 0 ? 'pending' : 'unpaid';
+  }
 
   db.traffics[index] = {
     ...existing,
@@ -1049,10 +1128,70 @@ app.put('/api/traffic/:id', authMiddleware, (req, res) => {
     discount,
     paidAmount,
     dueAmount,
+    afterMarriageFee,
+    paymentStatus: updatedPaymentStatus,
     id: existing.id,
     serialNumber: existing.serialNumber,
     createdTimestamp: existing.createdTimestamp,
   };
+
+  // Sync with Payment Requests table
+  if (!db.paymentRequests) db.paymentRequests = [];
+
+  if (paidAmount > 0 && existing.paymentStatus !== 'accepted') {
+    const existingReqIndex = db.paymentRequests.findIndex(
+      (pr: any) => pr.status === 'pending' && (pr.trafficId === existing.id || (pr.phone && pr.phone === existing.phone))
+    );
+
+    const now = new Date();
+    const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const formattedTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    if (existingReqIndex !== -1) {
+      // Update existing pending payment request
+      db.paymentRequests[existingReqIndex] = {
+        ...db.paymentRequests[existingReqIndex],
+        trafficName: db.traffics[index].name,
+        phone: db.traffics[index].phone,
+        package: db.traffics[index].package || 'Standard',
+        paidAmount,
+        dueAmount,
+        afterMarriageFee,
+        paymentMethod: db.traffics[index].paymentMethod || 'bKash',
+        assignedBy: db.traffics[index].assignBy || actorName,
+        images: db.traffics[index].images || [],
+        gender: db.traffics[index].gender || '',
+        formattedDate: `${formattedDate} ${formattedTime}`,
+        timestamp: Date.now(),
+      };
+    } else {
+      // Create a brand new pending payment request
+      const newPR = {
+        id: `PR-${String(db.paymentRequests.length + 1).padStart(4, '0')}`,
+        trafficId: existing.id,
+        trafficName: db.traffics[index].name,
+        phone: db.traffics[index].phone,
+        date: formattedDate,
+        formattedDate: `${formattedDate} ${formattedTime}`,
+        timestamp: Date.now(),
+        paidAmount,
+        dueAmount,
+        afterMarriageFee,
+        package: db.traffics[index].package || 'Standard',
+        paymentMethod: db.traffics[index].paymentMethod || 'bKash',
+        assignedBy: db.traffics[index].assignBy || actorName,
+        createdBy: actorName,
+        creatorRole: actorRole,
+        creatorPhone: actorPhone,
+        creatorId: actorId,
+        role: actorRole,
+        status: 'pending',
+        images: db.traffics[index].images || [],
+        gender: db.traffics[index].gender || '',
+      };
+      db.paymentRequests.push(newPR);
+    }
+  }
 
   saveDB(db);
   res.json(db.traffics[index]);
@@ -1189,37 +1328,92 @@ app.post('/api/payments/requests', authMiddleware, (req, res) => {
   const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const formattedTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-  const newId = `PR-${String((db.paymentRequests || []).length + 1).padStart(4, '0')}`;
-  const newReq = {
-    id: newId,
-    trafficId: trafficId || matched?.id || '',
-    trafficName: trafficName || matched?.name || 'Candidate',
-    phone: phone || matched?.phone || '',
-    date: formattedDate,
-    formattedDate: `${formattedDate} ${formattedTime}`,
-    timestamp: Date.now(),
-    paidAmount: numericPaid,
-    dueAmount: Number(dueAmount) || 0,
-    afterMarriageFee: Number(afterMarriageFee) || 0,
-    package: pkg || matched?.package || 'Standard',
-    paymentMethod: paymentMethod || 'bKash',
-    assignedBy: matched?.assignBy || creatorName,
-    createdBy: creatorName,
-    creatorRole: creatorRole,
-    creatorPhone,
-    creatorId,
-    role: creatorRole,
-    note: note || '',
-    status: 'pending',
-    images: (matched?.images && matched.images.length > 0) ? matched.images : [],
-    gender: matched?.gender || '',
-  };
+  const calculatedDue = dueAmount !== undefined ? Number(dueAmount) : Math.max(0, (matched?.price || 0) - (matched?.discount || 0) - numericPaid);
+  const pkgName = pkg || matched?.package || 'Standard';
+  const method = paymentMethod || matched?.paymentMethod || 'bKash';
+  const marriageFee = afterMarriageFee !== undefined ? Number(afterMarriageFee) : (matched?.afterMarriageFee || 0);
+
+  if (matched) {
+    matched.paymentStatus = 'pending';
+    matched.paidAmount = numericPaid;
+    matched.dueAmount = calculatedDue;
+    matched.package = pkgName;
+    matched.paymentMethod = method;
+    matched.afterMarriageFee = marriageFee;
+  }
 
   if (!db.paymentRequests) db.paymentRequests = [];
-  db.paymentRequests.push(newReq);
+
+  // Check if there is already a pending request for this traffic or candidate
+  const existingPendingIndex = db.paymentRequests.findIndex(
+    (pr: any) => pr.status === 'pending' && (
+      (trafficId && pr.trafficId === trafficId) ||
+      (matched?.id && pr.trafficId === matched.id) ||
+      (phone && pr.phone === phone) ||
+      (trafficName && pr.trafficName === trafficName)
+    )
+  );
+
+  let responseReq: any = null;
+
+  if (existingPendingIndex !== -1) {
+    // Update the existing pending request
+    db.paymentRequests[existingPendingIndex] = {
+      ...db.paymentRequests[existingPendingIndex],
+      trafficId: trafficId || matched?.id || db.paymentRequests[existingPendingIndex].trafficId,
+      trafficName: trafficName || matched?.name || db.paymentRequests[existingPendingIndex].trafficName,
+      phone: phone || matched?.phone || db.paymentRequests[existingPendingIndex].phone,
+      paidAmount: numericPaid,
+      dueAmount: calculatedDue,
+      afterMarriageFee: marriageFee,
+      package: pkgName,
+      paymentMethod: method,
+      assignedBy: matched?.assignBy || creatorName,
+      createdBy: creatorName,
+      creatorRole: creatorRole,
+      creatorPhone,
+      creatorId,
+      role: creatorRole,
+      note: note || db.paymentRequests[existingPendingIndex].note || '',
+      images: (matched?.images && matched.images.length > 0) ? matched.images : db.paymentRequests[existingPendingIndex].images,
+      gender: matched?.gender || db.paymentRequests[existingPendingIndex].gender || '',
+      formattedDate: `${formattedDate} ${formattedTime}`,
+      timestamp: Date.now(),
+    };
+    responseReq = db.paymentRequests[existingPendingIndex];
+  } else {
+    const newId = `PR-${String((db.paymentRequests || []).length + 1).padStart(4, '0')}`;
+    const newReq = {
+      id: newId,
+      trafficId: trafficId || matched?.id || '',
+      trafficName: trafficName || matched?.name || 'Candidate',
+      phone: phone || matched?.phone || '',
+      date: formattedDate,
+      formattedDate: `${formattedDate} ${formattedTime}`,
+      timestamp: Date.now(),
+      paidAmount: numericPaid,
+      dueAmount: calculatedDue,
+      afterMarriageFee: marriageFee,
+      package: pkgName,
+      paymentMethod: method,
+      assignedBy: matched?.assignBy || creatorName,
+      createdBy: creatorName,
+      creatorRole: creatorRole,
+      creatorPhone,
+      creatorId,
+      role: creatorRole,
+      note: note || '',
+      status: 'pending',
+      images: (matched?.images && matched.images.length > 0) ? matched.images : [],
+      gender: matched?.gender || '',
+    };
+    db.paymentRequests.push(newReq);
+    responseReq = newReq;
+  }
+
   saveDB(db);
 
-  res.status(201).json({ success: true, paymentRequest: newReq });
+  res.status(201).json({ success: true, paymentRequest: responseReq });
 });
 
 app.post('/api/payments/requests/:id/accept', authMiddleware, (req, res) => {
@@ -1238,24 +1432,66 @@ app.post('/api/payments/requests/:id/accept', authMiddleware, (req, res) => {
   paymentReq.acceptedAt = new Date().toISOString();
 
   // Find linked traffic record
-  const traffic = db.traffics.find(t => t.id === paymentReq.trafficId) ||
+  let traffic = db.traffics.find(t => (paymentReq.trafficId && t.id === paymentReq.trafficId)) ||
     db.traffics.find(t => (t.phone && paymentReq.phone && t.phone === paymentReq.phone)) ||
     db.traffics.find(t => (t.name && paymentReq.trafficName && t.name === paymentReq.trafficName));
 
-  if (traffic) {
-    traffic.paymentStatus = 'accepted';
-    traffic.paidAmount = (Number(traffic.paidAmount) || 0) + (Number(paymentReq.paidAmount) || 0);
-    traffic.dueAmount = Math.max(0, (Number(traffic.dueAmount) || 0) - (Number(paymentReq.paidAmount) || 0));
-  }
-
-  // Add to completed Payments table with exact candidate images & gender
+  const creatorName = paymentReq.createdBy || paymentReq.assignedBy || traffic?.createdBy || traffic?.assignBy || 'Sohag';
+  const creatorRole = paymentReq.creatorRole || paymentReq.role || traffic?.creatorRole || 'Super Admin';
   const candidateImages = (traffic?.images && traffic.images.length > 0)
     ? traffic.images
     : (paymentReq.images || []);
 
-  const creatorName = paymentReq.createdBy || paymentReq.assignedBy || traffic?.createdBy || traffic?.assignBy || 'General MK';
-  const creatorRole = paymentReq.creatorRole || paymentReq.role || traffic?.creatorRole || 'MK';
+  if (traffic) {
+    // Move from Traffic section to Paid Traffic section automatically
+    traffic.paymentStatus = 'accepted';
+    traffic.status = 'active';
+    traffic.paidAmount = Math.max(Number(traffic.paidAmount) || 0, Number(paymentReq.paidAmount) || 0);
+    traffic.dueAmount = Math.max(0, (Number(traffic.price) || 0) - (Number(traffic.discount) || 0) - (Number(traffic.paidAmount) || 0));
+    if (paymentReq.package) traffic.package = paymentReq.package;
+    if (paymentReq.paymentMethod) traffic.paymentMethod = paymentReq.paymentMethod;
+    if (paymentReq.afterMarriageFee !== undefined) traffic.afterMarriageFee = Number(paymentReq.afterMarriageFee);
+    if (!traffic.assignedTo && (paymentReq.assignedBy || traffic.assignBy)) {
+      traffic.assignedTo = { name: paymentReq.assignedBy || traffic.assignBy, role: 'MK' };
+    }
+    traffic.movedToPaidAt = Date.now();
+    paymentReq.trafficId = traffic.id;
+  } else {
+    // If candidate not found in traffics, create the verified candidate directly in db.traffics with accepted payment status
+    const serialNumber = db.nextSerial || ((db.traffics || []).length + 1);
+    db.nextSerial = serialNumber + 1;
+    const now = new Date();
+    const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    traffic = {
+      id: paymentReq.trafficId || `SK-${String(serialNumber).padStart(4, '0')}`,
+      serialNumber,
+      createdAt: paymentReq.date || formattedDate,
+      createdTimestamp: Date.now(),
+      name: paymentReq.trafficName || 'Candidate',
+      phone: paymentReq.phone || '',
+      createdBy: creatorName,
+      creatorRole: creatorRole,
+      assignBy: paymentReq.assignedBy || creatorName,
+      assignedTo: { name: paymentReq.assignedBy || creatorName, role: 'MK' },
+      package: paymentReq.package || 'Gold Package',
+      price: (Number(paymentReq.paidAmount) || 0) + (Number(paymentReq.dueAmount) || 0),
+      discount: 0,
+      paidAmount: Number(paymentReq.paidAmount) || 0,
+      dueAmount: Number(paymentReq.dueAmount) || 0,
+      afterMarriageFee: Number(paymentReq.afterMarriageFee) || 0,
+      paymentMethod: paymentReq.paymentMethod || 'bKash',
+      paymentStatus: 'accepted',
+      status: 'active',
+      images: candidateImages,
+      gender: paymentReq.gender || '',
+      profession: paymentReq.profession || 'Professional',
+      movedToPaidAt: Date.now(),
+    };
+    db.traffics.push(traffic);
+    paymentReq.trafficId = traffic.id;
+  }
 
+  // Add to completed Payments table with exact candidate images & gender
   const newPayment = {
     id: `PAY-${String(db.payments.length + 1).padStart(4, '0')}`,
     serialNumber: db.payments.length + 1,
@@ -1657,6 +1893,101 @@ app.post('/api/trash/empty', authMiddleware, (req, res) => {
 
   saveDB(db);
   res.json({ success: true, message: `Permanently deleted ${purgedCount} item(s) from database.`, purgedCount });
+});
+
+// ============================================================
+// SETTINGS & DYNAMIC FIELD SEEDINGS MANAGEMENT
+// ============================================================
+
+// 1. Get dynamic field options and agency settings
+app.get('/api/settings/fields', (req, res) => {
+  const db = loadDB();
+  res.json({
+    fields: {
+      ...DEFAULT_FIELD_SEEDINGS,
+      ...(db.customFields || {}),
+    },
+    agencySettings: db.agencySettings || DEFAULT_AGENCY_SETTINGS,
+  });
+});
+
+// 2. Update dynamic field options (save customized professions, qualifications, etc.)
+app.put('/api/settings/fields', authMiddleware, (req, res) => {
+  const { fields } = req.body;
+  if (!fields || typeof fields !== 'object') {
+    return res.status(400).json({ error: 'Valid fields object is required' });
+  }
+
+  const db = loadDB();
+  db.customFields = {
+    ...DEFAULT_FIELD_SEEDINGS,
+    ...(db.customFields || {}),
+    ...fields,
+  };
+
+  saveDB(db);
+  res.json({
+    success: true,
+    message: 'Field options updated successfully',
+    fields: db.customFields,
+  });
+});
+
+// 3. Reset dynamic fields to default seedings (either single category or all)
+app.post('/api/settings/fields/reset', authMiddleware, (req, res) => {
+  const { category } = req.body;
+  const db = loadDB();
+
+  if (!db.customFields) {
+    db.customFields = { ...DEFAULT_FIELD_SEEDINGS };
+  }
+
+  if (category && category !== 'all') {
+    if (category in DEFAULT_FIELD_SEEDINGS) {
+      (db.customFields as any)[category] = [...(DEFAULT_FIELD_SEEDINGS as any)[category]];
+    } else {
+      return res.status(400).json({ error: `Invalid category: ${category}` });
+    }
+  } else {
+    db.customFields = { ...DEFAULT_FIELD_SEEDINGS };
+  }
+
+  saveDB(db);
+  res.json({
+    success: true,
+    message: category && category !== 'all' ? `Reset ${category} to default seedings` : 'Reset all fields to default seedings',
+    fields: db.customFields,
+  });
+});
+
+// 4. Get agency profile settings
+app.get('/api/settings/agency', (req, res) => {
+  const db = loadDB();
+  res.json({
+    agencySettings: db.agencySettings || DEFAULT_AGENCY_SETTINGS,
+  });
+});
+
+// 5. Update agency profile settings
+app.put('/api/settings/agency', authMiddleware, (req, res) => {
+  const { agencySettings } = req.body;
+  if (!agencySettings || typeof agencySettings !== 'object') {
+    return res.status(400).json({ error: 'Valid agencySettings object is required' });
+  }
+
+  const db = loadDB();
+  db.agencySettings = {
+    ...DEFAULT_AGENCY_SETTINGS,
+    ...(db.agencySettings || {}),
+    ...agencySettings,
+  };
+
+  saveDB(db);
+  res.json({
+    success: true,
+    message: 'Agency settings updated successfully',
+    agencySettings: db.agencySettings,
+  });
 });
 
 // --- START SERVER WITH VITE MIDDLEWARE ---

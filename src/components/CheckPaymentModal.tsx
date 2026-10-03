@@ -23,7 +23,7 @@ export const CheckPaymentModal: React.FC<CheckPaymentModalProps> = ({
           <div className="flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-[#D81124]" />
             <div>
-              <h2 className="text-base font-bold text-[#181E54]">Chack [ayment</h2>
+              <h2 className="text-base font-bold text-[#181E54]">Check Payment</h2>
               <p className="text-[11px] text-slate-500">Payment details for {traffic.name}</p>
             </div>
           </div>

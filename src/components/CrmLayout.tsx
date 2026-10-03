@@ -120,9 +120,9 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
           />
         )}
 
-        {/* SIDEBAR: EXACTLY 11 items */}
+        {/* SIDEBAR: EXACTLY 11 items - ROCK-SOLID FIXED WIDTH */}
         <aside
-          className={`fixed md:sticky top-16 z-30 h-[calc(100vh-4rem)] w-60 bg-white border-r border-slate-200 transition-transform duration-300 ease-in-out overflow-y-auto flex flex-col justify-between p-3 ${
+          className={`fixed md:sticky top-16 z-30 h-[calc(100vh-4rem)] w-60 min-w-[15rem] max-w-[15rem] shrink-0 bg-white border-r border-slate-200 transition-transform duration-300 ease-in-out overflow-y-auto flex flex-col justify-between p-3 ${
             mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
           }`}
         >
@@ -163,8 +163,8 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
           </div>
         </aside>
 
-        {/* MAIN CONTENT VIEWPORT */}
-        <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full overflow-y-auto">
+        {/* MAIN CONTENT VIEWPORT: FULL WIDTH & COMPACT PADDING */}
+        <main className="flex-1 min-w-0 p-2.5 sm:p-3.5 md:px-5 md:py-3 w-full overflow-y-auto">
           {children}
         </main>
 

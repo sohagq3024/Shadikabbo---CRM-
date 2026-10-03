@@ -23,6 +23,7 @@ import {
   Star,
 } from 'lucide-react';
 import { CountryFlag, COUNTRY_CODES, CountryCodeOption, detectCountryIso } from './CountryFlag';
+import { useCrmFields } from '../context/CrmFieldsContext';
 
 export interface AddLeadModalProps {
   isOpen: boolean;
@@ -84,6 +85,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
   initialData,
   token,
 }) => {
+  const { fields } = useCrmFields();
   // Step: 1 = Basic Info, 2 = Additional Info
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
@@ -742,7 +744,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                         className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                       >
                         <option value="">Select Profession...</option>
-                        {PROFESSIONS.map((p) => (
+                        {(fields.professions || PROFESSIONS).map((p) => (
                           <option key={p} value={p}>
                             {p}
                           </option>
@@ -761,14 +763,11 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                         className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                       >
                         <option value="">Select Job Type...</option>
-                        <option value="Private Job">Private Job</option>
-                        <option value="Government Job">Government Job</option>
-                        <option value="Multinational (MNC)">Multinational (MNC)</option>
-                        <option value="Own Business">Own Business</option>
-                        <option value="Freelancing / Remote">Freelancing / Remote</option>
-                        <option value="Part Time">Part Time</option>
-                        <option value="Non-Employed">Non-Employed</option>
-                        <option value="Other">Other</option>
+                        {(fields.jobTypes || []).map((jt) => (
+                          <option key={jt} value={jt}>
+                            {jt}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
@@ -796,10 +795,11 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                         className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                       >
                         <option value="">Select Marital Status...</option>
-                        <option value="Never Married">Never Married</option>
-                        <option value="Divorced">Divorced</option>
-                        <option value="Widowed">Widowed</option>
-                        <option value="Awaiting Divorce">Awaiting Divorce</option>
+                        {(fields.maritalStatuses || []).map((ms) => (
+                          <option key={ms} value={ms}>
+                            {ms}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
@@ -814,8 +814,11 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                         className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                       >
                         <option value="">Select Gender...</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
+                        {(fields.genders || []).map((g) => (
+                          <option key={g} value={g}>
+                            {g}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
@@ -830,11 +833,11 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                         className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                       >
                         <option value="">Select Body Color...</option>
-                        <option value="Fair">Fair</option>
-                        <option value="Very Fair">Very Fair</option>
-                        <option value="Wheatish">Wheatish</option>
-                        <option value="Dusky">Dusky</option>
-                        <option value="Dark">Dark</option>
+                        {(fields.bodyColors || []).map((bc) => (
+                          <option key={bc} value={bc}>
+                            {bc}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
@@ -849,25 +852,11 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                         className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                       >
                         <option value="">Select Height...</option>
-                        <option value="4'8&quot; (142 cm)">4&apos;8&quot; (142 cm)</option>
-                        <option value="4'9&quot; (145 cm)">4&apos;9&quot; (145 cm)</option>
-                        <option value="4'10&quot; (147 cm)">4&apos;10&quot; (147 cm)</option>
-                        <option value="4'11&quot; (150 cm)">4&apos;11&quot; (150 cm)</option>
-                        <option value="5'0&quot; (152 cm)">5&apos;0&quot; (152 cm)</option>
-                        <option value="5'1&quot; (155 cm)">5&apos;1&quot; (155 cm)</option>
-                        <option value="5'2&quot; (157 cm)">5&apos;2&quot; (157 cm)</option>
-                        <option value="5'3&quot; (160 cm)">5&apos;3&quot; (160 cm)</option>
-                        <option value="5'4&quot; (163 cm)">5&apos;4&quot; (163 cm)</option>
-                        <option value="5'5&quot; (165 cm)">5&apos;5&quot; (165 cm)</option>
-                        <option value="5'6&quot; (168 cm)">5&apos;6&quot; (168 cm)</option>
-                        <option value="5'7&quot; (170 cm)">5&apos;7&quot; (170 cm)</option>
-                        <option value="5'8&quot; (173 cm)">5&apos;8&quot; (173 cm)</option>
-                        <option value="5'9&quot; (175 cm)">5&apos;9&quot; (175 cm)</option>
-                        <option value="5'10&quot; (178 cm)">5&apos;10&quot; (178 cm)</option>
-                        <option value="5'11&quot; (180 cm)">5&apos;11&quot; (180 cm)</option>
-                        <option value="6'0&quot; (183 cm)">6&apos;0&quot; (183 cm)</option>
-                        <option value="6'1&quot; (185 cm)">6&apos;1&quot; (185 cm)</option>
-                        <option value="6'2&quot;+ (188+ cm)">6&apos;2&quot;+ (188+ cm)</option>
+                        {(fields.heights || []).map((h) => (
+                          <option key={h} value={h}>
+                            {h}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
@@ -882,13 +871,11 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                         className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                       >
                         <option value="">Select Religion...</option>
-                        <option value="Islam (Sunni)">Islam (Sunni)</option>
-                        <option value="Islam (Shia)">Islam (Shia)</option>
-                        <option value="Islam (Other)">Islam (Other)</option>
-                        <option value="Hinduism">Hinduism</option>
-                        <option value="Christianity">Christianity</option>
-                        <option value="Buddhism">Buddhism</option>
-                        <option value="Other">Other</option>
+                        {(fields.religions || []).map((r) => (
+                          <option key={r} value={r}>
+                            {r}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
@@ -903,14 +890,11 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                         className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                       >
                         <option value="">Select Blood Group...</option>
-                        <option value="A+">A+</option>
-                        <option value="A-">A-</option>
-                        <option value="B+">B+</option>
-                        <option value="B-">B-</option>
-                        <option value="O+">O+</option>
-                        <option value="O-">O-</option>
-                        <option value="AB+">AB+</option>
-                        <option value="AB-">AB-</option>
+                        {(fields.bloodGroups || []).map((bg) => (
+                          <option key={bg} value={bg}>
+                            {bg}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
@@ -925,15 +909,11 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                         className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                       >
                         <option value="">Select Qualification...</option>
-                        <option value="SSC / O-Level">SSC / O-Level</option>
-                        <option value="HSC / A-Level">HSC / A-Level</option>
-                        <option value="Bachelor's / Honors">Bachelor&apos;s / Honors</option>
-                        <option value="Master's Degree">Master&apos;s Degree</option>
-                        <option value="MBBS / Medical">MBBS / Medical</option>
-                        <option value="B.Sc Engineering">B.Sc Engineering</option>
-                        <option value="CA / ACCA / CMA">CA / ACCA / CMA</option>
-                        <option value="Ph.D / Doctorate">Ph.D / Doctorate</option>
-                        <option value="Other">Other</option>
+                        {(fields.qualifications || []).map((q) => (
+                          <option key={q} value={q}>
+                            {q}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
@@ -983,31 +963,43 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                         <label className="block text-[11px] font-medium text-slate-600 mb-1">
                           Present City / District
                         </label>
-                        <input
-                          type="text"
+                        <select
                           value={presentCity}
                           onChange={(e) => {
                             setPresentCity(e.target.value);
                             if (sameAsPresent) setPermanentCity(e.target.value);
                           }}
-                          placeholder="e.g. Dhaka (Gulshan) or Chittagong"
                           className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
-                        />
+                        >
+                          <option value="">Select Present City / District</option>
+                          {(fields.cities || []).map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                          {presentCity && !(fields.cities || []).includes(presentCity) && (
+                            <option value={presentCity}>{presentCity} (Custom)</option>
+                          )}
+                        </select>
                       </div>
                       <div>
                         <label className="block text-[11px] font-medium text-slate-600 mb-1">
                           Present Country
                         </label>
-                        <input
-                          type="text"
+                        <select
                           value={presentCountry}
                           onChange={(e) => {
                             setPresentCountry(e.target.value);
                             if (sameAsPresent) setPermanentCountry(e.target.value);
                           }}
-                          placeholder="Bangladesh"
                           className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
-                        />
+                        >
+                          <option value="">Select Present Country</option>
+                          {(fields.countries || []).map((co) => (
+                            <option key={co} value={co}>{co}</option>
+                          ))}
+                          {presentCountry && !(fields.countries || []).includes(presentCountry) && (
+                            <option value={presentCountry}>{presentCountry} (Custom)</option>
+                          )}
+                        </select>
                       </div>
                     </div>
 
@@ -1018,29 +1010,41 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                       </span>
                       <div>
                         <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                          Permanent City / District
+                          Permanent City / District (Permanent CT)
                         </label>
-                        <input
-                          type="text"
+                        <select
                           value={permanentCity}
                           disabled={sameAsPresent}
                           onChange={(e) => setPermanentCity(e.target.value)}
-                          placeholder="e.g. Sylhet or Comilla"
                           className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54] disabled:opacity-60"
-                        />
+                        >
+                          <option value="">Select Permanent City / CT</option>
+                          {(fields.cities || []).map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                          {permanentCity && !(fields.cities || []).includes(permanentCity) && (
+                            <option value={permanentCity}>{permanentCity} (Custom)</option>
+                          )}
+                        </select>
                       </div>
                       <div>
                         <label className="block text-[11px] font-medium text-slate-600 mb-1">
                           Permanent Country
                         </label>
-                        <input
-                          type="text"
+                        <select
                           value={permanentCountry}
                           disabled={sameAsPresent}
                           onChange={(e) => setPermanentCountry(e.target.value)}
-                          placeholder="Bangladesh"
                           className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54] disabled:opacity-60"
-                        />
+                        >
+                          <option value="">Select Permanent Country</option>
+                          {(fields.countries || []).map((co) => (
+                            <option key={co} value={co}>{co}</option>
+                          ))}
+                          {permanentCountry && !(fields.countries || []).includes(permanentCountry) && (
+                            <option value={permanentCountry}>{permanentCountry} (Custom)</option>
+                          )}
+                        </select>
                       </div>
                     </div>
                   </div>

@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { CountryFlag, detectCountryIso } from './CountryFlag';
 import { ActivityLog, getStatusMeta } from './ActivityLog';
+import { ImageLightboxModal, downloadCandidateImage } from './ImageLightboxModal';
+import { Download, Maximize2 } from 'lucide-react';
 
 export interface LeadProfileModalProps {
   isOpen: boolean;
@@ -47,6 +49,7 @@ export const LeadProfileModal: React.FC<LeadProfileModalProps> = ({
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<'overview' | 'activity'>(initialTab);
   const [currentLead, setCurrentLead] = useState<any>(lead);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   useEffect(() => {
     setCurrentLead(lead);
@@ -195,13 +198,51 @@ export const LeadProfileModal: React.FC<LeadProfileModalProps> = ({
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 p-4 bg-slate-50 rounded-2xl border border-slate-200/80">
                 {/* Photo Preview / Gallery */}
                 <div className="relative shrink-0">
-                  <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border-2 border-white shadow-md bg-slate-200 flex items-center justify-center">
+                  <div
+                    onClick={() => {
+                      if (images.length > 0) setLightboxOpen(true);
+                    }}
+                    className={`w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border-2 border-white shadow-md bg-slate-200 flex items-center justify-center relative group ${
+                      images.length > 0 ? 'cursor-pointer' : ''
+                    }`}
+                  >
                     {images.length > 0 ? (
-                      <img
-                        src={images[activeImageIndex]}
-                        alt={currentLead.name}
-                        className="w-full h-full object-cover"
-                      />
+                      <>
+                        <img
+                          src={images[activeImageIndex]}
+                          alt={currentLead.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                        />
+                        <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                downloadCandidateImage(
+                                  images[activeImageIndex],
+                                  currentLead.name,
+                                  currentLead.id,
+                                  activeImageIndex
+                                );
+                              }}
+                              title="Download photo"
+                              className="p-1 rounded-md bg-white hover:bg-emerald-600 text-slate-800 hover:text-white shadow-xs transition-colors cursor-pointer"
+                            >
+                              <Download className="w-3 h-3" />
+                            </button>
+                          </div>
+                          <div className="flex items-center justify-center">
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-white bg-black/60 px-2 py-0.5 rounded-full backdrop-blur-xs">
+                              <Maximize2 className="w-2.5 h-2.5 text-emerald-400" />
+                              Full Screen
+                            </span>
+                          </div>
+                          <div className="text-[8px] text-center text-white/80">
+                            Click to view
+                          </div>
+                        </div>
+                      </>
                     ) : (
                       <div
                         className={`w-full h-full flex flex-col items-center justify-center ${
@@ -434,6 +475,16 @@ export const LeadProfileModal: React.FC<LeadProfileModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Full-screen Image Lightbox Modal with Zoom, Rotation & Download */}
+      <ImageLightboxModal
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        images={images}
+        initialIndex={activeImageIndex}
+        title={currentLead.name}
+        candidateId={currentLead.id}
+      />
     </div>
   );
 };

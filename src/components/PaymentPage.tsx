@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Calendar, Filter, Download, DollarSign, Bell, User, CheckCircle2, AlertCircle } from 'lucide-react';
 import { PaymentRequestsModal } from './PaymentRequestsModal';
 import { InvoiceModal } from './InvoiceModal';
+import { ImageLightboxModal } from './ImageLightboxModal';
 
 interface PaymentPageProps {
   token: string;
@@ -11,9 +12,10 @@ interface PaymentTableRowProps {
   row: any;
   index: number;
   onDownloadInvoice: (row: any) => void;
+  onViewPhoto?: (row: any) => void;
 }
 
-const PaymentTableRow = React.memo<PaymentTableRowProps>(({ row, index, onDownloadInvoice }) => {
+const PaymentTableRow = React.memo<PaymentTableRowProps>(({ row, index, onDownloadInvoice, onViewPhoto }) => {
   return (
     <tr className="hover:bg-slate-50/90 transition-colors group">
       {/* 1. Serial Number */}
@@ -32,7 +34,24 @@ const PaymentTableRow = React.memo<PaymentTableRowProps>(({ row, index, onDownlo
       {/* 3. Name with Candidate Profile Picture */}
       <td className="py-2 px-3.5">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full overflow-hidden border border-slate-200/90 shadow-2xs bg-slate-100 flex items-center justify-center shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              if (row.images && row.images.length > 0) {
+                onViewPhoto?.(row);
+              }
+            }}
+            title={
+              row.images && row.images.length > 0
+                ? 'Click to view photo in full screen & download'
+                : row.name
+            }
+            className={`w-9 h-9 rounded-full overflow-hidden border border-slate-200/90 shadow-2xs bg-slate-100 flex items-center justify-center shrink-0 ${
+              row.images && row.images.length > 0
+                ? 'cursor-pointer hover:ring-2 hover:ring-[#181E54]/40 hover:scale-105 transition-all'
+                : ''
+            }`}
+          >
             {row.images && row.images.length > 0 ? (
               <img
                 src={row.images[0]}
@@ -50,7 +69,7 @@ const PaymentTableRow = React.memo<PaymentTableRowProps>(({ row, index, onDownlo
                 <User className="w-4 h-4 opacity-60" />
               </div>
             )}
-          </div>
+          </button>
 
           <div className="min-w-0">
             <span className="font-bold text-slate-900 block truncate">{row.name}</span>
@@ -120,6 +139,7 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({ token }) => {
   // Modals & Feedback
   const [isRequestsModalOpen, setIsRequestsModalOpen] = useState(false);
   const [selectedInvoicePayment, setSelectedInvoicePayment] = useState<any | null>(null);
+  const [lightboxPayment, setLightboxPayment] = useState<any | null>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Load Payments & Requests
@@ -162,9 +182,13 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({ token }) => {
         throw new Error(err.error || 'Failed to accept payment request');
       }
       await loadData();
+      // Notify CRM pages (Traffic and Paid Traffic) to automatically synchronize state
+      window.dispatchEvent(new CustomEvent('shadikabbo:payment-accepted', {
+        detail: { requestId }
+      }));
       setToast({
         type: 'success',
-        message: 'Payment request approved successfully! Official invoice generated.',
+        message: 'Payment request approved! Candidate has been moved from Traffic to Paid Traffic section, and invoice generated.',
       });
       setTimeout(() => setToast(null), 4000);
     } catch (err: any) {
@@ -400,6 +424,7 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({ token }) => {
                     row={row}
                     index={index}
                     onDownloadInvoice={handleDownloadInvoice}
+                    onViewPhoto={(item) => setLightboxPayment(item)}
                   />
                 ))
               )}
@@ -424,6 +449,17 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({ token }) => {
         onClose={() => setSelectedInvoicePayment(null)}
         payment={selectedInvoicePayment}
       />
+
+      {/* Full-screen Image Lightbox Modal with Zoom, Rotation & Download */}
+      {lightboxPayment && (
+        <ImageLightboxModal
+          isOpen={!!lightboxPayment}
+          onClose={() => setLightboxPayment(null)}
+          images={lightboxPayment.images || []}
+          title={lightboxPayment.name}
+          candidateId={lightboxPayment.trafficId || lightboxPayment.id}
+        />
+      )}
 
       {/* Floating Action Toast Notification */}
       {toast && (

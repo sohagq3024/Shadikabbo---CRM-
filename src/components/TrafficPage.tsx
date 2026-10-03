@@ -13,7 +13,12 @@ import {
   FileText,
   CheckCircle,
   AlertCircle,
+  CreditCard,
+  Send,
+  Briefcase,
+  GraduationCap,
 } from 'lucide-react';
+import { useCrmFields } from '../context/CrmFieldsContext';
 import { TrafficProfileModal } from './TrafficProfileModal';
 import { TransferModal } from './TransferModal';
 import { AddTrafficModal, AddTrafficModalProps } from './AddTrafficModal';
@@ -172,17 +177,22 @@ const TrafficTableRow = React.memo<TrafficTableRowProps>(
 );
 
 export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
+  const { fields } = useCrmFields();
   const [traffics, setTraffics] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filters required:
+  // Filters:
   // 1. Manual search option
   // 2. By date filtering option
   // 3. CRO Role Account based filtering option
+  // 4. Dynamic Profession filter (from Settings)
+  // 5. Dynamic Qualification filter (from Settings)
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [croFilter, setCroFilter] = useState('');
+  const [professionFilter, setProfessionFilter] = useState('');
+  const [qualificationFilter, setQualificationFilter] = useState('');
 
   // CRO accounts list for the filter
   const [croAccounts, setCroAccounts] = useState<any[]>([]);
@@ -190,6 +200,7 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
   // Modals state management
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingTraffic, setEditingTraffic] = useState<any | null>(null);
+  const [editingStep, setEditingStep] = useState<1 | 2 | 3>(1);
   const [viewingTraffic, setViewingTraffic] = useState<any | null>(null);
   const [transferringTraffic, setTransferringTraffic] = useState<any | null>(null);
   const [removingTraffic, setRemovingTraffic] = useState<any | null>(null);
@@ -258,10 +269,57 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
     }
   };
 
+  // Handle direct Send Payment Request from Traffic list
+  const handleSendPaymentRequest = async (traffic: any) => {
+    try {
+      const response = await fetch('/api/payments/requests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          trafficId: traffic.id,
+          trafficName: traffic.name,
+          phone: traffic.phone,
+          paidAmount: traffic.paidAmount,
+          dueAmount: traffic.dueAmount,
+          afterMarriageFee: traffic.afterMarriageFee,
+          package: traffic.package,
+          paymentMethod: traffic.paymentMethod,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to submit payment request');
+      }
+
+      setActionToast({
+        type: 'success',
+        message: `Payment request for ${traffic.name} (৳ ${Number(traffic.paidAmount).toLocaleString()}) sent to Payment section!`,
+      });
+      loadTraffics();
+    } catch (err: any) {
+      setActionToast({
+        type: 'error',
+        message: err.message || 'Error submitting payment request',
+      });
+    } finally {
+      setActiveMenuRow(null);
+      setTimeout(() => setActionToast(null), 4000);
+    }
+  };
+
   // Filtered & sequentially ordered records
   const filteredTraffics = useMemo(() => {
     return traffics
       .filter((item) => {
+        // Exclude trash and accepted candidates (they automatically move to Paid Traffic section)
+        if (item.status === 'trash' || item.paymentStatus === 'accepted') {
+          return false;
+        }
+
         // 1. Manual search: Name, Phone, ID, Email
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase().trim();
@@ -283,10 +341,31 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
           if (assignedName !== croFilter) return false;
         }
 
+        // 4. Profession filtering (dynamic from Settings)
+        if (professionFilter) {
+          if (item.profession !== professionFilter) return false;
+        }
+
+        // 5. Qualification filtering (dynamic from Settings)
+        if (qualificationFilter) {
+          if (item.qualification !== qualificationFilter) return false;
+        }
+
         return true;
       })
       .sort((a, b) => (a.serialNumber || 0) - (b.serialNumber || 0)); // Strictly sequential
-  }, [traffics, searchQuery, dateFilter, croFilter]);
+  }, [traffics, searchQuery, dateFilter, croFilter, professionFilter, qualificationFilter]);
+
+  // Listen for payment approval events so candidates automatically vanish from Traffic
+  useEffect(() => {
+    const handlePaymentAccepted = () => {
+      loadTraffics();
+    };
+    window.addEventListener('shadikabbo:payment-accepted', handlePaymentAccepted);
+    return () => {
+      window.removeEventListener('shadikabbo:payment-accepted', handlePaymentAccepted);
+    };
+  }, []);
 
   // Memoized action handlers to prevent re-rendering table rows
   const handleViewTraffic = React.useCallback((row: any) => {
@@ -342,9 +421,9 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
         </button>
       </div>
 
-      {/* FILTER CONTROLS: EXACTLY 3 FILTERS */}
+      {/* FILTER CONTROLS: SEARCH, DATE, CRO ACCOUNT, PROFESSION & QUALIFICATION (Dynamic from Settings) */}
       <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
           {/* 1. Manual search option */}
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -352,7 +431,7 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by name, phone, email, ID..."
+              placeholder="Search name, phone, ID..."
               className="w-full pl-9 pr-3.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
             />
           </div>
@@ -384,10 +463,44 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
               ))}
             </select>
           </div>
+
+          {/* 4. Profession filter (Dynamic from Settings) */}
+          <div className="relative">
+            <Briefcase className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <select
+              value={professionFilter}
+              onChange={(e) => setProfessionFilter(e.target.value)}
+              className="w-full pl-9 pr-3.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54] appearance-none"
+            >
+              <option value="">All Professions</option>
+              {(fields.professions || []).map((prof) => (
+                <option key={prof} value={prof}>
+                  {prof}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 5. Qualification filter (Dynamic from Settings) */}
+          <div className="relative">
+            <GraduationCap className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <select
+              value={qualificationFilter}
+              onChange={(e) => setQualificationFilter(e.target.value)}
+              className="w-full pl-9 pr-3.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54] appearance-none"
+            >
+              <option value="">All Qualifications</option>
+              {(fields.qualifications || []).map((qual) => (
+                <option key={qual} value={qual}>
+                  {qual}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Clear filters shortcut */}
-        {(searchQuery || dateFilter || croFilter) && (
+        {(searchQuery || dateFilter || croFilter || professionFilter || qualificationFilter) && (
           <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
             <span className="text-slate-500">
               Showing filtered results ({filteredTraffics.length} of {traffics.length})
@@ -398,6 +511,8 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
                 setSearchQuery('');
                 setDateFilter('');
                 setCroFilter('');
+                setProfessionFilter('');
+                setQualificationFilter('');
               }}
               className="text-[#D81124] hover:underline font-medium cursor-pointer"
             >
@@ -482,6 +597,21 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
             onClick: () => handleViewTraffic(activeMenuRow),
           },
           {
+            label: 'Edit & Payment Info',
+            sublabel: 'Complete or update candidate payment details',
+            icon: <CreditCard className="w-4 h-4 text-emerald-600" />,
+            onClick: () => {
+              setEditingStep(3);
+              setEditingTraffic(activeMenuRow);
+            },
+          },
+          ...(activeMenuRow && activeMenuRow.paymentStatus !== 'accepted' && Number(activeMenuRow.paidAmount) > 0 ? [{
+            label: 'Send Payment Request',
+            sublabel: 'Send payment ticket to Payment section',
+            icon: <Send className="w-4 h-4 text-emerald-600" />,
+            onClick: () => handleSendPaymentRequest(activeMenuRow),
+          }] : []),
+          {
             label: 'Transfer',
             sublabel: 'Reassign traffic to another CRO account',
             icon: <ArrowRightLeft className="w-4 h-4 text-blue-600" />,
@@ -501,7 +631,20 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
       <AddTrafficModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onSubmitSuccess={loadTraffics}
+        onSubmitSuccess={(details) => {
+          loadTraffics();
+          if (details?.wasPaymentRequested) {
+            setActionToast({
+              type: 'success',
+              message: `New traffic "${details.name || 'Candidate'}" added and Payment Request (৳ ${Number(details.paidAmount || 0).toLocaleString()}) sent to Payment section!`,
+            });
+          } else {
+            setActionToast({
+              type: 'success',
+              message: 'New candidate added successfully.',
+            });
+          }
+        }}
         token={token}
       />
 
@@ -509,9 +652,26 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
       {editingTraffic && (
         <AddTrafficModal
           isOpen={!!editingTraffic}
-          onClose={() => setEditingTraffic(null)}
-          onSubmitSuccess={loadTraffics}
+          onClose={() => {
+            setEditingTraffic(null);
+            setEditingStep(1);
+          }}
+          onSubmitSuccess={(details) => {
+            loadTraffics();
+            if (details?.wasPaymentRequested) {
+              setActionToast({
+                type: 'success',
+                message: `Payment request for ${details.name || 'candidate'} (৳ ${Number(details.paidAmount || 0).toLocaleString()}) sent to Payment section!`,
+              });
+            } else {
+              setActionToast({
+                type: 'success',
+                message: 'Candidate profile updated successfully.',
+              });
+            }
+          }}
           initialData={editingTraffic}
+          initialStep={editingStep}
           token={token}
         />
       )}
@@ -521,7 +681,12 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
         isOpen={!!viewingTraffic}
         onClose={() => setViewingTraffic(null)}
         traffic={viewingTraffic}
-        onEdit={(trafficToEdit) => setEditingTraffic(trafficToEdit)}
+        onEdit={(trafficToEdit, step) => {
+          setEditingStep(step || 3);
+          setEditingTraffic(trafficToEdit);
+        }}
+        token={token}
+        onPaymentRequestSuccess={loadTraffics}
       />
 
       {/* Transfer Modal */}

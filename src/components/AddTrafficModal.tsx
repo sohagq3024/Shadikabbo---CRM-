@@ -24,12 +24,14 @@ import {
   Phone,
 } from 'lucide-react';
 import { useTrafficValidation } from '../hooks/useTrafficValidation';
+import { useCrmFields } from '../context/CrmFieldsContext';
 
 export interface AddTrafficModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmitSuccess: () => void;
+  onSubmitSuccess: (details?: { wasPaymentRequested?: boolean; name?: string; paidAmount?: number }) => void;
   initialData?: any;
+  initialStep?: 1 | 2 | 3;
   token: string;
 }
 
@@ -67,10 +69,12 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
   onClose,
   onSubmitSuccess,
   initialData,
+  initialStep = 1,
   token,
 }) => {
+  const { fields } = useCrmFields();
   // Wizard Step: 1 = Basic Info, 2 = Additional Info, 3 = Payment
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(initialStep || 1);
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
 
   // Step navigation helper with directional slide (memoized)
@@ -199,7 +203,7 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
   // Sync state when editing or opening fresh
   useEffect(() => {
     if (initialData) {
-      setCurrentStep(1);
+      setCurrentStep(initialStep || 1);
       setName(initialData.name || '');
       const rawPhone = initialData.phone || '';
       const matchedCountry = COUNTRY_CODES.find((c) => rawPhone.startsWith(c.code));
@@ -239,7 +243,7 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
       setPdfError(null);
       clearErrors();
     } else if (isOpen) {
-      setCurrentStep(1);
+      setCurrentStep(initialStep || 1);
       setName('');
       setSelectedCountry(COUNTRY_CODES[0]);
       setPhone('');
@@ -525,7 +529,11 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
       }
 
       clearErrors();
-      onSubmitSuccess();
+      onSubmitSuccess({
+        wasPaymentRequested: numericPaid > 0,
+        name,
+        paidAmount: numericPaid,
+      });
       onClose();
     } catch (err: any) {
       setGeneralError(err.message || 'Submission failed');
@@ -907,21 +915,11 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
                       onChange={(e) => setProfession(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                     >
-                      <option value="Doctor">Doctor</option>
-                      <option value="Software Engineer">Software Engineer</option>
-                      <option value="Civil Engineer">Civil Engineer</option>
-                      <option value="Electrical Engineer">Electrical Engineer</option>
-                      <option value="Banker">Banker</option>
-                      <option value="Business Owner">Business Owner</option>
-                      <option value="Government Service">Government Service</option>
-                      <option value="University Lecturer">University Lecturer</option>
-                      <option value="Teacher">Teacher</option>
-                      <option value="Chartered Accountant">Chartered Accountant</option>
-                      <option value="Lawyer">Lawyer</option>
-                      <option value="Defense Officer">Defense Officer</option>
-                      <option value="Architect">Architect</option>
-                      <option value="Private Service">Private Service</option>
-                      <option value="Other">Other</option>
+                      {(fields.professions || []).map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -935,14 +933,11 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
                       onChange={(e) => setJobType(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                     >
-                      <option value="Private Job">Private Job</option>
-                      <option value="Government Job">Government Job</option>
-                      <option value="Multinational (MNC)">Multinational (MNC)</option>
-                      <option value="Own Business">Own Business</option>
-                      <option value="Freelancing / Remote">Freelancing / Remote</option>
-                      <option value="Part Time">Part Time</option>
-                      <option value="Non-Employed">Non-Employed</option>
-                      <option value="Other">Other</option>
+                      {(fields.jobTypes || []).map((jt) => (
+                        <option key={jt} value={jt}>
+                          {jt}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -969,10 +964,11 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
                       onChange={(e) => setMaritalStatus(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                     >
-                      <option value="Never Married">Never Married</option>
-                      <option value="Divorced">Divorced</option>
-                      <option value="Widowed">Widowed</option>
-                      <option value="Awaiting Divorce">Awaiting Divorce</option>
+                      {(fields.maritalStatuses || []).map((ms) => (
+                        <option key={ms} value={ms}>
+                          {ms}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -986,8 +982,11 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
                       onChange={(e) => setGender(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                     >
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
+                      {(fields.genders || []).map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -1001,11 +1000,11 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
                       onChange={(e) => setBodyColor(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                     >
-                      <option value="Fair">Fair</option>
-                      <option value="Very Fair">Very Fair</option>
-                      <option value="Wheatish">Wheatish</option>
-                      <option value="Dusky">Dusky</option>
-                      <option value="Dark">Dark</option>
+                      {(fields.bodyColors || []).map((bc) => (
+                        <option key={bc} value={bc}>
+                          {bc}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -1019,25 +1018,11 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
                       onChange={(e) => setHeight(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                     >
-                      <option value="4'8&quot; (142 cm)">4&apos;8&quot; (142 cm)</option>
-                      <option value="4'9&quot; (145 cm)">4&apos;9&quot; (145 cm)</option>
-                      <option value="4'10&quot; (147 cm)">4&apos;10&quot; (147 cm)</option>
-                      <option value="4'11&quot; (150 cm)">4&apos;11&quot; (150 cm)</option>
-                      <option value="5'0&quot; (152 cm)">5&apos;0&quot; (152 cm)</option>
-                      <option value="5'1&quot; (155 cm)">5&apos;1&quot; (155 cm)</option>
-                      <option value="5'2&quot; (157 cm)">5&apos;2&quot; (157 cm)</option>
-                      <option value="5'3&quot; (160 cm)">5&apos;3&quot; (160 cm)</option>
-                      <option value="5'4&quot; (163 cm)">5&apos;4&quot; (163 cm)</option>
-                      <option value="5'5&quot; (165 cm)">5&apos;5&quot; (165 cm)</option>
-                      <option value="5'6&quot; (168 cm)">5&apos;6&quot; (168 cm)</option>
-                      <option value="5'7&quot; (170 cm)">5&apos;7&quot; (170 cm)</option>
-                      <option value="5'8&quot; (173 cm)">5&apos;8&quot; (173 cm)</option>
-                      <option value="5'9&quot; (175 cm)">5&apos;9&quot; (175 cm)</option>
-                      <option value="5'10&quot; (178 cm)">5&apos;10&quot; (178 cm)</option>
-                      <option value="5'11&quot; (180 cm)">5&apos;11&quot; (180 cm)</option>
-                      <option value="6'0&quot; (183 cm)">6&apos;0&quot; (183 cm)</option>
-                      <option value="6'1&quot; (185 cm)">6&apos;1&quot; (185 cm)</option>
-                      <option value="6'2&quot;+ (188+ cm)">6&apos;2&quot;+ (188+ cm)</option>
+                      {(fields.heights || []).map((h) => (
+                        <option key={h} value={h}>
+                          {h}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -1051,13 +1036,11 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
                       onChange={(e) => setReligion(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                     >
-                      <option value="Islam (Sunni)">Islam (Sunni)</option>
-                      <option value="Islam (Shia)">Islam (Shia)</option>
-                      <option value="Islam (Other)">Islam (Other)</option>
-                      <option value="Hinduism">Hinduism</option>
-                      <option value="Christianity">Christianity</option>
-                      <option value="Buddhism">Buddhism</option>
-                      <option value="Other">Other</option>
+                      {(fields.religions || []).map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -1071,14 +1054,11 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
                       onChange={(e) => setBloodGroup(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                     >
-                      <option value="A+">A+</option>
-                      <option value="A-">A-</option>
-                      <option value="B+">B+</option>
-                      <option value="B-">B-</option>
-                      <option value="O+">O+</option>
-                      <option value="O-">O-</option>
-                      <option value="AB+">AB+</option>
-                      <option value="AB-">AB-</option>
+                      {(fields.bloodGroups || []).map((bg) => (
+                        <option key={bg} value={bg}>
+                          {bg}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -1092,15 +1072,11 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
                       onChange={(e) => setQualification(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                     >
-                      <option value="SSC / O-Level">SSC / O-Level</option>
-                      <option value="HSC / A-Level">HSC / A-Level</option>
-                      <option value="Bachelor's / Honors">Bachelor&apos;s / Honors</option>
-                      <option value="Master's Degree">Master&apos;s Degree</option>
-                      <option value="MBBS / Medical">MBBS / Medical</option>
-                      <option value="B.Sc Engineering">B.Sc Engineering</option>
-                      <option value="CA / ACCA / CMA">CA / ACCA / CMA</option>
-                      <option value="Ph.D / Doctorate">Ph.D / Doctorate</option>
-                      <option value="Other">Other</option>
+                      {(fields.qualifications || []).map((q) => (
+                        <option key={q} value={q}>
+                          {q}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -1150,31 +1126,43 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
                       <label className="block text-[11px] font-medium text-slate-600 mb-1">
                         Present City / District
                       </label>
-                      <input
-                        type="text"
+                      <select
                         value={presentCity}
                         onChange={(e) => {
                           setPresentCity(e.target.value);
                           if (sameAsPresent) setPermanentCity(e.target.value);
                         }}
-                        placeholder="e.g. Dhaka (Gulshan) or Chittagong"
                         className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
-                      />
+                      >
+                        <option value="">Select Present City / District</option>
+                        {(fields.cities || []).map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                        {presentCity && !(fields.cities || []).includes(presentCity) && (
+                          <option value={presentCity}>{presentCity} (Custom)</option>
+                        )}
+                      </select>
                     </div>
                     <div>
                       <label className="block text-[11px] font-medium text-slate-600 mb-1">
                         Present Country
                       </label>
-                      <input
-                        type="text"
+                      <select
                         value={presentCountry}
                         onChange={(e) => {
                           setPresentCountry(e.target.value);
                           if (sameAsPresent) setPermanentCountry(e.target.value);
                         }}
-                        placeholder="Bangladesh"
                         className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
-                      />
+                      >
+                        <option value="">Select Present Country</option>
+                        {(fields.countries || []).map((co) => (
+                          <option key={co} value={co}>{co}</option>
+                        ))}
+                        {presentCountry && !(fields.countries || []).includes(presentCountry) && (
+                          <option value={presentCountry}>{presentCountry} (Custom)</option>
+                        )}
+                      </select>
                     </div>
                   </div>
 
@@ -1185,29 +1173,41 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
                     </span>
                     <div>
                       <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                        Permanent City / District
+                        Permanent City / District (Permanent CT)
                       </label>
-                      <input
-                        type="text"
+                      <select
                         value={permanentCity}
                         disabled={sameAsPresent}
                         onChange={(e) => setPermanentCity(e.target.value)}
-                        placeholder="e.g. Sylhet or Comilla"
                         className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54] disabled:opacity-60"
-                      />
+                      >
+                        <option value="">Select Permanent City / CT</option>
+                        {(fields.cities || []).map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                        {permanentCity && !(fields.cities || []).includes(permanentCity) && (
+                          <option value={permanentCity}>{permanentCity} (Custom)</option>
+                        )}
+                      </select>
                     </div>
                     <div>
                       <label className="block text-[11px] font-medium text-slate-600 mb-1">
                         Permanent Country
                       </label>
-                      <input
-                        type="text"
+                      <select
                         value={permanentCountry}
                         disabled={sameAsPresent}
                         onChange={(e) => setPermanentCountry(e.target.value)}
-                        placeholder="Bangladesh"
                         className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54] disabled:opacity-60"
-                      />
+                      >
+                        <option value="">Select Permanent Country</option>
+                        {(fields.countries || []).map((co) => (
+                          <option key={co} value={co}>{co}</option>
+                        ))}
+                        {permanentCountry && !(fields.countries || []).includes(permanentCountry) && (
+                          <option value={permanentCountry}>{permanentCountry} (Custom)</option>
+                        )}
+                      </select>
                     </div>
                   </div>
                 </div>
@@ -1390,24 +1390,20 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
                       onChange={(e) => {
                         const selectedPkg = e.target.value;
                         setPkg(selectedPkg);
-                        // Optional preset pricing auto-set
-                        if (selectedPkg === 'Bronze') setPrice('10000');
-                        else if (selectedPkg === 'Silver') setPrice('15000');
+                        if (selectedPkg === 'Silver') setPrice('15000');
                         else if (selectedPkg === 'Gold') setPrice('20000');
                         else if (selectedPkg === 'Diamond') setPrice('30000');
                         else if (selectedPkg === 'Platinum') setPrice('50000');
                         else if (selectedPkg === 'VIP Royal') setPrice('100000');
-                        else if (selectedPkg === 'Free Trial') setPrice('0');
+                        else if (selectedPkg === 'Standard') setPrice('10000');
                       }}
                       className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                     >
-                      <option value="Free Trial">Free Trial</option>
-                      <option value="Bronze">Bronze Package</option>
-                      <option value="Silver">Silver Package</option>
-                      <option value="Gold">Gold Package</option>
-                      <option value="Diamond">Diamond Package</option>
-                      <option value="Platinum">Platinum Package</option>
-                      <option value="VIP Royal">VIP Royal Package</option>
+                      {(fields.packages || []).map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
                       <option value="Custom">Custom Package</option>
                     </select>
                   </div>
@@ -1640,7 +1636,13 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
                 className="flex items-center gap-2 px-6 py-2.5 bg-[#D81124] hover:bg-[#B80E1C] text-white text-xs font-semibold rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-70"
               >
                 <CheckCircle className="w-4 h-4" />
-                <span>{loading ? 'Submitting...' : initialData ? 'Update Profile' : 'Add Traffic'}</span>
+                <span>
+                  {loading
+                    ? 'Submitting...'
+                    : initialData
+                    ? (numericPaid > 0 ? 'Update & Send Payment Request' : 'Update Profile')
+                    : (numericPaid > 0 ? 'Add Traffic & Request Payment' : 'Add Traffic')}
+                </span>
               </button>
             )}
           </div>

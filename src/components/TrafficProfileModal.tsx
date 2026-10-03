@@ -1,12 +1,34 @@
-import React from 'react';
-import { X, Edit3, Phone, Mail, MapPin, Calendar, Heart, Shield, Award, DollarSign, FileText } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  X,
+  Edit3,
+  Phone,
+  Mail,
+  MapPin,
+  Calendar,
+  Heart,
+  Shield,
+  Award,
+  DollarSign,
+  FileText,
+  CheckCircle2,
+  Clock,
+  CreditCard,
+  Send,
+  Download,
+  Maximize2,
+  Eye,
+} from 'lucide-react';
 import { CountryFlag, detectCountryIso } from './CountryFlag';
+import { ImageLightboxModal, downloadCandidateImage } from './ImageLightboxModal';
 
 interface TrafficProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   traffic: any;
-  onEdit: (traffic: any) => void;
+  onEdit: (traffic: any, initialStep?: 1 | 2 | 3) => void;
+  token?: string;
+  onPaymentRequestSuccess?: () => void;
 }
 
 export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
@@ -14,8 +36,57 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
   onClose,
   traffic,
   onEdit,
+  token,
+  onPaymentRequestSuccess,
 }) => {
+  const [isSendingRequest, setIsSendingRequest] = useState(false);
+  const [requestMessage, setRequestMessage] = useState<string | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
   if (!isOpen || !traffic) return null;
+
+  const handleOpenPhoto = (index: number) => {
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  };
+
+  const handleSendPaymentRequest = async () => {
+    if (!token) return;
+    setIsSendingRequest(true);
+    setRequestMessage(null);
+    try {
+      const response = await fetch('/api/payments/requests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          trafficId: traffic.id,
+          trafficName: traffic.name,
+          phone: traffic.phone,
+          paidAmount: traffic.paidAmount,
+          dueAmount: traffic.dueAmount,
+          afterMarriageFee: traffic.afterMarriageFee,
+          package: traffic.package,
+          paymentMethod: traffic.paymentMethod,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to submit payment request');
+      }
+
+      setRequestMessage('Payment request successfully submitted to Payment section!');
+      if (onPaymentRequestSuccess) onPaymentRequestSuccess();
+    } catch (err: any) {
+      setRequestMessage(err.message || 'Error submitting request');
+    } finally {
+      setIsSendingRequest(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 flex items-center justify-center p-3 md:p-6 transition-opacity duration-150">
@@ -24,17 +95,37 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
         {/* Header with Title and Edit Icon */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl overflow-hidden border border-slate-200 bg-[#181E54] text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs">
-              {traffic.images && traffic.images.length > 0 ? (
-                <img
-                  src={traffic.images[0]}
-                  alt={traffic.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                traffic.gender === 'Female' ? 'F' : 'M'
+            <button
+              type="button"
+              onClick={() => {
+                if (traffic.images && traffic.images.length > 0) {
+                  handleOpenPhoto(0);
+                }
+              }}
+              title={
+                traffic.images && traffic.images.length > 0
+                  ? 'Click to view photo in full screen & download'
+                  : traffic.name
+              }
+              className="relative group/avatar cursor-pointer focus:outline-none"
+            >
+              <div className="w-11 h-11 rounded-2xl overflow-hidden border border-slate-200 bg-[#181E54] text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs group-hover/avatar:ring-2 group-hover/avatar:ring-[#181E54]/30 transition-all">
+                {traffic.images && traffic.images.length > 0 ? (
+                  <img
+                    src={traffic.images[0]}
+                    alt={traffic.name}
+                    className="w-full h-full object-cover group-hover/avatar:scale-105 transition-transform"
+                  />
+                ) : (
+                  traffic.gender === 'Female' ? 'F' : 'M'
+                )}
+              </div>
+              {traffic.images && traffic.images.length > 1 && (
+                <span className="absolute -bottom-1 -right-1 bg-[#D81124] text-white text-[8px] font-bold px-1 py-0.5 rounded-full border border-white shadow-2xs">
+                  +{traffic.images.length - 1}
+                </span>
               )}
-            </div>
+            </button>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-bold text-[#181E54]">{traffic.name}</h2>
@@ -179,19 +270,78 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
 
           {/* Picture Uploads (Unlimited) */}
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#D81124] mb-3">
-              Candidate Photos ({traffic.images?.length || 0})
-            </h3>
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#D81124]">
+                  Candidate Photos ({traffic.images?.length || 0})
+                </h3>
+                <span className="text-[10px] text-slate-400 hidden sm:inline">
+                  (Click any photo to view full screen &amp; download)
+                </span>
+              </div>
+              {traffic.images && traffic.images.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => handleOpenPhoto(0)}
+                  className="text-xs font-semibold text-[#181E54] hover:text-[#D81124] flex items-center gap-1.5 transition-colors cursor-pointer bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1 rounded-lg border border-slate-200/80 shadow-2xs"
+                >
+                  <Maximize2 className="w-3.5 h-3.5 text-[#181E54]" />
+                  <span>View Full Screen ({traffic.images.length})</span>
+                </button>
+              )}
+            </div>
+
             {traffic.images && traffic.images.length > 0 ? (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
                 {traffic.images.map((img: string, index: number) => (
-                  <div key={index} className="aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shadow-xs">
-                    <img src={img} alt={`Profile ${index + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                  <div
+                    key={index}
+                    onClick={() => handleOpenPhoto(index)}
+                    className="group relative aspect-square rounded-xl overflow-hidden border border-slate-200 hover:border-[#181E54] bg-slate-100 shadow-xs hover:shadow-md transition-all cursor-pointer"
+                  >
+                    <img
+                      src={img}
+                      alt={`Candidate Photo ${index + 1}`}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                    />
+
+                    {/* Hover Action Overlay with Direct Download & Fullscreen Icons */}
+                    <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] font-mono font-bold text-white bg-black/60 px-1.5 py-0.5 rounded">
+                          #{index + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadCandidateImage(img, traffic.name, traffic.id, index);
+                          }}
+                          title="Download photo"
+                          className="p-1 rounded-md bg-white hover:bg-emerald-600 text-slate-800 hover:text-white shadow-xs transition-colors cursor-pointer"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-center">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-white bg-black/60 px-2 py-0.5 rounded-full backdrop-blur-xs">
+                          <Maximize2 className="w-3 h-3 text-emerald-400" />
+                          Full Screen
+                        </span>
+                      </div>
+
+                      <div className="text-[9px] text-center text-white/80 font-medium">
+                        Click to view
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="p-3 bg-slate-50 rounded-xl text-slate-400 italic">No photos attached</div>
+              <div className="p-4 bg-slate-50 rounded-xl text-slate-400 italic text-center border border-dashed border-slate-200">
+                No photos attached to this candidate profile
+              </div>
             )}
           </div>
 
@@ -222,37 +372,102 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
 
           {/* Part 3: Payment details */}
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#D81124] mb-3">Payment Summary</h3>
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#D81124]">Payment Summary</h3>
+              
+              <div className="flex items-center gap-2">
+                {traffic.paymentStatus === 'accepted' ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Payment Cleared &amp; Invoiced
+                  </span>
+                ) : traffic.paidAmount > 0 ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                    <Clock className="w-3.5 h-3.5" />
+                    Payment Verification Pending
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                    Unpaid / Pending Submission
+                  </span>
+                )}
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
               <div>
                 <span className="text-slate-400 block mb-0.5">Package</span>
-                <span className="font-semibold text-slate-900">{traffic.package}</span>
+                <span className="font-semibold text-slate-900">{traffic.package || 'Standard'}</span>
               </div>
               <div>
                 <span className="text-slate-400 block mb-0.5">Price</span>
-                <span className="font-semibold text-slate-900">{traffic.price?.toLocaleString()} BDT</span>
+                <span className="font-semibold text-slate-900">{Number(traffic.price || 0).toLocaleString()} BDT</span>
               </div>
               <div>
                 <span className="text-slate-400 block mb-0.5">Discount</span>
-                <span className="font-semibold text-slate-900">{traffic.discount?.toLocaleString()} BDT</span>
+                <span className="font-semibold text-slate-900">{Number(traffic.discount || 0).toLocaleString()} BDT</span>
               </div>
               <div>
                 <span className="text-slate-400 block mb-0.5">Paid Amount</span>
-                <span className="font-semibold text-emerald-600">{traffic.paidAmount?.toLocaleString()} BDT</span>
+                <span className="font-semibold text-emerald-600 font-mono">৳ {Number(traffic.paidAmount || 0).toLocaleString()}</span>
               </div>
               <div>
                 <span className="text-slate-400 block mb-0.5">Due Amount</span>
-                <span className="font-semibold text-red-600">{traffic.dueAmount?.toLocaleString()} BDT</span>
+                <span className="font-semibold text-red-600 font-mono">৳ {Number(traffic.dueAmount || 0).toLocaleString()}</span>
               </div>
               <div>
                 <span className="text-slate-400 block mb-0.5">Payment Method</span>
-                <span className="font-semibold text-slate-900">{traffic.paymentMethod}</span>
+                <span className="font-semibold text-slate-900">{traffic.paymentMethod || 'bKash'}</span>
               </div>
               <div className="col-span-2">
                 <span className="text-slate-400 block mb-0.5">After Marriage Fee</span>
-                <span className="font-semibold text-indigo-700">{traffic.afterMarriageFee?.toLocaleString()} BDT</span>
+                <span className="font-semibold text-[#181E54] font-mono">৳ {Number(traffic.afterMarriageFee || 0).toLocaleString()}</span>
               </div>
             </div>
+
+            {/* Payment Request Action Buttons */}
+            {traffic.paymentStatus !== 'accepted' && (
+              <div className="mt-3 flex items-center justify-between gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200 flex-wrap">
+                <div className="text-xs text-slate-600">
+                  {Number(traffic.paidAmount || 0) > 0 ? (
+                    <span>Payment info is recorded. You can send or re-send the request to Accounts for approval.</span>
+                  ) : (
+                    <span>Payment info is not complete yet. Click below to enter package and payment details.</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onEdit(traffic, 3);
+                    }}
+                    className="px-3.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-[#D81124]" />
+                    <span>Edit Payment Info</span>
+                  </button>
+
+                  {Number(traffic.paidAmount || 0) > 0 && token && (
+                    <button
+                      type="button"
+                      onClick={handleSendPaymentRequest}
+                      disabled={isSendingRequest}
+                      className="px-4 py-1.5 bg-[#181E54] hover:bg-[#121642] text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <Send className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{isSendingRequest ? 'Sending...' : 'Send Payment Request'}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {requestMessage && (
+              <p className="mt-2 text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-center">
+                {requestMessage}
+              </p>
+            )}
           </div>
 
         </div>
@@ -269,6 +484,16 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
         </div>
 
       </div>
+
+      {/* Full Screen Image Lightbox Modal with Zoom, Rotation, and Real Download Logic */}
+      <ImageLightboxModal
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        images={traffic.images || []}
+        initialIndex={lightboxIndex}
+        title={traffic.name}
+        candidateId={traffic.id}
+      />
     </div>
   );
 };

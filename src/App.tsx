@@ -6,7 +6,9 @@ import { PaidTrafficPage } from './components/PaidTrafficPage';
 import { PaymentPage } from './components/PaymentPage';
 import { LeadPage } from './components/LeadPage';
 import { TrashBinPage } from './components/TrashBinPage';
+import { SettingsPage } from './components/SettingsPage';
 import { EmptyPage } from './components/EmptyPage';
+import { CrmFieldsProvider } from './context/CrmFieldsContext';
 
 export default function App() {
   const [token, setToken] = useState<string | null>(() => {
@@ -96,26 +98,28 @@ export default function App() {
 
   // Authenticated -> Show CRM Main Interface
   return (
-    <CrmLayout
-      user={user}
-      activePage={activePage}
-      onSelectPage={(page) => setActivePage(page)}
-      onLogout={handleLogout}
-    >
-      {activePage === 'Traffic' && <TrafficPage token={token} />}
-      {activePage === 'Paid Traffic' && <PaidTrafficPage token={token} />}
-      {activePage === 'Payment' && <PaymentPage token={token} />}
-      {activePage === 'Lead' && <LeadPage token={token} />}
-      
-      {/* Active Feature Sections */}
-      {activePage === 'Trush bin' && <TrashBinPage token={token} />}
-      
-      {/* Kept Empty per explicit instructions for unfinished sections */}
-      {activePage === 'Dashboard' && <EmptyPage title="Dashboard" />}
-      {activePage === 'Account' && <EmptyPage title="Account" />}
-      {activePage === 'Tracking' && <EmptyPage title="Tracking" />}
-      {activePage === 'Attendance' && <EmptyPage title="Attendance" />}
-      {activePage === 'Settings' && <EmptyPage title="Settings" />}
-    </CrmLayout>
+    <CrmFieldsProvider token={token}>
+      <CrmLayout
+        user={user}
+        activePage={activePage}
+        onSelectPage={(page) => setActivePage(page)}
+        onLogout={handleLogout}
+      >
+        {activePage === 'Traffic' && <TrafficPage token={token} />}
+        {activePage === 'Paid Traffic' && <PaidTrafficPage token={token} />}
+        {activePage === 'Payment' && <PaymentPage token={token} />}
+        {activePage === 'Lead' && <LeadPage token={token} />}
+        
+        {/* Active Feature Sections */}
+        {activePage === 'Trush bin' && <TrashBinPage token={token} />}
+        {activePage === 'Settings' && <SettingsPage token={token} />}
+        
+        {/* Kept Empty per explicit instructions for unfinished sections */}
+        {activePage === 'Dashboard' && <EmptyPage title="Dashboard" />}
+        {activePage === 'Account' && <EmptyPage title="Account" />}
+        {activePage === 'Tracking' && <EmptyPage title="Tracking" />}
+        {activePage === 'Attendance' && <EmptyPage title="Attendance" />}
+      </CrmLayout>
+    </CrmFieldsProvider>
   );
-}
+};

@@ -6,6 +6,7 @@ import { CheckPaymentModal } from './CheckPaymentModal';
 import { ChangeAssignModal } from './ChangeAssignModal';
 import { CountryFlag, detectCountryIso } from './CountryFlag';
 import { ActionPortalMenu } from './ActionPortalMenu';
+import { useCrmFields } from '../context/CrmFieldsContext';
 
 interface PaidTrafficPageProps {
   token: string;
@@ -144,6 +145,7 @@ const PaidTrafficTableRow = React.memo<PaidTrafficTableRowProps>(
 );
 
 export const PaidTrafficPage: React.FC<PaidTrafficPageProps> = ({ token }) => {
+  const { fields } = useCrmFields();
   const [paidTraffics, setPaidTraffics] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -186,6 +188,17 @@ export const PaidTrafficPage: React.FC<PaidTrafficPageProps> = ({ token }) => {
   useEffect(() => {
     loadPaidTraffic();
   }, [token]);
+
+  // Automatically refresh when any payment request is approved across CRM
+  useEffect(() => {
+    const handlePaymentAccepted = () => {
+      loadPaidTraffic();
+    };
+    window.addEventListener('shadikabbo:payment-accepted', handlePaymentAccepted);
+    return () => {
+      window.removeEventListener('shadikabbo:payment-accepted', handlePaymentAccepted);
+    };
+  }, []);
 
   // Remove from Paid Traffic (moves to Trush bin)
   const handleRemove = async (id: string) => {
@@ -323,8 +336,11 @@ export const PaidTrafficPage: React.FC<PaidTrafficPageProps> = ({ token }) => {
             className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
           >
             <option value="">All Genders</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
+            {(fields.genders || []).map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -339,20 +355,11 @@ export const PaidTrafficPage: React.FC<PaidTrafficPageProps> = ({ token }) => {
             className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
           >
             <option value="">All Professions</option>
-            <option value="Doctor">Doctor</option>
-            <option value="Software Engineer">Software Engineer</option>
-            <option value="Civil Engineer">Civil Engineer</option>
-            <option value="Banker">Banker</option>
-            <option value="Business Owner">Business Owner</option>
-            <option value="Government Service">Government Service</option>
-            <option value="University Lecturer">University Lecturer</option>
-            <option value="Teacher">Teacher</option>
-            <option value="Chartered Accountant">Chartered Accountant</option>
-            <option value="Lawyer">Lawyer</option>
-            <option value="Defense Officer">Defense Officer</option>
-            <option value="Architect">Architect</option>
-            <option value="Private Service">Private Service</option>
-            <option value="Other">Other</option>
+            {(fields.professions || []).map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -367,16 +374,11 @@ export const PaidTrafficPage: React.FC<PaidTrafficPageProps> = ({ token }) => {
             className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
           >
             <option value="">All Qualifications</option>
-            <option value="SSC / O-Level">SSC / O-Level</option>
-            <option value="HSC / A-Level">HSC / A-Level</option>
-            <option value="Bachelor's / Honors">Bachelor&apos;s / Honors</option>
-            <option value="Master's Degree">Master&apos;s Degree</option>
-            <option value="MBBS / Medical">MBBS / Medical</option>
-            <option value="B.Sc Engineering">B.Sc Engineering</option>
-            <option value="CA / ACCA / CMA">CA / ACCA / CMA</option>
-            <option value="Ph.D / Doctorate">Ph.D / Doctorate</option>
-            <option value="Diploma / Vocational">Diploma / Vocational</option>
-            <option value="Other">Other</option>
+            {(fields.qualifications || []).map((q) => (
+              <option key={q} value={q}>
+                {q}
+              </option>
+            ))}
           </select>
         </div>
       </div>

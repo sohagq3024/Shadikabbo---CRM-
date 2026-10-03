@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Upload, Trash2, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 import { useTrafficValidation } from '../hooks/useTrafficValidation';
+import { useCrmFields } from '../context/CrmFieldsContext';
 
 interface TrafficFormModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ export const TrafficFormModal: React.FC<TrafficFormModalProps> = ({
   initialData,
   token,
 }) => {
+  const { fields } = useCrmFields();
   // Client-side validation hook
   const {
     errors,
@@ -464,40 +466,37 @@ export const TrafficFormModal: React.FC<TrafficFormModalProps> = ({
                   onChange={(e) => setProfession(e.target.value)}
                   className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                 >
-                  <option value="Doctor">Doctor</option>
-                  <option value="Software Engineer">Software Engineer</option>
-                  <option value="Civil Engineer">Civil Engineer</option>
-                  <option value="Banker">Banker</option>
-                  <option value="Business Owner">Business Owner</option>
-                  <option value="Government Service">Government Service</option>
-                  <option value="University Lecturer">University Lecturer</option>
-                  <option value="Teacher">Teacher</option>
-                  <option value="Chartered Accountant">Chartered Accountant</option>
-                  <option value="Lawyer">Lawyer</option>
-                  <option value="Defense Officer">Defense Officer</option>
-                  <option value="Architect">Architect</option>
-                  <option value="Private Service">Private Service</option>
-                  <option value="Other">Other</option>
+                  <option value="">Select Profession</option>
+                  {(fields.professions || []).map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                  {profession && !(fields.professions || []).includes(profession) && (
+                    <option value={profession}>{profession} (Custom)</option>
+                  )}
                 </select>
               </div>
 
-              {/* Jobe Type */}
+              {/* Job Type */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Jobe Type
+                  Job Type
                 </label>
                 <select
                   value={jobType}
                   onChange={(e) => setJobType(e.target.value)}
                   className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                 >
-                  <option value="Full Time">Full Time</option>
-                  <option value="Part Time">Part Time</option>
-                  <option value="Contractual">Contractual</option>
-                  <option value="Remote">Remote</option>
-                  <option value="Self-Employed">Self-Employed</option>
-                  <option value="Freelance">Freelance</option>
-                  <option value="Government">Government</option>
+                  <option value="">Select Job Type</option>
+                  {(fields.jobTypes || []).map((jt) => (
+                    <option key={jt} value={jt}>
+                      {jt}
+                    </option>
+                  ))}
+                  {jobType && !(fields.jobTypes || []).includes(jobType) && (
+                    <option value={jobType}>{jobType} (Custom)</option>
+                  )}
                 </select>
               </div>
 
@@ -524,10 +523,15 @@ export const TrafficFormModal: React.FC<TrafficFormModalProps> = ({
                   onChange={(e) => setMaritalStatus(e.target.value)}
                   className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                 >
-                  <option value="Never Married">Never Married</option>
-                  <option value="Divorced">Divorced</option>
-                  <option value="Widowed">Widowed</option>
-                  <option value="Awaiting Divorce">Awaiting Divorce</option>
+                  <option value="">Select Marital Status</option>
+                  {(fields.maritalStatuses || []).map((ms) => (
+                    <option key={ms} value={ms}>
+                      {ms}
+                    </option>
+                  ))}
+                  {maritalStatus && !(fields.maritalStatuses || []).includes(maritalStatus) && (
+                    <option value={maritalStatus}>{maritalStatus} (Custom)</option>
+                  )}
                 </select>
               </div>
 
@@ -541,8 +545,15 @@ export const TrafficFormModal: React.FC<TrafficFormModalProps> = ({
                   onChange={(e) => setGender(e.target.value)}
                   className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                 >
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
+                  <option value="">Select Gender</option>
+                  {(fields.genders || []).map((g) => (
+                    <option key={g} value={g}>
+                      {g}
+                    </option>
+                  ))}
+                  {gender && !(fields.genders || []).includes(gender) && (
+                    <option value={gender}>{gender} (Custom)</option>
+                  )}
                 </select>
               </div>
 
@@ -556,12 +567,15 @@ export const TrafficFormModal: React.FC<TrafficFormModalProps> = ({
                   onChange={(e) => setBodyColor(e.target.value)}
                   className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                 >
-                  <option value="Very Fair">Very Fair</option>
-                  <option value="Fair">Fair</option>
-                  <option value="Light Wheatish">Light Wheatish</option>
-                  <option value="Wheatish">Wheatish</option>
-                  <option value="Dusky">Dusky</option>
-                  <option value="Dark">Dark</option>
+                  <option value="">Select Body Color</option>
+                  {(fields.bodyColors || []).map((bc) => (
+                    <option key={bc} value={bc}>
+                      {bc}
+                    </option>
+                  ))}
+                  {bodyColor && !(fields.bodyColors || []).includes(bodyColor) && (
+                    <option value={bodyColor}>{bodyColor} (Custom)</option>
+                  )}
                 </select>
               </div>
 
@@ -575,24 +589,15 @@ export const TrafficFormModal: React.FC<TrafficFormModalProps> = ({
                   onChange={(e) => setHeight(e.target.value)}
                   className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                 >
-                  <option value="4'10&quot;">4&apos;10&quot;</option>
-                  <option value="4'11&quot;">4&apos;11&quot;</option>
-                  <option value="5'0&quot;">5&apos;0&quot;</option>
-                  <option value="5'1&quot;">5&apos;1&quot;</option>
-                  <option value="5'2&quot;">5&apos;2&quot;</option>
-                  <option value="5'3&quot;">5&apos;3&quot;</option>
-                  <option value="5'4&quot;">5&apos;4&quot;</option>
-                  <option value="5'5&quot;">5&apos;5&quot;</option>
-                  <option value="5'6&quot;">5&apos;6&quot;</option>
-                  <option value="5'7&quot;">5&apos;7&quot;</option>
-                  <option value="5'8&quot;">5&apos;8&quot;</option>
-                  <option value="5'9&quot;">5&apos;9&quot;</option>
-                  <option value="5'10&quot;">5&apos;10&quot;</option>
-                  <option value="5'11&quot;">5&apos;11&quot;</option>
-                  <option value="6'0&quot;">6&apos;0&quot;</option>
-                  <option value="6'1&quot;">6&apos;1&quot;</option>
-                  <option value="6'2&quot;">6&apos;2&quot;</option>
-                  <option value="6'3&quot;+">6&apos;3&quot;+</option>
+                  <option value="">Select Height</option>
+                  {(fields.heights || []).map((h) => (
+                    <option key={h} value={h}>
+                      {h}
+                    </option>
+                  ))}
+                  {height && !(fields.heights || []).includes(height) && (
+                    <option value={height}>{height} (Custom)</option>
+                  )}
                 </select>
               </div>
 
@@ -606,12 +611,15 @@ export const TrafficFormModal: React.FC<TrafficFormModalProps> = ({
                   onChange={(e) => setReligion(e.target.value)}
                   className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                 >
-                  <option value="Islam (Sunni)">Islam (Sunni)</option>
-                  <option value="Islam (Shia)">Islam (Shia)</option>
-                  <option value="Hinduism">Hinduism</option>
-                  <option value="Christianity">Christianity</option>
-                  <option value="Buddhism">Buddhism</option>
-                  <option value="Others">Others</option>
+                  <option value="">Select Religion</option>
+                  {(fields.religions || []).map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                  {religion && !(fields.religions || []).includes(religion) && (
+                    <option value={religion}>{religion} (Custom)</option>
+                  )}
                 </select>
               </div>
 
@@ -625,14 +633,15 @@ export const TrafficFormModal: React.FC<TrafficFormModalProps> = ({
                   onChange={(e) => setBloodGroup(e.target.value)}
                   className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                 >
-                  <option value="A+">A+</option>
-                  <option value="A-">A-</option>
-                  <option value="B+">B+</option>
-                  <option value="B-">B-</option>
-                  <option value="O+">O+</option>
-                  <option value="O-">O-</option>
-                  <option value="AB+">AB+</option>
-                  <option value="AB-">AB-</option>
+                  <option value="">Select Blood Group</option>
+                  {(fields.bloodGroups || []).map((bg) => (
+                    <option key={bg} value={bg}>
+                      {bg}
+                    </option>
+                  ))}
+                  {bloodGroup && !(fields.bloodGroups || []).includes(bloodGroup) && (
+                    <option value={bloodGroup}>{bloodGroup} (Custom)</option>
+                  )}
                 </select>
               </div>
 
@@ -646,16 +655,15 @@ export const TrafficFormModal: React.FC<TrafficFormModalProps> = ({
                   onChange={(e) => setQualification(e.target.value)}
                   className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                 >
-                  <option value="SSC / O-Level">SSC / O-Level</option>
-                  <option value="HSC / A-Level">HSC / A-Level</option>
-                  <option value="Bachelor's / Honors">Bachelor&apos;s / Honors</option>
-                  <option value="Master's Degree">Master&apos;s Degree</option>
-                  <option value="MBBS / Medical">MBBS / Medical</option>
-                  <option value="B.Sc Engineering">B.Sc Engineering</option>
-                  <option value="CA / ACCA / CMA">CA / ACCA / CMA</option>
-                  <option value="Ph.D / Doctorate">Ph.D / Doctorate</option>
-                  <option value="Diploma / Vocational">Diploma / Vocational</option>
-                  <option value="Other">Other</option>
+                  <option value="">Select Qualification</option>
+                  {(fields.qualifications || []).map((q) => (
+                    <option key={q} value={q}>
+                      {q}
+                    </option>
+                  ))}
+                  {qualification && !(fields.qualifications || []).includes(qualification) && (
+                    <option value={qualification}>{qualification} (Custom)</option>
+                  )}
                 </select>
               </div>
 
@@ -682,24 +690,36 @@ export const TrafficFormModal: React.FC<TrafficFormModalProps> = ({
                   <span className="text-xs font-bold text-[#181E54]">Present Address</span>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-[11px] text-slate-500 mb-1">City</label>
-                      <input
-                        type="text"
+                      <label className="block text-[11px] text-slate-500 mb-1">Present City / District</label>
+                      <select
                         value={presentCity}
                         onChange={(e) => setPresentCity(e.target.value)}
-                        placeholder="e.g. Dhaka"
-                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs"
-                      />
+                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+                      >
+                        <option value="">Select Present City</option>
+                        {(fields.cities || []).map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                        {presentCity && !(fields.cities || []).includes(presentCity) && (
+                          <option value={presentCity}>{presentCity} (Custom)</option>
+                        )}
+                      </select>
                     </div>
                     <div>
-                      <label className="block text-[11px] text-slate-500 mb-1">Country</label>
-                      <input
-                        type="text"
+                      <label className="block text-[11px] text-slate-500 mb-1">Present Country</label>
+                      <select
                         value={presentCountry}
                         onChange={(e) => setPresentCountry(e.target.value)}
-                        placeholder="Bangladesh"
-                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs"
-                      />
+                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+                      >
+                        <option value="">Select Present Country</option>
+                        {(fields.countries || []).map((co) => (
+                          <option key={co} value={co}>{co}</option>
+                        ))}
+                        {presentCountry && !(fields.countries || []).includes(presentCountry) && (
+                          <option value={presentCountry}>{presentCountry} (Custom)</option>
+                        )}
+                      </select>
                     </div>
                   </div>
                 </div>
@@ -708,24 +728,36 @@ export const TrafficFormModal: React.FC<TrafficFormModalProps> = ({
                   <span className="text-xs font-bold text-[#181E54]">Permanent Address</span>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-[11px] text-slate-500 mb-1">City</label>
-                      <input
-                        type="text"
+                      <label className="block text-[11px] text-slate-500 mb-1">Permanent City / District (CT)</label>
+                      <select
                         value={permanentCity}
                         onChange={(e) => setPermanentCity(e.target.value)}
-                        placeholder="e.g. Chittagong"
-                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs"
-                      />
+                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+                      >
+                        <option value="">Select Permanent City (CT)</option>
+                        {(fields.cities || []).map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                        {permanentCity && !(fields.cities || []).includes(permanentCity) && (
+                          <option value={permanentCity}>{permanentCity} (Custom)</option>
+                        )}
+                      </select>
                     </div>
                     <div>
-                      <label className="block text-[11px] text-slate-500 mb-1">Country</label>
-                      <input
-                        type="text"
+                      <label className="block text-[11px] text-slate-500 mb-1">Permanent Country</label>
+                      <select
                         value={permanentCountry}
                         onChange={(e) => setPermanentCountry(e.target.value)}
-                        placeholder="Bangladesh"
-                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs"
-                      />
+                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+                      >
+                        <option value="">Select Permanent Country</option>
+                        {(fields.countries || []).map((co) => (
+                          <option key={co} value={co}>{co}</option>
+                        ))}
+                        {permanentCountry && !(fields.countries || []).includes(permanentCountry) && (
+                          <option value={permanentCountry}>{permanentCountry} (Custom)</option>
+                        )}
+                      </select>
                     </div>
                   </div>
                 </div>
@@ -896,11 +928,14 @@ export const TrafficFormModal: React.FC<TrafficFormModalProps> = ({
                   onChange={(e) => setPkg(e.target.value)}
                   className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                 >
-                  <option value="Silver">Silver Package</option>
-                  <option value="Gold">Gold Package</option>
-                  <option value="Platinum">Platinum Package</option>
-                  <option value="Royal Diamond">Royal Diamond</option>
-                  <option value="VIP Customized">VIP Customized</option>
+                  {(fields.packages || ['Silver', 'Gold', 'Platinum', 'Royal Diamond', 'VIP Customized']).map((p) => (
+                    <option key={p} value={p}>
+                      {p.includes('Package') ? p : `${p} Package`}
+                    </option>
+                  ))}
+                  {pkg && !(fields.packages || []).includes(pkg) && (
+                    <option value={pkg}>{pkg}</option>
+                  )}
                 </select>
               </div>
 
