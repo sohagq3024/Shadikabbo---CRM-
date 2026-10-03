@@ -247,6 +247,68 @@ app.get('/api/users', authMiddleware, (req, res) => {
   res.json(list);
 });
 
+// Helper to ensure lead has initialized activityLog
+function ensureLeadActivityLog(lead: any): any[] {
+  if (lead.activityLog && Array.isArray(lead.activityLog)) {
+    return lead.activityLog;
+  }
+
+  const logs: any[] = [
+    {
+      id: `act_${lead.id}_created`,
+      leadId: lead.id,
+      type: 'created',
+      previousStatus: null,
+      newStatus: 'active',
+      timestamp: lead.createdTimestamp || Date.now() - 86400000,
+      formattedDate: lead.createdAt ? `${lead.createdAt} 10:00` : 'Initial Registration',
+      user: {
+        id: 'usr_super_admin',
+        name: lead.createdBy || 'Sohag',
+        role: lead.creatorRole || 'Super Admin',
+      },
+      comment: 'Lead candidate profile initially registered in CRM system',
+    },
+  ];
+
+  if (lead.status === 'trash') {
+    logs.unshift({
+      id: `act_${lead.id}_trash`,
+      leadId: lead.id,
+      type: 'status_change',
+      previousStatus: 'active',
+      newStatus: 'trash',
+      timestamp: Date.now() - 3600000,
+      formattedDate: 'Recent',
+      user: {
+        id: 'usr_super_admin',
+        name: 'Sohag',
+        role: 'Super Admin',
+      },
+      comment: 'Lead moved to Trash Bin',
+    });
+  } else if (lead.status === 'converted') {
+    logs.unshift({
+      id: `act_${lead.id}_converted`,
+      leadId: lead.id,
+      type: 'status_change',
+      previousStatus: 'active',
+      newStatus: 'converted',
+      timestamp: Date.now() - 1800000,
+      formattedDate: 'Recent',
+      user: {
+        id: 'usr_super_admin',
+        name: 'Sohag',
+        role: 'Super Admin',
+      },
+      comment: `Transferred to active Traffic candidate (${lead.convertedToTrafficId || 'SK Candidate'})`,
+    });
+  }
+
+  lead.activityLog = logs;
+  return logs;
+}
+
 // --- LEADS API ---
 // 1. Get all active leads
 app.get('/api/leads', authMiddleware, (req, res) => {
@@ -256,15 +318,140 @@ app.get('/api/leads', authMiddleware, (req, res) => {
     .sort((a, b) => (a.serialNumber || 0) - (b.serialNumber || 0))
     .map(l => {
       const { percentage, stars } = computeLeadCompleteness(l);
+      const activityLog = ensureLeadActivityLog(l);
       return {
         ...l,
         completeness: percentage,
         stars,
         createdBy: l.createdBy || 'Sohag',
         creatorRole: l.creatorRole || 'Super Admin',
+        activityLog,
       };
     });
   res.json(activeLeads);
+});
+
+// 1.1 Get specific lead with activities
+app.get('/api/leads/:id', authMiddleware, (req, res) => {
+  const { id } = req.params;
+  const db = loadDB();
+  const lead = (db.leads || []).find(l => l.id === id);
+  if (!lead) {
+    return res.status(404).json({ error: 'Lead not found' });
+  }
+  const { percentage, stars } = computeLeadCompleteness(lead);
+  lead.activityLog = ensureLeadActivityLog(lead);
+  res.json({
+    ...lead,
+    completeness: percentage,
+    stars,
+  });
+});
+
+// 1.2 Get activity log for a specific lead
+app.get('/api/leads/:id/activities', authMiddleware, (req, res) => {
+  const { id } = req.params;
+  const db = loadDB();
+  const lead = (db.leads || []).find(l => l.id === id);
+  if (!lead) {
+    return res.status(404).json({ error: 'Lead not found' });
+  }
+  const activities = ensureLeadActivityLog(lead);
+  res.json({ activities, currentStatus: lead.status || 'active' });
+});
+
+// 1.3 Update lead status and record status transition in activity log
+app.put('/api/leads/:id/status', authMiddleware, (req, res) => {
+  const { id } = req.params;
+  const { status: newStatus, comment } = req.body;
+  if (!newStatus) {
+    return res.status(400).json({ error: 'New status is required' });
+  }
+
+  const db = loadDB();
+  const lead = (db.leads || []).find(l => l.id === id);
+  if (!lead) {
+    return res.status(404).json({ error: 'Lead not found' });
+  }
+
+  const previousStatus = lead.status || 'active';
+  lead.status = newStatus;
+
+  const actor = (req as any).user;
+  const now = new Date();
+  const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+  const activityItem = {
+    id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    leadId: lead.id,
+    type: 'status_change',
+    previousStatus,
+    newStatus,
+    timestamp: Date.now(),
+    formattedDate,
+    user: {
+      id: actor?.id || 'usr_staff',
+      name: actor?.name || 'Staff Member',
+      role: actor?.role || 'Super Admin',
+      phone: actor?.phone || '',
+    },
+    comment: comment?.trim() || `Status updated from "${previousStatus}" to "${newStatus}"`,
+  };
+
+  if (!lead.activityLog || !Array.isArray(lead.activityLog)) {
+    lead.activityLog = ensureLeadActivityLog(lead);
+  }
+  lead.activityLog.unshift(activityItem);
+
+  saveDB(db);
+  res.json({ success: true, lead, activity: activityItem });
+});
+
+// 1.4 Post manual note/activity to lead log
+app.post('/api/leads/:id/activities', authMiddleware, (req, res) => {
+  const { id } = req.params;
+  const { type = 'note', previousStatus, newStatus, comment } = req.body;
+
+  const db = loadDB();
+  const lead = (db.leads || []).find(l => l.id === id);
+  if (!lead) {
+    return res.status(404).json({ error: 'Lead not found' });
+  }
+
+  const actor = (req as any).user;
+  const now = new Date();
+  const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const currStatus = lead.status || 'active';
+  const targetStatus = newStatus || currStatus;
+
+  const activityItem = {
+    id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    leadId: lead.id,
+    type: type || 'note',
+    previousStatus: previousStatus || currStatus,
+    newStatus: targetStatus,
+    timestamp: Date.now(),
+    formattedDate,
+    user: {
+      id: actor?.id || 'usr_staff',
+      name: actor?.name || 'Staff Member',
+      role: actor?.role || 'Super Admin',
+      phone: actor?.phone || '',
+    },
+    comment: comment?.trim() || 'Activity logged',
+  };
+
+  if (newStatus && newStatus !== lead.status) {
+    lead.status = newStatus;
+  }
+
+  if (!lead.activityLog || !Array.isArray(lead.activityLog)) {
+    lead.activityLog = ensureLeadActivityLog(lead);
+  }
+  lead.activityLog.unshift(activityItem);
+
+  saveDB(db);
+  res.json({ success: true, lead, activity: activityItem });
 });
 
 // 2. Create a new lead
@@ -288,6 +475,7 @@ app.post('/api/leads', authMiddleware, (req, res) => {
 
   const now = new Date();
   const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const formattedDateTime = `${formattedDate} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   const leadId = `LD-${String(nextSerial).padStart(4, '0')}`;
 
   const creator = (req as any).user;
@@ -295,6 +483,8 @@ app.post('/api/leads', authMiddleware, (req, res) => {
   const creatorRole = creator?.role || 'Super Admin';
 
   const { percentage, stars } = computeLeadCompleteness(data);
+
+  const initialStatus = data.status || 'active';
 
   const newLead = {
     id: leadId,
@@ -319,9 +509,27 @@ app.post('/api/leads', authMiddleware, (req, res) => {
     pdf: data.pdf || null,
     createdBy: creatorName,
     creatorRole: creatorRole,
-    status: 'active',
+    status: initialStatus,
     completeness: percentage,
     stars,
+    activityLog: [
+      {
+        id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        leadId: leadId,
+        type: 'created',
+        previousStatus: null,
+        newStatus: initialStatus,
+        timestamp: Date.now(),
+        formattedDate: formattedDateTime,
+        user: {
+          id: creator?.id || 'usr_staff',
+          name: creatorName,
+          role: creatorRole,
+          phone: creator?.phone || '',
+        },
+        comment: 'Initial lead registration created in CRM system',
+      },
+    ],
   };
 
   if (!db.leads) db.leads = [];
@@ -342,6 +550,9 @@ app.put('/api/leads/:id', authMiddleware, (req, res) => {
   }
 
   const existing = db.leads[index];
+  const previousStatus = existing.status || 'active';
+  const newStatus = updates.status !== undefined ? updates.status : previousStatus;
+
   const merged = {
     ...existing,
     ...updates,
@@ -351,18 +562,46 @@ app.put('/api/leads/:id', authMiddleware, (req, res) => {
     createdTimestamp: existing.createdTimestamp,
     createdBy: existing.createdBy,
     creatorRole: existing.creatorRole,
+    status: newStatus,
   };
 
   const { percentage, stars } = computeLeadCompleteness(merged);
   merged.completeness = percentage;
   merged.stars = stars;
 
+  if (!merged.activityLog || !Array.isArray(merged.activityLog)) {
+    merged.activityLog = ensureLeadActivityLog(merged);
+  }
+
+  // If status changed in update payload, log transition
+  if (updates.status && updates.status !== previousStatus) {
+    const actor = (req as any).user;
+    const now = new Date();
+    const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    merged.activityLog.unshift({
+      id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      leadId: existing.id,
+      type: 'status_change',
+      previousStatus,
+      newStatus,
+      timestamp: Date.now(),
+      formattedDate,
+      user: {
+        id: actor?.id || 'usr_staff',
+        name: actor?.name || 'Staff Member',
+        role: actor?.role || 'Super Admin',
+        phone: actor?.phone || '',
+      },
+      comment: updates.statusComment || `Status updated from "${previousStatus}" to "${newStatus}"`,
+    });
+  }
+
   db.leads[index] = merged;
   saveDB(db);
   res.json(merged);
 });
 
-// 4. Move lead to trash
+// 4. Move lead to trash (Trush bin)
 app.put('/api/leads/:id/remove', authMiddleware, (req, res) => {
   const { id } = req.params;
   const db = loadDB();
@@ -372,9 +611,94 @@ app.put('/api/leads/:id/remove', authMiddleware, (req, res) => {
     return res.status(404).json({ error: 'Lead not found' });
   }
 
+  const previousStatus = lead.status || 'active';
+  const now = new Date();
+  const deletedTimestamp = Date.now();
+  const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const actor = (req as any).user;
+
   lead.status = 'trash';
+  lead.deletedAt = deletedTimestamp;
+  lead.trashCategory = 'Lead';
+  lead.deletedBy = {
+    id: actor?.id || 'usr_staff',
+    name: actor?.name || 'Staff Member',
+    role: actor?.role || 'Super Admin',
+  };
+
+  if (!lead.activityLog || !Array.isArray(lead.activityLog)) {
+    lead.activityLog = ensureLeadActivityLog(lead);
+  }
+
+  lead.activityLog.unshift({
+    id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    leadId: lead.id,
+    type: 'status_change',
+    previousStatus,
+    newStatus: 'trash',
+    timestamp: deletedTimestamp,
+    formattedDate,
+    user: {
+      id: actor?.id || 'usr_staff',
+      name: actor?.name || 'Staff Member',
+      role: actor?.role || 'Super Admin',
+      phone: actor?.phone || '',
+    },
+    comment: 'Lead moved to Trash Bin',
+  });
+
   saveDB(db);
-  res.json({ success: true, message: 'Lead moved to trash' });
+  res.json({ success: true, message: 'Lead moved to trash', lead });
+});
+
+// Alias for DELETE /api/leads/:id to move to trash
+app.delete('/api/leads/:id', authMiddleware, (req, res) => {
+  const { id } = req.params;
+  const db = loadDB();
+
+  const lead = (db.leads || []).find(l => l.id === id);
+  if (!lead) {
+    return res.status(404).json({ error: 'Lead not found' });
+  }
+
+  const previousStatus = lead.status || 'active';
+  const now = new Date();
+  const deletedTimestamp = Date.now();
+  const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const actor = (req as any).user;
+
+  lead.status = 'trash';
+  lead.deletedAt = deletedTimestamp;
+  lead.trashCategory = 'Lead';
+  lead.deletedBy = {
+    id: actor?.id || 'usr_staff',
+    name: actor?.name || 'Staff Member',
+    role: actor?.role || 'Super Admin',
+  };
+
+  if (!lead.activityLog || !Array.isArray(lead.activityLog)) {
+    lead.activityLog = ensureLeadActivityLog(lead);
+  }
+
+  lead.activityLog.unshift({
+    id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    leadId: lead.id,
+    type: 'status_change',
+    previousStatus,
+    newStatus: 'trash',
+    timestamp: deletedTimestamp,
+    formattedDate,
+    user: {
+      id: actor?.id || 'usr_staff',
+      name: actor?.name || 'Staff Member',
+      role: actor?.role || 'Super Admin',
+      phone: actor?.phone || '',
+    },
+    comment: 'Lead moved to Trash Bin',
+  });
+
+  saveDB(db);
+  res.json({ success: true, message: 'Lead moved to trash', lead });
 });
 
 // 5. Convert lead to traffic
@@ -435,7 +759,6 @@ app.post('/api/leads/:id/convert-traffic', authMiddleware, (req, res) => {
   if (!finalPermanentCity || !finalPermanentCountry) missingRequirements.push('Permanent Address (City & Country)');
   if (!Array.isArray(finalImages) || finalImages.length === 0) missingRequirements.push('Picture Upload (at least 1 image)');
   if (!finalPdf || (!finalPdf.dataUrl && !finalPdf.name)) missingRequirements.push('PDF Biodata Document');
-  if (price <= 0) missingRequirements.push('Valid Package Price');
 
   if (missingRequirements.length > 0) {
     return res.status(400).json({
@@ -452,7 +775,6 @@ app.post('/api/leads/:id/convert-traffic', authMiddleware, (req, res) => {
   const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const trafficId = `SK-${String(serialNumber).padStart(4, '0')}`;
 
-  const price = Number(trafficData.price) || 0;
   const discount = Number(trafficData.discount) || 0;
   const paidAmount = Number(trafficData.paidAmount) || 0;
   const dueAmount = Math.max(0, price - discount - paidAmount);
@@ -490,14 +812,14 @@ app.post('/api/leads/:id/convert-traffic', authMiddleware, (req, res) => {
     permanentCountry: trafficData.permanentCountry || lead.permanentCountry || 'Bangladesh',
     images: Array.isArray(trafficData.images) && trafficData.images.length > 0 ? trafficData.images : (lead.images || []),
     pdf: trafficData.pdf || lead.pdf || null,
-    package: trafficData.package || 'Gold',
+    package: trafficData.package || '',
     price,
     discount,
     dueAmount,
     paidAmount,
-    paymentMethod: trafficData.paymentMethod || 'bKash',
+    paymentMethod: trafficData.paymentMethod || '',
     afterMarriageFee,
-    paymentStatus: 'pending',
+    paymentStatus: paidAmount > 0 ? 'pending' : 'unpaid',
     assignedTo: trafficData.assignBy ? { name: trafficData.assignBy, role: 'MK' } : null,
     status: 'active',
     convertedFromLeadId: lead.id,
@@ -505,31 +827,57 @@ app.post('/api/leads/:id/convert-traffic', authMiddleware, (req, res) => {
 
   db.traffics.push(newTraffic);
 
-  // Generate Payment Request
-  const newPaymentRequest = {
-    id: `PR-${String(db.paymentRequests.length + 1).padStart(4, '0')}`,
-    trafficId: newTraffic.id,
-    trafficName: newTraffic.name,
-    phone: newTraffic.phone,
-    date: formattedDate,
-    paidAmount,
-    dueAmount,
-    afterMarriageFee,
-    package: newTraffic.package,
-    paymentMethod: newTraffic.paymentMethod,
-    assignedBy: newTraffic.assignBy || creatorName,
-    createdBy: creatorName,
-    creatorRole: creatorRole,
-    role: creatorRole,
-    status: 'pending',
-    images: newTraffic.images || [],
-    gender: newTraffic.gender || '',
-  };
-  db.paymentRequests.push(newPaymentRequest);
+  // Generate Payment Request only if a payment was explicitly submitted
+  if (paidAmount > 0) {
+    const newPaymentRequest = {
+      id: `PR-${String(db.paymentRequests.length + 1).padStart(4, '0')}`,
+      trafficId: newTraffic.id,
+      trafficName: newTraffic.name,
+      phone: newTraffic.phone,
+      date: formattedDate,
+      paidAmount,
+      dueAmount,
+      afterMarriageFee,
+      package: newTraffic.package || 'Standard',
+      paymentMethod: newTraffic.paymentMethod || 'bKash',
+      assignedBy: newTraffic.assignBy || creatorName,
+      createdBy: creatorName,
+      creatorRole: creatorRole,
+      role: creatorRole,
+      status: 'pending',
+      images: newTraffic.images || [],
+      gender: newTraffic.gender || '',
+    };
+    db.paymentRequests.push(newPaymentRequest);
+  }
 
   // Mark lead as converted
+  const previousStatus = lead.status || 'active';
   lead.status = 'converted';
   lead.convertedToTrafficId = newTraffic.id;
+
+  if (!lead.activityLog || !Array.isArray(lead.activityLog)) {
+    lead.activityLog = ensureLeadActivityLog(lead);
+  }
+
+  const actor = (req as any).user;
+  const formattedDateTime = `${formattedDate} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  lead.activityLog.unshift({
+    id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    leadId: lead.id,
+    type: 'status_change',
+    previousStatus,
+    newStatus: 'converted',
+    timestamp: Date.now(),
+    formattedDate: formattedDateTime,
+    user: {
+      id: actor?.id || 'usr_staff',
+      name: actor?.name || creatorName,
+      role: actor?.role || creatorRole,
+      phone: actor?.phone || '',
+    },
+    comment: `Lead successfully converted to Traffic Candidate ${newTraffic.id}${newTraffic.package ? ` (${newTraffic.package} Package)` : ''} (Assigned to ${newTraffic.assignBy || 'MK'})`,
+  });
 
   saveDB(db);
   res.json({ success: true, traffic: newTraffic, lead });
@@ -646,13 +994,16 @@ app.post('/api/traffic', authMiddleware, (req, res) => {
 
   db.traffics.push(newTraffic);
 
-  // When a Traffic form is submitted, it becomes a Payment Request in Payment section
+  // When a Traffic form is submitted with payment, it becomes a Payment Request in Payment section
+  const formattedTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   const newPaymentRequest = {
     id: `PR-${String(db.paymentRequests.length + 1).padStart(4, '0')}`,
     trafficId: newTraffic.id,
     trafficName: newTraffic.name,
     phone: newTraffic.phone,
     date: formattedDate,
+    formattedDate: `${formattedDate} ${formattedTime}`,
+    timestamp: Date.now(),
     paidAmount,
     dueAmount,
     afterMarriageFee,
@@ -661,6 +1012,8 @@ app.post('/api/traffic', authMiddleware, (req, res) => {
     assignedBy: newTraffic.assignBy || creatorName,
     createdBy: creatorName,
     creatorRole: creatorRole,
+    creatorPhone: creator?.phone || '',
+    creatorId: creator?.id || '',
     role: creatorRole,
     status: 'pending',
     images: newTraffic.images || [],
@@ -740,10 +1093,17 @@ app.put('/api/traffic/:id/remove', authMiddleware, (req, res) => {
     return res.status(404).json({ error: 'Traffic record not found' });
   }
 
-  // Soft remove: moved to Trush bin, not permanently destroyed
+  const actor = (req as any).user;
   traffic.status = 'trash';
+  traffic.deletedAt = Date.now();
+  traffic.trashCategory = 'Traffic';
+  traffic.deletedBy = {
+    id: actor?.id || 'usr_staff',
+    name: actor?.name || 'Staff Member',
+    role: actor?.role || 'Super Admin',
+  };
   saveDB(db);
-  res.json({ success: true, message: 'Moved to Trush bin' });
+  res.json({ success: true, message: 'Moved to Trush bin', traffic });
 });
 
 // --- PAYMENT API ---
@@ -755,19 +1115,117 @@ app.get('/api/payments/requests', authMiddleware, (req, res) => {
       const matched = (db.traffics || []).find(
         t => t.id === pr.trafficId || (t.phone && pr.phone && t.phone === pr.phone) || (t.name && pr.trafficName && t.name === pr.trafficName)
       );
+
+      // Resolve creator user account from db.users
+      const creatorUser = pr.creatorId
+        ? (db.users || []).find(u => u.id === pr.creatorId)
+        : (db.users || []).find(u => u.name === pr.createdBy);
+
+      const creatorName = pr.createdBy || creatorUser?.name || matched?.createdBy || pr.assignedBy || 'Sohag';
+      const creatorRole = pr.creatorRole || pr.role || creatorUser?.role || matched?.creatorRole || 'Super Admin';
+      const creatorPhone = pr.creatorPhone || creatorUser?.phone || (creatorName === 'Sohag' ? '01711000000' : '');
+
       return {
         ...pr,
+        trafficName: pr.trafficName || matched?.name || 'Candidate',
+        trafficId: pr.trafficId || matched?.id || '',
+        phone: pr.phone || matched?.phone || '',
         images: (matched?.images && matched.images.length > 0) ? matched.images : (pr.images || []),
         gender: matched?.gender || pr.gender || '',
         profession: matched?.profession || '',
+        package: pr.package || matched?.package || 'Standard',
+        paidAmount: Number(pr.paidAmount) || 0,
+        dueAmount: Number(pr.dueAmount) || 0,
+        afterMarriageFee: Number(pr.afterMarriageFee) || 0,
+        paymentMethod: pr.paymentMethod || 'bKash',
+        // Creator/Sender account details
+        createdBy: creatorName,
+        creatorRole: creatorRole,
+        creatorPhone: creatorPhone,
+        creatorId: pr.creatorId || creatorUser?.id || '',
+        date: pr.date || matched?.createdAt || '',
+        formattedDate: pr.formattedDate || pr.date || '',
+        timestamp: pr.timestamp || (matched?.createdTimestamp || Date.now()),
       };
     });
   res.json(pending);
 });
 
+// Endpoint to submit a new Payment Request manually
+app.post('/api/payments/requests', authMiddleware, (req, res) => {
+  const db = loadDB();
+  const creator = (req as any).user;
+  const creatorName = creator?.name || 'Sohag';
+  const creatorRole = creator?.role || 'Super Admin';
+  const creatorPhone = creator?.phone || '';
+  const creatorId = creator?.id || '';
+
+  const {
+    trafficId,
+    trafficName,
+    phone,
+    paidAmount,
+    dueAmount,
+    afterMarriageFee,
+    package: pkg,
+    paymentMethod,
+    note,
+  } = req.body;
+
+  if (!trafficName && !trafficId) {
+    return res.status(400).json({ error: 'Candidate Name or Traffic ID is required' });
+  }
+
+  const numericPaid = Number(paidAmount) || 0;
+  if (numericPaid <= 0) {
+    return res.status(400).json({ error: 'Valid paid amount greater than 0 is required' });
+  }
+
+  const matched = (db.traffics || []).find(
+    t => (trafficId && t.id === trafficId) || (phone && t.phone === phone) || (trafficName && t.name === trafficName)
+  );
+
+  const now = new Date();
+  const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const formattedTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+  const newId = `PR-${String((db.paymentRequests || []).length + 1).padStart(4, '0')}`;
+  const newReq = {
+    id: newId,
+    trafficId: trafficId || matched?.id || '',
+    trafficName: trafficName || matched?.name || 'Candidate',
+    phone: phone || matched?.phone || '',
+    date: formattedDate,
+    formattedDate: `${formattedDate} ${formattedTime}`,
+    timestamp: Date.now(),
+    paidAmount: numericPaid,
+    dueAmount: Number(dueAmount) || 0,
+    afterMarriageFee: Number(afterMarriageFee) || 0,
+    package: pkg || matched?.package || 'Standard',
+    paymentMethod: paymentMethod || 'bKash',
+    assignedBy: matched?.assignBy || creatorName,
+    createdBy: creatorName,
+    creatorRole: creatorRole,
+    creatorPhone,
+    creatorId,
+    role: creatorRole,
+    note: note || '',
+    status: 'pending',
+    images: (matched?.images && matched.images.length > 0) ? matched.images : [],
+    gender: matched?.gender || '',
+  };
+
+  if (!db.paymentRequests) db.paymentRequests = [];
+  db.paymentRequests.push(newReq);
+  saveDB(db);
+
+  res.status(201).json({ success: true, paymentRequest: newReq });
+});
+
 app.post('/api/payments/requests/:id/accept', authMiddleware, (req, res) => {
   const { id } = req.params;
   const db = loadDB();
+  const approver = (req as any).user;
 
   const reqIndex = db.paymentRequests.findIndex(pr => pr.id === id);
   if (reqIndex === -1) {
@@ -776,6 +1234,8 @@ app.post('/api/payments/requests/:id/accept', authMiddleware, (req, res) => {
 
   const paymentReq = db.paymentRequests[reqIndex];
   paymentReq.status = 'accepted';
+  paymentReq.acceptedBy = approver?.name || 'Admin';
+  paymentReq.acceptedAt = new Date().toISOString();
 
   // Find linked traffic record
   const traffic = db.traffics.find(t => t.id === paymentReq.trafficId) ||
@@ -784,6 +1244,8 @@ app.post('/api/payments/requests/:id/accept', authMiddleware, (req, res) => {
 
   if (traffic) {
     traffic.paymentStatus = 'accepted';
+    traffic.paidAmount = (Number(traffic.paidAmount) || 0) + (Number(paymentReq.paidAmount) || 0);
+    traffic.dueAmount = Math.max(0, (Number(traffic.dueAmount) || 0) - (Number(paymentReq.paidAmount) || 0));
   }
 
   // Add to completed Payments table with exact candidate images & gender
@@ -806,10 +1268,11 @@ app.post('/api/payments/requests/:id/accept', authMiddleware, (req, res) => {
     dueAmount: paymentReq.dueAmount,
     afterMarriageAmount: paymentReq.afterMarriageFee,
     paymentMethod: paymentReq.paymentMethod,
-    assignedRole: paymentReq.role,
-    assignedBy: paymentReq.assignedBy,
+    assignedRole: paymentReq.role || creatorRole,
+    assignedBy: paymentReq.assignedBy || creatorName,
     createdBy: creatorName,
     createdRole: creatorRole,
+    approvedBy: approver?.name || 'Admin',
     invoiceId: `INV-${paymentReq.trafficId || 'PAY'}-${Date.now().toString().slice(-4)}`,
     images: candidateImages,
     gender: traffic?.gender || paymentReq.gender || '',
@@ -824,6 +1287,7 @@ app.post('/api/payments/requests/:id/accept', authMiddleware, (req, res) => {
 app.post('/api/payments/requests/:id/reject', authMiddleware, (req, res) => {
   const { id } = req.params;
   const db = loadDB();
+  const rejector = (req as any).user;
 
   const reqIndex = db.paymentRequests.findIndex(pr => pr.id === id);
   if (reqIndex === -1) {
@@ -832,6 +1296,8 @@ app.post('/api/payments/requests/:id/reject', authMiddleware, (req, res) => {
 
   const paymentReq = db.paymentRequests[reqIndex];
   paymentReq.status = 'rejected';
+  paymentReq.rejectedBy = rejector?.name || 'Admin';
+  paymentReq.rejectedAt = new Date().toISOString();
 
   // Mark traffic payment status as rejected
   const traffic = db.traffics.find(t => t.id === paymentReq.trafficId);
@@ -840,7 +1306,7 @@ app.post('/api/payments/requests/:id/reject', authMiddleware, (req, res) => {
   }
 
   saveDB(db);
-  res.json({ success: true });
+  res.json({ success: true, message: 'Payment request rejected' });
 });
 
 // Get accepted payments enriched with candidate profile photos & details
@@ -917,9 +1383,280 @@ app.put('/api/paid-traffic/:id/remove', authMiddleware, (req, res) => {
     return res.status(404).json({ error: 'Traffic record not found' });
   }
 
+  const actor = (req as any).user;
   traffic.status = 'trash';
+  traffic.deletedAt = Date.now();
+  traffic.trashCategory = 'Paid Traffic';
+  traffic.deletedBy = {
+    id: actor?.id || 'usr_staff',
+    name: actor?.name || 'Staff Member',
+    role: actor?.role || 'Super Admin',
+  };
   saveDB(db);
-  res.json({ success: true, message: 'Removed and moved to Trush bin' });
+  res.json({ success: true, message: 'Removed and moved to Trush bin', traffic });
+});
+
+// --- TRASH BIN (TRUSH BIN) API: 10-DAY AUTO-PURGE RETENTION, RESTORE & PERMANENT DELETE ---
+const TRASH_RETENTION_MS = 10 * 24 * 60 * 60 * 1000; // 10 days in milliseconds
+
+// Auto-purge any items in trash that have been deleted for more than 10 days
+function purgeExpiredTrash(db: any) {
+  const now = Date.now();
+  let modified = false;
+
+  // 1. Purge expired leads
+  if (Array.isArray(db.leads)) {
+    const origLeadsCount = db.leads.length;
+    db.leads = db.leads.filter((l: any) => {
+      if (l.status === 'trash') {
+        const deletedTime = l.deletedAt || (Array.isArray(l.activityLog) ? l.activityLog.find((a: any) => a.newStatus === 'trash')?.timestamp : null) || l.createdTimestamp || now;
+        if (now - deletedTime >= TRASH_RETENTION_MS) {
+          return false; // permanently purged from database after 10 days
+        }
+      }
+      return true;
+    });
+    if (db.leads.length !== origLeadsCount) modified = true;
+  }
+
+  // 2. Purge expired traffics (both Traffic and Paid Traffic records)
+  if (Array.isArray(db.traffics)) {
+    const origTrafficsCount = db.traffics.length;
+    db.traffics = db.traffics.filter((t: any) => {
+      if (t.status === 'trash') {
+        const deletedTime = t.deletedAt || t.createdTimestamp || now;
+        if (now - deletedTime >= TRASH_RETENTION_MS) {
+          return false; // permanently purged from database after 10 days
+        }
+      }
+      return true;
+    });
+    if (db.traffics.length !== origTrafficsCount) modified = true;
+  }
+
+  if (modified) {
+    saveDB(db);
+  }
+}
+
+// 1. Get all trash items with days remaining and categorization (Traffic, Paid Traffic, Lead)
+app.get('/api/trash', authMiddleware, (req, res) => {
+  const db = loadDB();
+  purgeExpiredTrash(db);
+
+  const now = Date.now();
+  const trashItems: any[] = [];
+
+  // A. Process Deleted Leads
+  (db.leads || []).forEach((lead: any) => {
+    if (lead.status === 'trash') {
+      const deletedAt = lead.deletedAt || (Array.isArray(lead.activityLog) ? lead.activityLog.find((a: any) => a.newStatus === 'trash')?.timestamp : null) || lead.createdTimestamp || now;
+      const expiresAt = deletedAt + TRASH_RETENTION_MS;
+      const msRemaining = Math.max(0, expiresAt - now);
+      const daysRemaining = Math.ceil(msRemaining / (24 * 60 * 60 * 1000));
+      const hoursRemaining = Math.ceil(msRemaining / (60 * 60 * 1000));
+
+      const deletedDateObj = new Date(deletedAt);
+      const formattedDeletedDate = `${deletedDateObj.getFullYear()}-${String(deletedDateObj.getMonth() + 1).padStart(2, '0')}-${String(deletedDateObj.getDate()).padStart(2, '0')} ${String(deletedDateObj.getHours()).padStart(2, '0')}:${String(deletedDateObj.getMinutes()).padStart(2, '0')}`;
+
+      trashItems.push({
+        id: lead.id,
+        originalId: lead.id,
+        category: 'Lead',
+        name: lead.name,
+        phone: lead.phone,
+        email: lead.email || '',
+        gender: lead.gender || '',
+        profession: lead.profession || '',
+        createdBy: lead.createdBy || 'Sohag',
+        creatorRole: lead.creatorRole || 'Super Admin',
+        createdAt: lead.createdAt || 'N/A',
+        deletedAt,
+        deletedDate: formattedDeletedDate,
+        deletedBy: lead.deletedBy || { name: 'Staff Member', role: 'Super Admin' },
+        expiresAt,
+        msRemaining,
+        daysRemaining,
+        hoursRemaining,
+        images: Array.isArray(lead.images) ? lead.images : [],
+        rawItem: lead,
+      });
+    }
+  });
+
+  // B. Process Deleted Traffics & Paid Traffics
+  (db.traffics || []).forEach((traffic: any) => {
+    if (traffic.status === 'trash') {
+      const deletedAt = traffic.deletedAt || traffic.createdTimestamp || now;
+      const expiresAt = deletedAt + TRASH_RETENTION_MS;
+      const msRemaining = Math.max(0, expiresAt - now);
+      const daysRemaining = Math.ceil(msRemaining / (24 * 60 * 60 * 1000));
+      const hoursRemaining = Math.ceil(msRemaining / (60 * 60 * 1000));
+
+      const deletedDateObj = new Date(deletedAt);
+      const formattedDeletedDate = `${deletedDateObj.getFullYear()}-${String(deletedDateObj.getMonth() + 1).padStart(2, '0')}-${String(deletedDateObj.getDate()).padStart(2, '0')} ${String(deletedDateObj.getHours()).padStart(2, '0')}:${String(deletedDateObj.getMinutes()).padStart(2, '0')}`;
+
+      // Distinguish category: Paid Traffic if marked or payment accepted, otherwise Traffic
+      const category = (traffic.trashCategory === 'Paid Traffic' || traffic.paymentStatus === 'accepted')
+        ? 'Paid Traffic'
+        : 'Traffic';
+
+      trashItems.push({
+        id: traffic.id,
+        originalId: traffic.id,
+        category,
+        name: traffic.name,
+        phone: traffic.phone,
+        email: traffic.email || '',
+        gender: traffic.gender || '',
+        profession: traffic.profession || '',
+        createdBy: traffic.createdBy || 'Sohag',
+        creatorRole: traffic.creatorRole || 'Super Admin',
+        createdAt: traffic.createdAt || 'N/A',
+        deletedAt,
+        deletedDate: formattedDeletedDate,
+        deletedBy: traffic.deletedBy || { name: 'Staff Member', role: 'Super Admin' },
+        expiresAt,
+        msRemaining,
+        daysRemaining,
+        hoursRemaining,
+        package: traffic.package || '',
+        images: Array.isArray(traffic.images) ? traffic.images : [],
+        rawItem: traffic,
+      });
+    }
+  });
+
+  // Sort by most recently deleted first
+  trashItems.sort((a, b) => b.deletedAt - a.deletedAt);
+
+  const counts = {
+    total: trashItems.length,
+    traffic: trashItems.filter(i => i.category === 'Traffic').length,
+    paidTraffic: trashItems.filter(i => i.category === 'Paid Traffic').length,
+    lead: trashItems.filter(i => i.category === 'Lead').length,
+  };
+
+  res.json({
+    items: trashItems,
+    counts,
+    retentionDays: 10,
+  });
+});
+
+// 2. Restore an item from Trash Bin back to active pipeline
+app.post('/api/trash/restore', authMiddleware, (req, res) => {
+  const { id, category } = req.body;
+  if (!id || !category) {
+    return res.status(400).json({ error: 'Item ID and category are required' });
+  }
+
+  const db = loadDB();
+  const actor = (req as any).user;
+  const now = new Date();
+  const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+  if (category === 'Lead') {
+    const lead = (db.leads || []).find((l: any) => l.id === id);
+    if (!lead) return res.status(404).json({ error: 'Lead not found in trash' });
+
+    lead.status = 'active';
+    delete lead.deletedAt;
+    delete lead.trashCategory;
+    delete lead.deletedBy;
+
+    if (!lead.activityLog || !Array.isArray(lead.activityLog)) {
+      lead.activityLog = ensureLeadActivityLog(lead);
+    }
+
+    lead.activityLog.unshift({
+      id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      leadId: lead.id,
+      type: 'status_change',
+      previousStatus: 'trash',
+      newStatus: 'active',
+      timestamp: Date.now(),
+      formattedDate,
+      user: {
+        id: actor?.id || 'usr_staff',
+        name: actor?.name || 'Staff Member',
+        role: actor?.role || 'Super Admin',
+        phone: actor?.phone || '',
+      },
+      comment: 'Lead successfully restored from Trash Bin back to active pipeline',
+    });
+
+    saveDB(db);
+    return res.json({ success: true, message: `Lead ${lead.name} restored to active pipeline.`, item: lead });
+  } else {
+    // Traffic or Paid Traffic
+    const traffic = (db.traffics || []).find((t: any) => t.id === id);
+    if (!traffic) return res.status(404).json({ error: 'Traffic record not found in trash' });
+
+    traffic.status = 'active';
+    delete traffic.deletedAt;
+    delete traffic.trashCategory;
+    delete traffic.deletedBy;
+
+    saveDB(db);
+    return res.json({ success: true, message: `${category} candidate ${traffic.name} restored to active pipeline.`, item: traffic });
+  }
+});
+
+// 3. Permanently Delete item (2nd confirmation delete - removes from database forever)
+app.delete('/api/trash/permanent', authMiddleware, (req, res) => {
+  const { id, category } = req.body;
+  if (!id || !category) {
+    return res.status(400).json({ error: 'Item ID and category are required' });
+  }
+
+  const db = loadDB();
+
+  if (category === 'Lead') {
+    const initialCount = (db.leads || []).length;
+    db.leads = (db.leads || []).filter((l: any) => l.id !== id);
+    if (db.leads.length === initialCount) {
+      return res.status(404).json({ error: 'Lead not found for permanent deletion' });
+    }
+  } else {
+    // Traffic or Paid Traffic
+    const initialCount = (db.traffics || []).length;
+    db.traffics = (db.traffics || []).filter((t: any) => t.id !== id);
+    if (db.traffics.length === initialCount) {
+      return res.status(404).json({ error: 'Traffic record not found for permanent deletion' });
+    }
+  }
+
+  saveDB(db);
+  res.json({ success: true, message: `Permanently removed ${category} record (${id}) from database.` });
+});
+
+// 4. Empty entire Trash Bin (or by specific category) permanently
+app.post('/api/trash/empty', authMiddleware, (req, res) => {
+  const { category = 'all' } = req.body;
+  const db = loadDB();
+  let purgedCount = 0;
+
+  if (category === 'all' || category === 'Lead') {
+    const before = (db.leads || []).length;
+    db.leads = (db.leads || []).filter((l: any) => l.status !== 'trash');
+    purgedCount += before - db.leads.length;
+  }
+
+  if (category === 'all' || category === 'Traffic' || category === 'Paid Traffic') {
+    const before = (db.traffics || []).length;
+    if (category === 'all') {
+      db.traffics = (db.traffics || []).filter((t: any) => t.status !== 'trash');
+    } else if (category === 'Paid Traffic') {
+      db.traffics = (db.traffics || []).filter((t: any) => !(t.status === 'trash' && (t.trashCategory === 'Paid Traffic' || t.paymentStatus === 'accepted')));
+    } else if (category === 'Traffic') {
+      db.traffics = (db.traffics || []).filter((t: any) => !(t.status === 'trash' && (t.trashCategory !== 'Paid Traffic' && t.paymentStatus !== 'accepted')));
+    }
+    purgedCount += before - db.traffics.length;
+  }
+
+  saveDB(db);
+  res.json({ success: true, message: `Permanently deleted ${purgedCount} item(s) from database.`, purgedCount });
 });
 
 // --- START SERVER WITH VITE MIDDLEWARE ---

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Calendar, Filter, Download, DollarSign, Bell, User } from 'lucide-react';
+import { Search, Calendar, Filter, Download, DollarSign, Bell, User, CheckCircle2, AlertCircle } from 'lucide-react';
 import { PaymentRequestsModal } from './PaymentRequestsModal';
 import { InvoiceModal } from './InvoiceModal';
 
@@ -117,9 +117,10 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({ token }) => {
   const [dateFilter, setDateFilter] = useState('');
   const [roleFilter, setRoleFilter] = useState<'ALL' | 'CRO' | 'MK'>('ALL');
 
-  // Modals
+  // Modals & Feedback
   const [isRequestsModalOpen, setIsRequestsModalOpen] = useState(false);
   const [selectedInvoicePayment, setSelectedInvoicePayment] = useState<any | null>(null);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Load Payments & Requests
   const loadData = async () => {
@@ -156,10 +157,23 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({ token }) => {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error('Failed to accept payment request');
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to accept payment request');
+      }
       await loadData();
+      setToast({
+        type: 'success',
+        message: 'Payment request approved successfully! Official invoice generated.',
+      });
+      setTimeout(() => setToast(null), 4000);
     } catch (err: any) {
-      alert(err.message || 'Failed to accept');
+      setToast({
+        type: 'error',
+        message: err.message || 'Failed to accept payment request',
+      });
+      setTimeout(() => setToast(null), 4000);
+      throw err;
     }
   };
 
@@ -170,10 +184,23 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({ token }) => {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error('Failed to reject payment request');
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to reject payment request');
+      }
       await loadData();
+      setToast({
+        type: 'success',
+        message: 'Payment request has been rejected.',
+      });
+      setTimeout(() => setToast(null), 4000);
     } catch (err: any) {
-      alert(err.message || 'Failed to reject');
+      setToast({
+        type: 'error',
+        message: err.message || 'Failed to reject payment request',
+      });
+      setTimeout(() => setToast(null), 4000);
+      throw err;
     }
   };
 
@@ -388,6 +415,7 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({ token }) => {
         requests={requests}
         onAccept={handleAcceptRequest}
         onReject={handleRejectRequest}
+        onRefresh={loadData}
       />
 
       {/* Invoice Modal for specific invoice view & download */}
@@ -396,6 +424,33 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({ token }) => {
         onClose={() => setSelectedInvoicePayment(null)}
         payment={selectedInvoicePayment}
       />
+
+      {/* Floating Action Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <div
+            className={`px-4 py-3 rounded-2xl shadow-xl border flex items-center gap-3 text-xs font-semibold ${
+              toast.type === 'success'
+                ? 'bg-emerald-900/90 text-white border-emerald-500/40 backdrop-blur-md'
+                : 'bg-rose-900/90 text-white border-rose-500/40 backdrop-blur-md'
+            }`}
+          >
+            {toast.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            )}
+            <span>{toast.message}</span>
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              className="ml-2 text-white/60 hover:text-white cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

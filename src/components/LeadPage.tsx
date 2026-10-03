@@ -13,12 +13,14 @@ import {
   AlertCircle,
   Sparkles,
   Zap,
+  Clock,
 } from 'lucide-react';
 import { AddLeadModal, PROFESSIONS } from './AddLeadModal';
 import { ConvertTrafficModal } from './ConvertTrafficModal';
 import { LeadProfileModal } from './LeadProfileModal';
 import { CountryFlag, detectCountryIso } from './CountryFlag';
 import { ActionPortalMenu } from './ActionPortalMenu';
+import { getStatusMeta } from './ActivityLog';
 
 interface LeadPageProps {
   token: string;
@@ -29,13 +31,17 @@ interface LeadTableRowProps {
   index: number;
   isMenuActive: boolean;
   onView: (row: any) => void;
+  onViewActivity: (row: any) => void;
   onToggleMenu: (row: any, e: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
 const LeadTableRow = React.memo<LeadTableRowProps>(
-  ({ row, index, isMenuActive, onView, onToggleMenu }) => {
+  ({ row, index, isMenuActive, onView, onViewActivity, onToggleMenu }) => {
     const completeness = typeof row.completeness === 'number' ? row.completeness : 0;
     const stars = typeof row.stars === 'number' ? row.stars : (completeness < 20 ? 0 : Math.min(5, Math.floor(completeness / 20)));
+    const statusMeta = getStatusMeta(row.status || 'active');
+    const StatusIcon = statusMeta.icon;
+    const activityCount = Array.isArray(row.activityLog) ? row.activityLog.length : 1;
 
     return (
       <tr className="hover:bg-slate-50/90 transition-colors group">
@@ -109,7 +115,24 @@ const LeadTableRow = React.memo<LeadTableRowProps>(
           </div>
         </td>
 
-        {/* 4. Created By (The CRM Account Person who added this lead) */}
+        {/* 4. Status with Activity Transition Link */}
+        <td className="py-2 px-3.5 w-36">
+          <button
+            type="button"
+            onClick={() => onViewActivity(row)}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all hover:scale-105 cursor-pointer shadow-2xs ${statusMeta.bg} ${statusMeta.text} ${statusMeta.border}`}
+            title="Click to view Activity Log & record status transition"
+          >
+            <StatusIcon className="w-3 h-3 shrink-0" />
+            <span className="truncate max-w-[95px]">{statusMeta.label}</span>
+          </button>
+          <div className="text-[9px] text-slate-400 mt-0.5 flex items-center gap-1 pl-1">
+            <Clock className="w-2.5 h-2.5 text-slate-400" />
+            <span>{activityCount} {activityCount === 1 ? 'activity' : 'activities'}</span>
+          </div>
+        </td>
+
+        {/* 5. Created By (The CRM Account Person who added this lead) */}
         <td className="py-2 px-3.5 w-36">
           <div className="font-semibold text-[#181E54] text-xs truncate">
             {row.createdBy || 'Sohag'}
@@ -206,15 +229,18 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
   // 2. Profession
   // 3. Date filtering
   // 4. Gender filtering
+  // 5. Status filtering
   const [searchQuery, setSearchQuery] = useState('');
   const [professionFilter, setProfessionFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [genderFilter, setGenderFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   // Modals & Menu State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<any | null>(null);
   const [viewingLead, setViewingLead] = useState<any | null>(null);
+  const [profileInitialTab, setProfileInitialTab] = useState<'overview' | 'activity'>('overview');
   const [convertingLead, setConvertingLead] = useState<any | null>(null);
   const [removingLead, setRemovingLead] = useState<any | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
@@ -242,6 +268,20 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
   useEffect(() => {
     loadLeads();
   }, [loadLeads]);
+
+  // Handle lead update (e.g. status transition or edit)
+  const handleLeadUpdated = useCallback((updatedLead: any) => {
+    setLeads((prev) =>
+      prev.map((l) => (l.id === updatedLead.id ? { ...l, ...updatedLead } : l))
+    );
+    if (viewingLead && viewingLead.id === updatedLead.id) {
+      setViewingLead((prev: any) => ({ ...prev, ...updatedLead }));
+    }
+    setActionToast({
+      type: 'success',
+      message: `Lead ${updatedLead.id} status updated to "${updatedLead.status}"`,
+    });
+  }, [viewingLead]);
 
   // Handle Move to Trash
   const confirmRemoveLead = async () => {
@@ -300,14 +340,26 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
           return false;
         }
 
+        // 5. Status filtering
+        if (statusFilter && (item.status || 'active') !== statusFilter) {
+          return false;
+        }
+
         return true;
       })
       .sort((a, b) => (a.serialNumber || 0) - (b.serialNumber || 0));
-  }, [leads, searchQuery, professionFilter, dateFilter, genderFilter]);
+  }, [leads, searchQuery, professionFilter, dateFilter, genderFilter, statusFilter]);
 
   // Memoized action handlers
   const handleViewLead = useCallback((row: any) => {
     setActiveMenuRow(null);
+    setProfileInitialTab('overview');
+    setViewingLead(row);
+  }, []);
+
+  const handleOpenActivityLog = useCallback((row: any) => {
+    setActiveMenuRow(null);
+    setProfileInitialTab('activity');
     setViewingLead(row);
   }, []);
 
@@ -364,9 +416,9 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
         </button>
       </div>
 
-      {/* FILTER CONTROLS: Manual search, Profession, Date filtering, Gender filtering */}
+      {/* FILTER CONTROLS: Manual search, Profession, Status, Gender, Date */}
       <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
           {/* 1. Manual search option */}
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -395,7 +447,38 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
             </select>
           </div>
 
-          {/* 3. Date filtering option */}
+          {/* 3. Pipeline Status filtering */}
+          <div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+            >
+              <option value="">All Statuses</option>
+              <option value="active">Active Lead</option>
+              <option value="contacted">Contacted</option>
+              <option value="in-progress">In Progress</option>
+              <option value="qualified">Qualified</option>
+              <option value="negotiation">Negotiation</option>
+              <option value="follow-up">Follow-Up</option>
+              <option value="on-hold">On Hold</option>
+            </select>
+          </div>
+
+          {/* 4. Gender filtering */}
+          <div>
+            <select
+              value={genderFilter}
+              onChange={(e) => setGenderFilter(e.target.value)}
+              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+            >
+              <option value="">All Genders</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
+
+          {/* 5. Date filtering option */}
           <div className="relative">
             <input
               type="date"
@@ -413,23 +496,10 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
               </button>
             )}
           </div>
-
-          {/* 4. Gender filtering */}
-          <div>
-            <select
-              value={genderFilter}
-              onChange={(e) => setGenderFilter(e.target.value)}
-              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
-            >
-              <option value="">All Genders</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </select>
-          </div>
         </div>
 
         {/* Clear filters shortcut */}
-        {(searchQuery || professionFilter || dateFilter || genderFilter) && (
+        {(searchQuery || professionFilter || statusFilter || dateFilter || genderFilter) && (
           <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
             <span className="text-slate-500">
               Showing filtered results ({filteredLeads.length} of {leads.length})
@@ -439,6 +509,7 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
               onClick={() => {
                 setSearchQuery('');
                 setProfessionFilter('');
+                setStatusFilter('');
                 setDateFilter('');
                 setGenderFilter('');
               }}
@@ -459,12 +530,13 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
         )}
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs min-w-[720px]">
+          <table className="w-full text-left text-xs min-w-[760px]">
             <thead className="bg-[#181E54] text-white uppercase text-[10px] tracking-wider">
               <tr>
                 <th className="py-2.5 px-3.5 font-semibold w-16">Serial Number</th>
                 <th className="py-2.5 px-3.5 font-semibold w-36">ID &amp; Date</th>
                 <th className="py-2.5 px-3.5 font-semibold">Name</th>
+                <th className="py-2.5 px-3.5 font-semibold w-36">Status</th>
                 <th className="py-2.5 px-3.5 font-semibold w-36">Created By</th>
                 <th className="py-2.5 px-3.5 font-semibold w-24">Gender</th>
                 <th className="py-2.5 px-3.5 font-semibold w-36">Phone</th>
@@ -475,7 +547,7 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
             <tbody className="divide-y divide-slate-100 text-slate-700">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-10 text-center text-slate-400">
+                  <td colSpan={9} className="py-10 text-center text-slate-400">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <div className="w-6 h-6 border-2 border-[#181E54] border-t-transparent rounded-full animate-spin" />
                       <span>Loading matrimonial leads...</span>
@@ -484,7 +556,7 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
                 </tr>
               ) : filteredLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                  <td colSpan={9} className="py-12 text-center text-slate-400">
                     <p className="text-sm font-semibold text-slate-600 mb-1">No leads found</p>
                     <p className="text-xs text-slate-400">
                       {leads.length === 0
@@ -501,6 +573,7 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
                     index={index}
                     isMenuActive={activeMenuRow?.id === row.id}
                     onView={handleViewLead}
+                    onViewActivity={handleOpenActivityLog}
                     onToggleMenu={handleToggleMenu}
                   />
                 ))
@@ -525,6 +598,12 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
             sublabel: 'View bio & edit details',
             icon: <Eye className="w-4 h-4 text-[#181E54]" />,
             onClick: () => handleViewLead(activeMenuRow),
+          },
+          {
+            label: 'Activity Log',
+            sublabel: 'Status transitions & history',
+            icon: <Clock className="w-4 h-4 text-indigo-600" />,
+            onClick: () => handleOpenActivityLog(activeMenuRow),
           },
           {
             label: 'Convert Traffic',
@@ -561,11 +640,14 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
         />
       )}
 
-      {/* View Lead Profile Modal */}
+      {/* View Lead Profile Modal with Activity Log Tab Integration */}
       <LeadProfileModal
         isOpen={!!viewingLead}
         onClose={() => setViewingLead(null)}
         lead={viewingLead}
+        token={token}
+        initialTab={profileInitialTab}
+        onStatusUpdated={handleLeadUpdated}
         onEdit={(leadToEdit) => setEditingLead(leadToEdit)}
         onConvert={(leadToConvert) => setConvertingLead(leadToConvert)}
       />

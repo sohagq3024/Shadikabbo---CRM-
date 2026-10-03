@@ -8,7 +8,6 @@ import {
   ArrowRight,
   ArrowUpRight,
   UserCheck,
-  Package,
   Sparkles,
   User,
   Heart,
@@ -79,18 +78,6 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
   // Uploads
   const [images, setImages] = useState<string[]>([]);
   const [pdfFile, setPdfFile] = useState<{ name: string; size: number; dataUrl: string } | null>(null);
-
-  // ==========================================
-  // PART 3 - PAYMENT (Traffic Financial Pipeline)
-  // ==========================================
-  const [pkg, setPkg] = useState('Gold');
-  const [price, setPrice] = useState('15000');
-  const [customPrice, setCustomPrice] = useState('');
-  const [discount, setDiscount] = useState('0');
-  const [paidAmount, setPaidAmount] = useState('5000');
-  const [paymentMethod, setPaymentMethod] = useState('bKash');
-  const [afterMarriageFee, setAfterMarriageFee] = useState('20000');
-  const [customAfterMarriageFee, setCustomAfterMarriageFee] = useState('');
 
   // Conversion Animation State
   const [isConverting, setIsConverting] = useState(false);
@@ -166,25 +153,6 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
       setPermanentCountry(presentCountry);
     }
   };
-
-  // Pricing calculations
-  const actualPrice = useMemo(
-    () => (price === 'custom' ? Number(customPrice) || 0 : Number(price) || 0),
-    [price, customPrice]
-  );
-  const numericDiscount = useMemo(() => Number(discount) || 0, [discount]);
-  const numericPaid = useMemo(() => Number(paidAmount) || 0, [paidAmount]);
-  const calculatedDue = useMemo(
-    () => Math.max(0, actualPrice - numericDiscount - numericPaid),
-    [actualPrice, numericDiscount, numericPaid]
-  );
-  const actualAfterMarriageFee = useMemo(
-    () =>
-      afterMarriageFee === 'custom'
-        ? Number(customAfterMarriageFee) || 0
-        : Number(afterMarriageFee) || 0,
-    [afterMarriageFee, customAfterMarriageFee]
-  );
 
   // Picture handling
   const processImageFiles = (files: File[]) => {
@@ -374,14 +342,6 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
         fulfilled: pdfFile !== null,
         errorMessage: 'Authentic candidate bio-data in PDF format (.pdf) is mandatory.',
       },
-      {
-        key: 'price',
-        fieldId: 'field-price',
-        label: 'Package Price',
-        section: 'Part 3',
-        fulfilled: actualPrice > 0,
-        errorMessage: 'Package price must be greater than 0 BDT.',
-      },
     ];
   }, [
     name,
@@ -405,7 +365,6 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
     permanentCountry,
     images.length,
     pdfFile,
-    actualPrice,
   ]);
 
   const fulfilledCount = requirementsList.filter((r) => r.fulfilled).length;
@@ -448,13 +407,6 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
       return;
     }
 
-    if (actualPrice <= 0) {
-      setAttemptedSubmit(true);
-      setError('Please provide a valid Package Price for Traffic onboarding.');
-      scrollToField('field-price');
-      return;
-    }
-
     setIsConverting(true);
     setError(null);
 
@@ -480,13 +432,6 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
       permanentCountry: permanentCountry.trim(),
       images,
       pdf: pdfFile,
-      package: pkg,
-      price: actualPrice,
-      discount: numericDiscount,
-      paidAmount: numericPaid,
-      dueAmount: calculatedDue,
-      paymentMethod,
-      afterMarriageFee: actualAfterMarriageFee,
     };
 
     try {
@@ -562,7 +507,7 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                   <div>
                     <h3 className="text-lg font-bold">Promoting Lead to Traffic...</h3>
                     <p className="text-xs text-slate-300 mt-1">
-                      Validating mandatory requirements, registering MK account assignment, and initiating billing ticket.
+                      Validating mandatory requirements and registering MK account assignment.
                     </p>
                   </div>
                 </div>
@@ -623,10 +568,53 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleConvert} className="overflow-y-auto p-6 space-y-6 flex-1 text-xs">
+        <form noValidate onSubmit={handleConvert} className="overflow-y-auto p-6 space-y-6 flex-1 text-xs">
           <div ref={formTopRef} />
 
-          {error && (
+          {/* Validation Blocked Summary Alert Banner */}
+          {attemptedSubmit && requirementsList.some((r) => !r.fulfilled) && (
+            <div className="p-4 bg-red-50/90 border-2 border-red-300 rounded-2xl text-red-900 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200 space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-red-100 border border-red-300 flex items-center justify-center shrink-0 text-[#D81124]">
+                  <AlertOctagon className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <h4 className="font-bold text-xs text-red-900 uppercase tracking-wider flex items-center gap-1.5">
+                      <ShieldAlert className="w-4 h-4 text-[#D81124]" />
+                      Transfer to Traffic Blocked — Incomplete Lead Information
+                    </h4>
+                    <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-200 text-red-800 border border-red-300">
+                      {requirementsList.filter((r) => !r.fulfilled).length} Mandatory Requirement(s) Missing
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-red-700 mt-1 leading-relaxed">
+                    Preliminary leads cannot be transferred to the active Traffic pipeline until all mandatory attributes, MK assignment, photo upload, and PDF biodata are completed. Click any missing item below to jump directly to it:
+                  </p>
+                </div>
+              </div>
+
+              {/* Interactive Jump-to-Field Tags */}
+              <div className="flex flex-wrap gap-1.5 pt-1 border-t border-red-200/80">
+                {requirementsList
+                  .filter((r) => !r.fulfilled)
+                  .map((r) => (
+                    <button
+                      key={r.key}
+                      type="button"
+                      onClick={() => scrollToField(r.fieldId)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-red-300 hover:border-red-500 hover:bg-red-100/50 text-red-700 font-semibold text-[11px] transition-all cursor-pointer shadow-2xs group"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 group-hover:scale-125 transition-transform" />
+                      <span>{r.label}</span>
+                      <span className="text-red-400 group-hover:text-red-700 text-[10px]">↳</span>
+                    </button>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {error && !requirementsList.some((r) => !r.fulfilled && attemptedSubmit) && (
             <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 flex items-center gap-2.5 animate-in fade-in">
               <AlertCircle className="w-5 h-5 shrink-0 text-[#D81124]" />
               <span className="font-medium text-xs leading-relaxed">{error}</span>
@@ -649,56 +637,107 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
               {/* 1. Name */}
-              <div>
+              <div
+                id="field-name"
+                className={`transition-all rounded-xl p-1 ${
+                  activeFieldHighlight === 'field-name' ? 'ring-4 ring-amber-400 ring-offset-2' : ''
+                }`}
+              >
                 <div className="flex items-center justify-between mb-1">
                   <label className="font-semibold text-slate-700">
                     Candidate Full Name <span className="text-[#D81124]">*</span>
                   </label>
-                  {lead.name && (
+                  {isFieldMissing('name') ? (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold border border-red-200">
+                      Missing
+                    </span>
+                  ) : lead.name ? (
                     <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
                       From Lead
                     </span>
-                  )}
+                  ) : null}
                 </div>
                 <input
                   type="text"
-                  required
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (error) setError(null);
+                  }}
                   placeholder="Candidate Full Name"
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+                  className={`w-full px-3 py-2 bg-white border rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 ${
+                    isFieldMissing('name')
+                      ? 'border-red-500 bg-red-50/30 focus:ring-red-500 ring-1 ring-red-200'
+                      : 'border-slate-300 focus:ring-[#181E54]'
+                  }`}
                 />
+                {isFieldMissing('name') && (
+                  <p className="text-red-600 text-[10px] mt-1 flex items-center gap-1 font-medium">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    {getFieldError('name')}
+                  </p>
+                )}
               </div>
 
               {/* 2. Phone */}
-              <div>
+              <div
+                id="field-phone"
+                className={`transition-all rounded-xl p-1 ${
+                  activeFieldHighlight === 'field-phone' ? 'ring-4 ring-amber-400 ring-offset-2' : ''
+                }`}
+              >
                 <div className="flex items-center justify-between mb-1">
                   <label className="font-semibold text-slate-700">
                     Official Phone Number <span className="text-[#D81124]">*</span>
                   </label>
-                  {lead.phone && (
+                  {isFieldMissing('phone') ? (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold border border-red-200">
+                      Missing
+                    </span>
+                  ) : lead.phone ? (
                     <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
                       From Lead
                     </span>
-                  )}
+                  ) : null}
                 </div>
                 <input
                   type="tel"
-                  required
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => {
+                    setPhone(e.target.value);
+                    if (error) setError(null);
+                  }}
                   placeholder="Official Phone Number"
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+                  className={`w-full px-3 py-2 bg-white border rounded-xl text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 ${
+                    isFieldMissing('phone')
+                      ? 'border-red-500 bg-red-50/30 focus:ring-red-500 ring-1 ring-red-200'
+                      : 'border-slate-300 focus:ring-[#181E54]'
+                  }`}
                 />
+                {isFieldMissing('phone') && (
+                  <p className="text-red-600 text-[10px] mt-1 flex items-center gap-1 font-medium">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    {getFieldError('phone')}
+                  </p>
+                )}
               </div>
 
               {/* 3. Email (MANDATORY FOR TRAFFIC) */}
-              <div>
+              <div
+                id="field-email"
+                className={`transition-all rounded-xl p-1 ${
+                  activeFieldHighlight === 'field-email' ? 'ring-4 ring-amber-400 ring-offset-2' : ''
+                }`}
+              >
                 <div className="flex items-center justify-between mb-1">
                   <label className="font-semibold text-slate-700">
                     Email Address <span className="text-[#D81124]">*</span>
                   </label>
-                  {lead.email ? (
+                  {isFieldMissing('email') ? (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold border border-red-200">
+                      Missing
+                    </span>
+                  ) : lead.email ? (
                     <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
                       From Lead
                     </span>
@@ -710,16 +749,26 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                 </div>
                 <input
                   type="email"
-                  required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (error) setError(null);
+                  }}
                   placeholder="candidate@example.com"
                   className={`w-full px-3 py-2 bg-white border rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 ${
-                    !email.trim()
+                    isFieldMissing('email')
+                      ? 'border-red-500 bg-red-50/30 focus:ring-red-500 ring-1 ring-red-200'
+                      : !email.trim()
                       ? 'border-amber-400 focus:ring-amber-500 bg-amber-50/20'
                       : 'border-slate-300 focus:ring-[#181E54]'
                   }`}
                 />
+                {isFieldMissing('email') && (
+                  <p className="text-red-600 text-[10px] mt-1 flex items-center gap-1 font-medium">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    {getFieldError('email')}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -739,12 +788,28 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
             </div>
 
             {/* 1. Assign By - Selection menu with all MK Accounts */}
-            <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl">
+            <div
+              id="field-assignBy"
+              className={`p-3.5 rounded-xl border transition-all ${
+                activeFieldHighlight === 'field-assignBy' ? 'ring-4 ring-amber-400 ring-offset-2' : ''
+              } ${
+                isFieldMissing('assignBy')
+                  ? 'bg-red-50/60 border-red-300 ring-1 ring-red-200'
+                  : 'bg-amber-50/70 border-amber-200'
+              }`}
+            >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-amber-900 uppercase tracking-wider mb-0.5">
-                    Assign By (MK Role Accounts) <span className="text-[#D81124]">*</span>
-                  </label>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <label className="block text-xs font-bold text-amber-900 uppercase tracking-wider">
+                      Assign By (MK Role Accounts) <span className="text-[#D81124]">*</span>
+                    </label>
+                    {isFieldMissing('assignBy') && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold border border-red-200">
+                        Missing
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[11px] text-amber-700">
                     Select which Marketing officer (MK) created or manages this candidate
                   </p>
@@ -753,10 +818,16 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                   <div className="relative">
                     <UserCheck className="w-4 h-4 text-amber-600 absolute left-3 top-1/2 -translate-y-1/2" />
                     <select
-                      required
                       value={assignBy}
-                      onChange={(e) => setAssignBy(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-white border border-amber-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+                      onChange={(e) => {
+                        setAssignBy(e.target.value);
+                        if (error) setError(null);
+                      }}
+                      className={`w-full pl-9 pr-3 py-2 bg-white border rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 ${
+                        isFieldMissing('assignBy')
+                          ? 'border-red-500 bg-red-50/30 focus:ring-red-500 ring-1 ring-red-200'
+                          : 'border-amber-300 focus:ring-[#181E54]'
+                      }`}
                     >
                       <option value="">Select MK Officer...</option>
                       {mkAccounts.map((acc) => (
@@ -769,6 +840,12 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                       )}
                     </select>
                   </div>
+                  {isFieldMissing('assignBy') && (
+                    <p className="text-red-600 text-[10px] mt-1 flex items-center gap-1 font-medium">
+                      <AlertCircle className="w-3 h-3 shrink-0" />
+                      {getFieldError('assignBy')}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -776,15 +853,33 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
             {/* Grid of Profile Attributes */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
               {/* Profession */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Profession <span className="text-[#D81124]">*</span>
-                </label>
+              <div
+                id="field-profession"
+                className={`transition-all rounded-xl p-1 ${
+                  activeFieldHighlight === 'field-profession' ? 'ring-4 ring-amber-400 ring-offset-2' : ''
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-semibold text-slate-700">
+                    Profession <span className="text-[#D81124]">*</span>
+                  </label>
+                  {isFieldMissing('profession') && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold border border-red-200">
+                      Missing
+                    </span>
+                  )}
+                </div>
                 <select
-                  required
                   value={profession}
-                  onChange={(e) => setProfession(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+                  onChange={(e) => {
+                    setProfession(e.target.value);
+                    if (error) setError(null);
+                  }}
+                  className={`w-full px-3 py-2 bg-white border rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 ${
+                    isFieldMissing('profession')
+                      ? 'border-red-500 bg-red-50/30 focus:ring-red-500 ring-1 ring-red-200'
+                      : 'border-slate-300 focus:ring-[#181E54]'
+                  }`}
                 >
                   <option value="">Select Profession...</option>
                   {PROFESSIONS.map((p) => (
@@ -793,18 +888,42 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                     </option>
                   ))}
                 </select>
+                {isFieldMissing('profession') && (
+                  <p className="text-red-600 text-[10px] mt-1 flex items-center gap-1 font-medium">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    {getFieldError('profession')}
+                  </p>
+                )}
               </div>
 
               {/* Job Type */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Job Type <span className="text-[#D81124]">*</span>
-                </label>
+              <div
+                id="field-jobType"
+                className={`transition-all rounded-xl p-1 ${
+                  activeFieldHighlight === 'field-jobType' ? 'ring-4 ring-amber-400 ring-offset-2' : ''
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-semibold text-slate-700">
+                    Job Type <span className="text-[#D81124]">*</span>
+                  </label>
+                  {isFieldMissing('jobType') && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold border border-red-200">
+                      Missing
+                    </span>
+                  )}
+                </div>
                 <select
-                  required
                   value={jobType}
-                  onChange={(e) => setJobType(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+                  onChange={(e) => {
+                    setJobType(e.target.value);
+                    if (error) setError(null);
+                  }}
+                  className={`w-full px-3 py-2 bg-white border rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 ${
+                    isFieldMissing('jobType')
+                      ? 'border-red-500 bg-red-50/30 focus:ring-red-500 ring-1 ring-red-200'
+                      : 'border-slate-300 focus:ring-[#181E54]'
+                  }`}
                 >
                   <option value="">Select Job Type...</option>
                   <option value="Private Job">Private Job</option>
@@ -816,41 +935,86 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                   <option value="Non-Employed">Non-Employed</option>
                   <option value="Other">Other</option>
                 </select>
+                {isFieldMissing('jobType') && (
+                  <p className="text-red-600 text-[10px] mt-1 flex items-center gap-1 font-medium">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    {getFieldError('jobType')}
+                  </p>
+                )}
               </div>
 
               {/* Date of Birth */}
-              <div>
+              <div
+                id="field-dateOfBirth"
+                className={`transition-all rounded-xl p-1 ${
+                  activeFieldHighlight === 'field-dateOfBirth' ? 'ring-4 ring-amber-400 ring-offset-2' : ''
+                }`}
+              >
                 <div className="flex items-center justify-between mb-1">
                   <label className="font-semibold text-slate-700">
                     Date of Birth <span className="text-[#D81124]">*</span>
                   </label>
-                  {!dateOfBirth && (
+                  {isFieldMissing('dateOfBirth') ? (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold border border-red-200">
+                      Missing
+                    </span>
+                  ) : !dateOfBirth ? (
                     <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 font-bold border border-amber-300">
                       Required
                     </span>
-                  )}
+                  ) : null}
                 </div>
                 <input
                   type="date"
-                  required
                   value={dateOfBirth}
-                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  onChange={(e) => {
+                    setDateOfBirth(e.target.value);
+                    if (error) setError(null);
+                  }}
                   className={`w-full px-3 py-2 bg-white border rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 ${
-                    !dateOfBirth ? 'border-amber-400 bg-amber-50/20' : 'border-slate-300 focus:ring-[#181E54]'
+                    isFieldMissing('dateOfBirth')
+                      ? 'border-red-500 bg-red-50/30 focus:ring-red-500 ring-1 ring-red-200'
+                      : !dateOfBirth
+                      ? 'border-amber-400 bg-amber-50/20'
+                      : 'border-slate-300 focus:ring-[#181E54]'
                   }`}
                 />
+                {isFieldMissing('dateOfBirth') && (
+                  <p className="text-red-600 text-[10px] mt-1 flex items-center gap-1 font-medium">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    {getFieldError('dateOfBirth')}
+                  </p>
+                )}
               </div>
 
               {/* Marital Status */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Marital Status <span className="text-[#D81124]">*</span>
-                </label>
+              <div
+                id="field-maritalStatus"
+                className={`transition-all rounded-xl p-1 ${
+                  activeFieldHighlight === 'field-maritalStatus' ? 'ring-4 ring-amber-400 ring-offset-2' : ''
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-semibold text-slate-700">
+                    Marital Status <span className="text-[#D81124]">*</span>
+                  </label>
+                  {isFieldMissing('maritalStatus') && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold border border-red-200">
+                      Missing
+                    </span>
+                  )}
+                </div>
                 <select
-                  required
                   value={maritalStatus}
-                  onChange={(e) => setMaritalStatus(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+                  onChange={(e) => {
+                    setMaritalStatus(e.target.value);
+                    if (error) setError(null);
+                  }}
+                  className={`w-full px-3 py-2 bg-white border rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 ${
+                    isFieldMissing('maritalStatus')
+                      ? 'border-red-500 bg-red-50/30 focus:ring-red-500 ring-1 ring-red-200'
+                      : 'border-slate-300 focus:ring-[#181E54]'
+                  }`}
                 >
                   <option value="">Select Marital Status...</option>
                   <option value="Never Married">Never Married</option>
@@ -858,35 +1022,83 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                   <option value="Widowed">Widowed</option>
                   <option value="Awaiting Divorce">Awaiting Divorce</option>
                 </select>
+                {isFieldMissing('maritalStatus') && (
+                  <p className="text-red-600 text-[10px] mt-1 flex items-center gap-1 font-medium">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    {getFieldError('maritalStatus')}
+                  </p>
+                )}
               </div>
 
               {/* Gender */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Gender <span className="text-[#D81124]">*</span>
-                </label>
+              <div
+                id="field-gender"
+                className={`transition-all rounded-xl p-1 ${
+                  activeFieldHighlight === 'field-gender' ? 'ring-4 ring-amber-400 ring-offset-2' : ''
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-semibold text-slate-700">
+                    Gender <span className="text-[#D81124]">*</span>
+                  </label>
+                  {isFieldMissing('gender') && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold border border-red-200">
+                      Missing
+                    </span>
+                  )}
+                </div>
                 <select
-                  required
                   value={gender}
-                  onChange={(e) => setGender(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+                  onChange={(e) => {
+                    setGender(e.target.value);
+                    if (error) setError(null);
+                  }}
+                  className={`w-full px-3 py-2 bg-white border rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 ${
+                    isFieldMissing('gender')
+                      ? 'border-red-500 bg-red-50/30 focus:ring-red-500 ring-1 ring-red-200'
+                      : 'border-slate-300 focus:ring-[#181E54]'
+                  }`}
                 >
                   <option value="">Select Gender...</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                 </select>
+                {isFieldMissing('gender') && (
+                  <p className="text-red-600 text-[10px] mt-1 flex items-center gap-1 font-medium">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    {getFieldError('gender')}
+                  </p>
+                )}
               </div>
 
               {/* Body Color */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Body Color <span className="text-[#D81124]">*</span>
-                </label>
+              <div
+                id="field-bodyColor"
+                className={`transition-all rounded-xl p-1 ${
+                  activeFieldHighlight === 'field-bodyColor' ? 'ring-4 ring-amber-400 ring-offset-2' : ''
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-semibold text-slate-700">
+                    Body Color <span className="text-[#D81124]">*</span>
+                  </label>
+                  {isFieldMissing('bodyColor') && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold border border-red-200">
+                      Missing
+                    </span>
+                  )}
+                </div>
                 <select
-                  required
                   value={bodyColor}
-                  onChange={(e) => setBodyColor(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+                  onChange={(e) => {
+                    setBodyColor(e.target.value);
+                    if (error) setError(null);
+                  }}
+                  className={`w-full px-3 py-2 bg-white border rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 ${
+                    isFieldMissing('bodyColor')
+                      ? 'border-red-500 bg-red-50/30 focus:ring-red-500 ring-1 ring-red-200'
+                      : 'border-slate-300 focus:ring-[#181E54]'
+                  }`}
                 >
                   <option value="">Select Body Color...</option>
                   <option value="Fair">Fair</option>
@@ -895,18 +1107,42 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                   <option value="Dusky">Dusky</option>
                   <option value="Dark">Dark</option>
                 </select>
+                {isFieldMissing('bodyColor') && (
+                  <p className="text-red-600 text-[10px] mt-1 flex items-center gap-1 font-medium">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    {getFieldError('bodyColor')}
+                  </p>
+                )}
               </div>
 
               {/* Height */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Height <span className="text-[#D81124]">*</span>
-                </label>
+              <div
+                id="field-height"
+                className={`transition-all rounded-xl p-1 ${
+                  activeFieldHighlight === 'field-height' ? 'ring-4 ring-amber-400 ring-offset-2' : ''
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-semibold text-slate-700">
+                    Height <span className="text-[#D81124]">*</span>
+                  </label>
+                  {isFieldMissing('height') && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold border border-red-200">
+                      Missing
+                    </span>
+                  )}
+                </div>
                 <select
-                  required
                   value={height}
-                  onChange={(e) => setHeight(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+                  onChange={(e) => {
+                    setHeight(e.target.value);
+                    if (error) setError(null);
+                  }}
+                  className={`w-full px-3 py-2 bg-white border rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 ${
+                    isFieldMissing('height')
+                      ? 'border-red-500 bg-red-50/30 focus:ring-red-500 ring-1 ring-red-200'
+                      : 'border-slate-300 focus:ring-[#181E54]'
+                  }`}
                 >
                   <option value="">Select Height...</option>
                   <option value="4'8&quot; (142 cm)">4&apos;8&quot; (142 cm)</option>
@@ -929,18 +1165,42 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                   <option value="6'1&quot; (185 cm)">6&apos;1&quot; (185 cm)</option>
                   <option value="6'2&quot;+ (188+ cm)">6&apos;2&quot;+ (188+ cm)</option>
                 </select>
+                {isFieldMissing('height') && (
+                  <p className="text-red-600 text-[10px] mt-1 flex items-center gap-1 font-medium">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    {getFieldError('height')}
+                  </p>
+                )}
               </div>
 
               {/* Religion */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Religion <span className="text-[#D81124]">*</span>
-                </label>
+              <div
+                id="field-religion"
+                className={`transition-all rounded-xl p-1 ${
+                  activeFieldHighlight === 'field-religion' ? 'ring-4 ring-amber-400 ring-offset-2' : ''
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-semibold text-slate-700">
+                    Religion <span className="text-[#D81124]">*</span>
+                  </label>
+                  {isFieldMissing('religion') && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold border border-red-200">
+                      Missing
+                    </span>
+                  )}
+                </div>
                 <select
-                  required
                   value={religion}
-                  onChange={(e) => setReligion(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+                  onChange={(e) => {
+                    setReligion(e.target.value);
+                    if (error) setError(null);
+                  }}
+                  className={`w-full px-3 py-2 bg-white border rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 ${
+                    isFieldMissing('religion')
+                      ? 'border-red-500 bg-red-50/30 focus:ring-red-500 ring-1 ring-red-200'
+                      : 'border-slate-300 focus:ring-[#181E54]'
+                  }`}
                 >
                   <option value="">Select Religion...</option>
                   <option value="Islam (Sunni)">Islam (Sunni)</option>
@@ -951,18 +1211,42 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                   <option value="Buddhism">Buddhism</option>
                   <option value="Other">Other</option>
                 </select>
+                {isFieldMissing('religion') && (
+                  <p className="text-red-600 text-[10px] mt-1 flex items-center gap-1 font-medium">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    {getFieldError('religion')}
+                  </p>
+                )}
               </div>
 
               {/* Blood Group */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Blood Group <span className="text-[#D81124]">*</span>
-                </label>
+              <div
+                id="field-bloodGroup"
+                className={`transition-all rounded-xl p-1 ${
+                  activeFieldHighlight === 'field-bloodGroup' ? 'ring-4 ring-amber-400 ring-offset-2' : ''
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-semibold text-slate-700">
+                    Blood Group <span className="text-[#D81124]">*</span>
+                  </label>
+                  {isFieldMissing('bloodGroup') && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold border border-red-200">
+                      Missing
+                    </span>
+                  )}
+                </div>
                 <select
-                  required
                   value={bloodGroup}
-                  onChange={(e) => setBloodGroup(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+                  onChange={(e) => {
+                    setBloodGroup(e.target.value);
+                    if (error) setError(null);
+                  }}
+                  className={`w-full px-3 py-2 bg-white border rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 ${
+                    isFieldMissing('bloodGroup')
+                      ? 'border-red-500 bg-red-50/30 focus:ring-red-500 ring-1 ring-red-200'
+                      : 'border-slate-300 focus:ring-[#181E54]'
+                  }`}
                 >
                   <option value="">Select Blood Group...</option>
                   <option value="A+">A+</option>
@@ -974,18 +1258,42 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                   <option value="AB+">AB+</option>
                   <option value="AB-">AB-</option>
                 </select>
+                {isFieldMissing('bloodGroup') && (
+                  <p className="text-red-600 text-[10px] mt-1 flex items-center gap-1 font-medium">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    {getFieldError('bloodGroup')}
+                  </p>
+                )}
               </div>
 
               {/* Qualification */}
-              <div className="sm:col-span-2 md:col-span-3">
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Educational Qualification <span className="text-[#D81124]">*</span>
-                </label>
+              <div
+                id="field-qualification"
+                className={`sm:col-span-2 md:col-span-3 transition-all rounded-xl p-1 ${
+                  activeFieldHighlight === 'field-qualification' ? 'ring-4 ring-amber-400 ring-offset-2' : ''
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-semibold text-slate-700">
+                    Educational Qualification <span className="text-[#D81124]">*</span>
+                  </label>
+                  {isFieldMissing('qualification') && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold border border-red-200">
+                      Missing
+                    </span>
+                  )}
+                </div>
                 <select
-                  required
                   value={qualification}
-                  onChange={(e) => setQualification(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+                  onChange={(e) => {
+                    setQualification(e.target.value);
+                    if (error) setError(null);
+                  }}
+                  className={`w-full px-3 py-2 bg-white border rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 ${
+                    isFieldMissing('qualification')
+                      ? 'border-red-500 bg-red-50/30 focus:ring-red-500 ring-1 ring-red-200'
+                      : 'border-slate-300 focus:ring-[#181E54]'
+                  }`}
                 >
                   <option value="">Select Qualification...</option>
                   <option value="SSC / O-Level">SSC / O-Level</option>
@@ -998,32 +1306,57 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                   <option value="Ph.D / Doctorate">Ph.D / Doctorate</option>
                   <option value="Other">Other</option>
                 </select>
+                {isFieldMissing('qualification') && (
+                  <p className="text-red-600 text-[10px] mt-1 flex items-center gap-1 font-medium">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    {getFieldError('qualification')}
+                  </p>
+                )}
               </div>
 
               {/* Requirement - Manually Input */}
-              <div className="sm:col-span-2 md:col-span-3">
+              <div
+                id="field-requirement"
+                className={`sm:col-span-2 md:col-span-3 transition-all rounded-xl p-1 ${
+                  activeFieldHighlight === 'field-requirement' ? 'ring-4 ring-amber-400 ring-offset-2' : ''
+                }`}
+              >
                 <div className="flex items-center justify-between mb-1">
                   <label className="font-semibold text-slate-700">
                     Partner Requirement / Expectations <span className="text-[#D81124]">*</span>
                   </label>
-                  {!requirement.trim() && (
+                  {isFieldMissing('requirement') ? (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold border border-red-200">
+                      Missing
+                    </span>
+                  ) : !requirement.trim() ? (
                     <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 font-bold border border-amber-300">
                       Required for Traffic
                     </span>
-                  )}
+                  ) : null}
                 </div>
                 <textarea
                   rows={2}
-                  required
                   value={requirement}
-                  onChange={(e) => setRequirement(e.target.value)}
+                  onChange={(e) => {
+                    setRequirement(e.target.value);
+                    if (error) setError(null);
+                  }}
                   placeholder="Candidate's expectations regarding age, height, education, family background, or district preferences..."
                   className={`w-full px-3.5 py-2 bg-white border rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 resize-none ${
-                    !requirement.trim()
+                    isFieldMissing('requirement')
+                      ? 'border-red-500 bg-red-50/30 focus:ring-red-500 ring-1 ring-red-200'
+                      : !requirement.trim()
                       ? 'border-amber-400 focus:ring-amber-500 bg-amber-50/20'
                       : 'border-slate-300 focus:ring-[#181E54]'
                   }`}
                 />
+                {isFieldMissing('requirement') && (
+                  <p className="text-red-600 text-[10px] mt-1 flex items-center gap-1 font-medium">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    {getFieldError('requirement')}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -1049,53 +1382,117 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Present Address */}
-                <div className="space-y-2 p-3 bg-slate-50/80 rounded-xl border border-slate-200/80">
-                  <span className="text-[11px] font-bold text-slate-700 block">Present Address</span>
+                <div
+                  id="field-presentAddress"
+                  className={`space-y-2 p-3 rounded-xl border transition-all ${
+                    activeFieldHighlight === 'field-presentAddress' ? 'ring-4 ring-amber-400 ring-offset-2' : ''
+                  } ${
+                    isFieldMissing('presentAddress')
+                      ? 'bg-red-50/60 border-red-300 ring-1 ring-red-200'
+                      : 'bg-slate-50/80 border-slate-200/80'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-700 block">Present Address *</span>
+                    {isFieldMissing('presentAddress') && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold border border-red-200">
+                        Missing
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="text"
-                    required
                     value={presentCity}
                     onChange={(e) => {
                       setPresentCity(e.target.value);
                       if (sameAsPresent) setPermanentCity(e.target.value);
+                      if (error) setError(null);
                     }}
                     placeholder="City / District (e.g. Dhaka, Gulshan)"
-                    className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+                    className={`w-full px-3 py-1.5 bg-white border rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 ${
+                      isFieldMissing('presentAddress') && !presentCity.trim()
+                        ? 'border-red-500 bg-red-50/30 focus:ring-red-500 ring-1 ring-red-200'
+                        : 'border-slate-200 focus:ring-[#181E54]'
+                    }`}
                   />
                   <input
                     type="text"
-                    required
                     value={presentCountry}
                     onChange={(e) => {
                       setPresentCountry(e.target.value);
                       if (sameAsPresent) setPermanentCountry(e.target.value);
+                      if (error) setError(null);
                     }}
                     placeholder="Country (e.g. Bangladesh)"
-                    className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+                    className={`w-full px-3 py-1.5 bg-white border rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 ${
+                      isFieldMissing('presentAddress') && !presentCountry.trim()
+                        ? 'border-red-500 bg-red-50/30 focus:ring-red-500 ring-1 ring-red-200'
+                        : 'border-slate-200 focus:ring-[#181E54]'
+                    }`}
                   />
+                  {isFieldMissing('presentAddress') && (
+                    <p className="text-red-600 text-[10px] mt-1 flex items-center gap-1 font-medium">
+                      <AlertCircle className="w-3 h-3 shrink-0" />
+                      {getFieldError('presentAddress')}
+                    </p>
+                  )}
                 </div>
 
                 {/* Permanent Address */}
-                <div className="space-y-2 p-3 bg-slate-50/80 rounded-xl border border-slate-200/80">
-                  <span className="text-[11px] font-bold text-slate-700 block">Permanent Address</span>
+                <div
+                  id="field-permanentAddress"
+                  className={`space-y-2 p-3 rounded-xl border transition-all ${
+                    activeFieldHighlight === 'field-permanentAddress' ? 'ring-4 ring-amber-400 ring-offset-2' : ''
+                  } ${
+                    isFieldMissing('permanentAddress')
+                      ? 'bg-red-50/60 border-red-300 ring-1 ring-red-200'
+                      : 'bg-slate-50/80 border-slate-200/80'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-700 block">Permanent Address *</span>
+                    {isFieldMissing('permanentAddress') && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold border border-red-200">
+                        Missing
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="text"
-                    required
                     value={permanentCity}
                     disabled={sameAsPresent}
-                    onChange={(e) => setPermanentCity(e.target.value)}
+                    onChange={(e) => {
+                      setPermanentCity(e.target.value);
+                      if (error) setError(null);
+                    }}
                     placeholder="City / District (e.g. Sylhet)"
-                    className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54] disabled:opacity-60"
+                    className={`w-full px-3 py-1.5 bg-white border rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 disabled:opacity-60 ${
+                      isFieldMissing('permanentAddress') && !permanentCity.trim()
+                        ? 'border-red-500 bg-red-50/30 focus:ring-red-500 ring-1 ring-red-200'
+                        : 'border-slate-200 focus:ring-[#181E54]'
+                    }`}
                   />
                   <input
                     type="text"
-                    required
                     value={permanentCountry}
                     disabled={sameAsPresent}
-                    onChange={(e) => setPermanentCountry(e.target.value)}
+                    onChange={(e) => {
+                      setPermanentCountry(e.target.value);
+                      if (error) setError(null);
+                    }}
                     placeholder="Country (e.g. Bangladesh)"
-                    className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54] disabled:opacity-60"
+                    className={`w-full px-3 py-1.5 bg-white border rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 disabled:opacity-60 ${
+                      isFieldMissing('permanentAddress') && !permanentCountry.trim()
+                        ? 'border-red-500 bg-red-50/30 focus:ring-red-500 ring-1 ring-red-200'
+                        : 'border-slate-200 focus:ring-[#181E54]'
+                    }`}
                   />
+                  {isFieldMissing('permanentAddress') && (
+                    <p className="text-red-600 text-[10px] mt-1 flex items-center gap-1 font-medium">
+                      <AlertCircle className="w-3 h-3 shrink-0" />
+                      {getFieldError('permanentAddress')}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -1104,8 +1501,13 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Picture Upload (MANDATORY FOR TRAFFIC) */}
               <div
-                className={`p-4 rounded-2xl border space-y-3 ${
-                  images.length === 0
+                id="field-images"
+                className={`p-4 rounded-2xl border space-y-3 transition-all ${
+                  activeFieldHighlight === 'field-images' ? 'ring-4 ring-amber-400 ring-offset-2' : ''
+                } ${
+                  isFieldMissing('images')
+                    ? 'bg-red-50/50 border-red-400 ring-1 ring-red-200'
+                    : images.length === 0
                     ? 'bg-amber-50/40 border-amber-300'
                     : 'bg-white border-slate-200'
                 }`}
@@ -1117,7 +1519,11 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                       Picture Upload ({images.length}) <span className="text-[#D81124]">*</span>
                     </span>
                   </div>
-                  {images.length === 0 ? (
+                  {isFieldMissing('images') ? (
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200">
+                      Required Photo Missing
+                    </span>
+                  ) : images.length === 0 ? (
                     <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
                       At least 1 required
                     </span>
@@ -1144,10 +1550,12 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                   className={`border-2 border-dashed rounded-xl p-3.5 text-center transition-all bg-slate-50/60 ${
                     isDraggingImages
                       ? 'border-[#181E54] bg-[#181E54]/5'
+                      : isFieldMissing('images')
+                      ? 'border-red-400 bg-red-50/30'
                       : 'border-slate-300 hover:border-slate-400'
                   }`}
                 >
-                  <Upload className="w-5 h-5 mx-auto text-slate-400 mb-1" />
+                  <Upload className={`w-5 h-5 mx-auto mb-1 ${isFieldMissing('images') ? 'text-red-400' : 'text-slate-400'}`} />
                   <p className="text-[11px] font-semibold text-slate-700">Drag &amp; drop photos here</p>
                   <label className="mt-1.5 inline-block px-3 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 hover:bg-slate-50 cursor-pointer shadow-2xs">
                     Browse Pictures
@@ -1159,12 +1567,20 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                         if (e.target.files) {
                           processImageFiles(Array.from(e.target.files));
                           e.target.value = '';
+                          if (error) setError(null);
                         }
                       }}
                       className="hidden"
                     />
                   </label>
                 </div>
+
+                {isFieldMissing('images') && (
+                  <p className="text-red-600 text-[10px] mt-1 flex items-center gap-1 font-medium">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    {getFieldError('images')}
+                  </p>
+                )}
 
                 {images.length > 0 && (
                   <div className="flex items-center gap-2 overflow-x-auto pb-1 max-h-24">
@@ -1186,8 +1602,13 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
 
               {/* PDF Document Upload (MANDATORY FOR TRAFFIC) */}
               <div
-                className={`p-4 rounded-2xl border space-y-3 ${
-                  !pdfFile
+                id="field-pdf"
+                className={`p-4 rounded-2xl border space-y-3 transition-all ${
+                  activeFieldHighlight === 'field-pdf' ? 'ring-4 ring-amber-400 ring-offset-2' : ''
+                } ${
+                  isFieldMissing('pdf')
+                    ? 'bg-red-50/50 border-red-400 ring-1 ring-red-200'
+                    : !pdfFile
                     ? 'bg-amber-50/40 border-amber-300'
                     : 'bg-white border-slate-200'
                 }`}
@@ -1199,7 +1620,11 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                       PDF Bio-Data <span className="text-[#D81124]">*</span>
                     </span>
                   </div>
-                  {!pdfFile ? (
+                  {isFieldMissing('pdf') ? (
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200">
+                      PDF Document Required
+                    </span>
+                  ) : !pdfFile ? (
                     <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
                       Required for Traffic
                     </span>
@@ -1227,10 +1652,12 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                     className={`border-2 border-dashed rounded-xl p-3.5 text-center transition-all bg-slate-50/60 ${
                       isDraggingPdf
                         ? 'border-[#D81124] bg-red-50/30'
+                        : isFieldMissing('pdf')
+                        ? 'border-red-400 bg-red-50/30'
                         : 'border-slate-300 hover:border-slate-400'
                     }`}
                   >
-                    <FileText className="w-5 h-5 mx-auto text-slate-400 mb-1" />
+                    <FileText className={`w-5 h-5 mx-auto mb-1 ${isFieldMissing('pdf') ? 'text-red-400' : 'text-slate-400'}`} />
                     <p className="text-[11px] font-semibold text-slate-700">Strictly PDF only (.pdf)</p>
                     <label className="mt-1.5 inline-block px-3 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 hover:bg-slate-50 cursor-pointer shadow-2xs">
                       Upload PDF Bio-Data
@@ -1241,6 +1668,7 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                           if (e.target.files && e.target.files.length > 0) {
                             processPdfFile(e.target.files[0]);
                             e.target.value = '';
+                            if (error) setError(null);
                           }
                         }}
                         className="hidden"
@@ -1270,169 +1698,13 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                     </button>
                   </div>
                 )}
-              </div>
-            </div>
-          </div>
 
-          {/* ======================================================== */}
-          {/* SECTION 3: PART 3 - PAYMENT FINANCIAL RECORD             */}
-          {/* ======================================================== */}
-          <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
-              <div className="flex items-center gap-2">
-                <Package className="w-4 h-4 text-[#181E54]" />
-                <h3 className="text-xs font-bold text-[#181E54] uppercase tracking-wider">
-                  Part 3 — Payment &amp; Financial Onboarding
-                </h3>
-              </div>
-              <span className="text-[10px] text-slate-500 font-medium">Automatic Payment Ticket Generation</span>
-            </div>
-
-            {/* Matrimonial Package Selection */}
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1.5">
-                Matrimonial Service Package <span className="text-[#D81124]">*</span>
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {[
-                  { name: 'Silver', price: '10000', badge: 'Basic' },
-                  { name: 'Gold', price: '15000', badge: 'Popular' },
-                  { name: 'Diamond', price: '25000', badge: 'Premium' },
-                  { name: 'Platinum', price: '40000', badge: 'VIP' },
-                ].map((item) => (
-                  <button
-                    key={item.name}
-                    type="button"
-                    onClick={() => {
-                      setPkg(item.name);
-                      setPrice(item.price);
-                    }}
-                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                      pkg === item.name
-                        ? 'bg-[#181E54] text-white border-[#181E54] shadow-sm ring-2 ring-[#181E54]/20'
-                        : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs">{item.name}</span>
-                      <span
-                        className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
-                          pkg === item.name ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-                        }`}
-                      >
-                        {item.badge}
-                      </span>
-                    </div>
-                    <span className="font-mono text-xs font-semibold mt-1 block">
-                      {Number(item.price).toLocaleString()} BDT
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Pricing, Discount, Paid & Calculated Due */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {/* Package Price */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Package Price (BDT) <span className="text-[#D81124]">*</span>
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-xs">
-                    ৳
-                  </span>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    value={price === 'custom' ? customPrice : price}
-                    onChange={(e) => {
-                      setPrice('custom');
-                      setCustomPrice(e.target.value);
-                    }}
-                    className="w-full pl-7 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
-                  />
-                </div>
-              </div>
-
-              {/* Discount */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Discount (BDT)</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-xs">
-                    ৳
-                  </span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={discount}
-                    onChange={(e) => setDiscount(e.target.value)}
-                    className="w-full pl-7 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
-                  />
-                </div>
-              </div>
-
-              {/* Paid Amount */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Paid Amount (BDT) <span className="text-[#D81124]">*</span>
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-600 font-semibold text-xs">
-                    ৳
-                  </span>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    value={paidAmount}
-                    onChange={(e) => setPaidAmount(e.target.value)}
-                    className="w-full pl-7 pr-3 py-2 bg-white border border-emerald-300 rounded-xl text-xs font-mono font-bold text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Calculated Due, AMA & Payment Method */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-200/60">
-              {/* Auto Calculated Due */}
-              <div className="p-3 bg-red-50/70 border border-red-200 rounded-xl">
-                <span className="text-[11px] text-red-700 font-semibold block">Auto-Calculated Due</span>
-                <span className="font-mono text-base font-bold text-red-600 mt-0.5 block">
-                  {calculatedDue.toLocaleString()} BDT
-                </span>
-                <span className="text-[10px] text-red-500">Price - Discount - Paid</span>
-              </div>
-
-              {/* After Marriage Amount (AMA) */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">After Marriage Fee (AMA)</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={afterMarriageFee}
-                  onChange={(e) => setAfterMarriageFee(e.target.value)}
-                  placeholder="e.g. 20000"
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold text-[#181E54] focus:outline-none focus:ring-2 focus:ring-[#181E54]"
-                />
-              </div>
-
-              {/* Payment Method */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Payment Method</label>
-                <select
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
-                >
-                  <option value="bKash">bKash</option>
-                  <option value="Nagad">Nagad</option>
-                  <option value="Rocket">Rocket</option>
-                  <option value="Bank Transfer">Bank Transfer</option>
-                  <option value="Cash">Cash at Office</option>
-                  <option value="Card">Credit/Debit Card</option>
-                </select>
+                {isFieldMissing('pdf') && (
+                  <p className="text-red-600 text-[10px] mt-1 flex items-center gap-1 font-medium">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    {getFieldError('pdf')}
+                  </p>
+                )}
               </div>
             </div>
           </div>

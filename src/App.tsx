@@ -5,6 +5,7 @@ import { TrafficPage } from './components/TrafficPage';
 import { PaidTrafficPage } from './components/PaidTrafficPage';
 import { PaymentPage } from './components/PaymentPage';
 import { LeadPage } from './components/LeadPage';
+import { TrashBinPage } from './components/TrashBinPage';
 import { EmptyPage } from './components/EmptyPage';
 
 export default function App() {
@@ -106,13 +107,15 @@ export default function App() {
       {activePage === 'Payment' && <PaymentPage token={token} />}
       {activePage === 'Lead' && <LeadPage token={token} />}
       
+      {/* Active Feature Sections */}
+      {activePage === 'Trush bin' && <TrashBinPage token={token} />}
+      
       {/* Kept Empty per explicit instructions for unfinished sections */}
       {activePage === 'Dashboard' && <EmptyPage title="Dashboard" />}
       {activePage === 'Account' && <EmptyPage title="Account" />}
       {activePage === 'Tracking' && <EmptyPage title="Tracking" />}
       {activePage === 'Attendance' && <EmptyPage title="Attendance" />}
       {activePage === 'Settings' && <EmptyPage title="Settings" />}
-      {activePage === 'Trush bin' && <EmptyPage title="Trush bin" />}
     </CrmLayout>
   );
 }
