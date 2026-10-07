@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ShadikabboLogo } from './ShadikabboLogo';
+import { PWAInstallButton } from './PWAInstallButton';
 import {
   LayoutDashboard,
   Users2,
@@ -15,6 +16,7 @@ import {
   Menu,
   X,
   User,
+  Camera,
 } from 'lucide-react';
 
 export type SidebarPage =
@@ -34,6 +36,7 @@ interface CrmLayoutProps {
   activePage: SidebarPage;
   onSelectPage: (page: SidebarPage) => void;
   onLogout: () => void;
+  onOpenScanner?: () => void;
   children: React.ReactNode;
 }
 
@@ -42,6 +45,7 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
   activePage,
   onSelectPage,
   onLogout,
+  onOpenScanner,
   children,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -90,7 +94,23 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
         </div>
 
         {/* TOP RIGHT */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Add to Home Screen (PWA Install Button) */}
+          <PWAInstallButton />
+
+          {/* Quick Staff Attendance Scanner shortcut */}
+          {onOpenScanner && (
+            <button
+              type="button"
+              onClick={onOpenScanner}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#181E54] text-white hover:bg-[#121742] text-xs font-bold transition-all shadow-xs cursor-pointer"
+              title="Open Daily Attendance Scanner"
+            >
+              <Camera className="w-3.5 h-3.5 text-white" />
+              <span className="hidden md:inline">Scanner</span>
+            </button>
+          )}
+
           <div className="text-right hidden sm:block">
             <p className="text-xs font-bold text-[#181E54] leading-tight">
               {user?.name || 'Sohag'}

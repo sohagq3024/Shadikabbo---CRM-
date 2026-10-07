@@ -19,9 +19,11 @@ import {
   CheckCircle,
   Clock,
   UserCheck,
+  Layers,
 } from 'lucide-react';
 import { CountryFlag, detectCountryIso } from './CountryFlag';
 import { ActivityLog, getStatusMeta } from './ActivityLog';
+import { CategoryBadgeSelector } from './CategoryBadgeSelector';
 import { ImageLightboxModal, downloadCandidateImage } from './ImageLightboxModal';
 import { Download, Maximize2 } from 'lucide-react';
 
@@ -89,6 +91,22 @@ export const LeadProfileModal: React.FC<LeadProfileModalProps> = ({
               <StatusIcon className="w-3.5 h-3.5 shrink-0" />
               <span>{statusMeta.label}</span>
             </span>
+
+            {/* Quality Category Selector in Header */}
+            {token && (
+              <CategoryBadgeSelector
+                category={currentLead.clientCategory || 'Normal'}
+                itemId={currentLead.id}
+                type="lead"
+                token={token}
+                onCategoryChanged={(newCat) => {
+                  setCurrentLead((prev: any) => ({ ...prev, clientCategory: newCat }));
+                  if (onStatusUpdated) {
+                    onStatusUpdated({ ...currentLead, clientCategory: newCat });
+                  }
+                }}
+              />
+            )}
 
             <div>
               <h2 className="text-lg md:text-xl font-bold text-[#181E54]">{currentLead.name}</h2>
@@ -292,17 +310,25 @@ export const LeadProfileModal: React.FC<LeadProfileModalProps> = ({
                       <span className="text-slate-500 text-xs">{currentLead.profession || 'Profession Not Specified'}</span>
                     </div>
 
-                    {currentLead.gender && (
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                          currentLead.gender.toLowerCase() === 'female'
-                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                            : 'bg-blue-50 text-blue-700 border border-blue-200'
-                        }`}
-                      >
-                        {currentLead.gender}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {currentLead.category && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#181E54]/10 text-[#181E54] border border-[#181E54]/20 shadow-2xs">
+                          <Layers className="w-3 h-3 text-[#D81124]" />
+                          <span>{currentLead.category}</span>
+                        </span>
+                      )}
+                      {currentLead.gender && (
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                            currentLead.gender.toLowerCase() === 'female'
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                              : 'bg-blue-50 text-blue-700 border border-blue-200'
+                          }`}
+                        >
+                          {currentLead.gender}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">

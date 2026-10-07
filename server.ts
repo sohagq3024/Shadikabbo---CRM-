@@ -10,6 +10,7 @@ import {
   CrmFieldSeedings,
   AgencySettings,
 } from './src/constants/defaultFieldSeedings';
+import { setupAttendanceRoutes } from './src/server/attendanceRoutes';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,10 +35,20 @@ function hashPassword(password: string): string {
 // Initial DB initialization
 interface SystemUser {
   id: string;
-  phone: string;
+  phone: string; // Official number - required for login
   name: string;
   role: 'Super Admin' | 'CRO' | 'MK';
   passwordHash: string;
+  gender?: 'Male' | 'Female' | 'Other';
+  joiningDate?: string;
+  branch?: string; // 'Uttara', 'Dhanmondi', etc.
+  personalPhone?: string;
+  presentLocation?: string;
+  currentLocation?: string;
+  email?: string;
+  profilePicture?: string;
+  status?: 'active' | 'suspended';
+  createdAt?: number;
 }
 
 interface DatabaseSchema {
@@ -55,9 +66,10 @@ interface DatabaseSchema {
 
 function computeLeadCompleteness(data: any): { percentage: number; stars: number } {
   let score = 0;
-  // Part 1: Mandatory for Lead (10% + 10% = 20%) -> Guarantees 20% & 1 Star
-  if (data.name && String(data.name).trim()) score += 10;
-  if (data.phone && String(data.phone).trim()) score += 10;
+  // Part 1: Mandatory for Lead (Name + Phone + Category = 20%) -> Guarantees 20% & 1 Star
+  if (data.name && String(data.name).trim()) score += 8;
+  if (data.phone && String(data.phone).trim()) score += 6;
+  if (data.category && String(data.category).trim()) score += 6;
 
   // Part 2: Specific Optional Fields (each adds 8% -> 10 options * 8% = 80%)
   if (data.profession && String(data.profession).trim()) score += 8;
@@ -150,6 +162,17 @@ function loadDB(): DatabaseSchema {
       parsed.customFields = { ...DEFAULT_FIELD_SEEDINGS };
       didAutoSync = true;
     }
+    if (parsed.customFields && !parsed.customFields.leadCategories) {
+      parsed.customFields.leadCategories = [...DEFAULT_FIELD_SEEDINGS.leadCategories];
+      didAutoSync = true;
+    }
+    // Auto-migrate any existing leads without category
+    (parsed.leads || []).forEach((l: any) => {
+      if (!l.category) {
+        l.category = 'FB Message';
+        didAutoSync = true;
+      }
+    });
     if (!parsed.agencySettings) {
       parsed.agencySettings = { ...DEFAULT_AGENCY_SETTINGS };
       didAutoSync = true;
@@ -234,8 +257,31 @@ function authMiddleware(req: express.Request, res: express.Response, next: expre
     return res.status(401).json({ error: 'Unauthorized: User not found' });
   }
 
+  if (user.status === 'suspended') {
+    return res.status(403).json({ error: 'This account has been suspended. Please contact Super Admin.' });
+  }
+
   (req as any).user = user;
   next();
+}
+
+function sanitizeUser(u: SystemUser) {
+  return {
+    id: u.id,
+    phone: u.phone,
+    name: u.name,
+    role: u.role,
+    gender: u.gender || 'Male',
+    joiningDate: u.joiningDate || '2024-01-15',
+    branch: u.branch || (u.role === 'CRO' ? 'Dhanmondi' : 'Uttara'),
+    personalPhone: u.personalPhone || '',
+    presentLocation: u.presentLocation || '',
+    currentLocation: u.currentLocation || '',
+    email: u.email || '',
+    profilePicture: u.profilePicture || '',
+    status: u.status || 'active',
+    createdAt: u.createdAt || 0,
+  };
 }
 
 // --- AUTHENTICATION API ---
@@ -251,6 +297,10 @@ app.post('/api/auth/login', (req, res) => {
 
   if (!user) {
     return res.status(401).json({ error: 'Invalid phone number or password' });
+  }
+
+  if (user.status === 'suspended') {
+    return res.status(403).json({ error: 'This account has been suspended. Please contact Super Admin.' });
   }
 
   const hashed = hashPassword(password);
@@ -269,24 +319,14 @@ app.post('/api/auth/login', (req, res) => {
   return res.json({
     success: true,
     token,
-    user: {
-      id: user.id,
-      phone: user.phone,
-      name: user.name,
-      role: user.role,
-    },
+    user: sanitizeUser(user),
   });
 });
 
 app.get('/api/auth/me', authMiddleware, (req, res) => {
   const user = (req as any).user;
   res.json({
-    user: {
-      id: user.id,
-      phone: user.phone,
-      name: user.name,
-      role: user.role,
-    },
+    user: sanitizeUser(user),
   });
 });
 
@@ -310,6 +350,258 @@ app.get('/api/users', authMiddleware, (req, res) => {
   res.json(list);
 });
 
+// --- ACCOUNTS MANAGEMENT API (Requirement 6) ---
+// 1. Get Accounts (Super Admin sees all, CRO/MK see only their own profile)
+app.get('/api/accounts', authMiddleware, (req, res) => {
+  const db = loadDB();
+  const actor = (req as any).user;
+
+  if (actor.role === 'Super Admin') {
+    const list = (db.users || []).map(sanitizeUser);
+    return res.json(list);
+  }
+
+  // CRO & MK only see their own account
+  const ownUser = (db.users || []).find(u => u.id === actor.id);
+  res.json(ownUser ? [sanitizeUser(ownUser)] : []);
+});
+
+// 2. Add Account (Super Admin only)
+app.post('/api/accounts', authMiddleware, (req, res) => {
+  const actor = (req as any).user;
+  if (actor.role !== 'Super Admin') {
+    return res.status(403).json({ error: 'Permission denied: Only Super Admin can create accounts.' });
+  }
+
+  const {
+    name,
+    joiningDate,
+    gender,
+    role,
+    branch,
+    phone, // Official number - required for login
+    personalPhone,
+    presentLocation,
+    currentLocation,
+    email,
+    profilePicture,
+    password, // Required for login
+  } = req.body;
+
+  if (!name || !name.trim()) {
+    return res.status(400).json({ error: 'Employee name is required.' });
+  }
+  if (!phone || !phone.trim()) {
+    return res.status(400).json({ error: 'Official phone number is required.' });
+  }
+  if (!password || !password.trim()) {
+    return res.status(400).json({ error: 'Password is required for login.' });
+  }
+  if (!role || !['CRO', 'MK', 'Super Admin'].includes(role)) {
+    return res.status(400).json({ error: 'Valid role (CRO or MK) is required.' });
+  }
+
+  const cleanPhone = String(phone).trim();
+  const db = loadDB();
+
+  // Check unique official number
+  const existing = (db.users || []).find(u => u.phone === cleanPhone);
+  if (existing) {
+    return res.status(400).json({ error: 'Official phone number is already registered for another employee.' });
+  }
+
+  const rolePrefix = role === 'CRO' ? 'cro' : role === 'MK' ? 'mk' : 'admin';
+  const newId = `usr_${rolePrefix}_${Date.now()}`;
+
+  const newUser: SystemUser = {
+    id: newId,
+    phone: cleanPhone,
+    name: name.trim(),
+    role,
+    passwordHash: hashPassword(password.trim()),
+    gender: gender || 'Male',
+    joiningDate: joiningDate || new Date().toISOString().split('T')[0],
+    branch: branch || 'Uttara',
+    personalPhone: personalPhone?.trim() || '',
+    presentLocation: presentLocation?.trim() || '',
+    currentLocation: currentLocation?.trim() || '',
+    email: email?.trim() || '',
+    profilePicture: profilePicture || '',
+    status: 'active',
+    createdAt: Date.now(),
+  };
+
+  if (!db.users) db.users = [];
+  db.users.push(newUser);
+  saveDB(db);
+
+  res.status(201).json({
+    success: true,
+    message: `Account created successfully for ${newUser.name}`,
+    user: sanitizeUser(newUser),
+  });
+});
+
+// 3. Update Account
+// Super Admin can edit all; CRO/MK can edit only their own basic info (WITHOUT official phone and password)
+app.put('/api/accounts/:id', authMiddleware, (req, res) => {
+  const actor = (req as any).user;
+  const { id } = req.params;
+  const db = loadDB();
+
+  const userIndex = (db.users || []).findIndex(u => u.id === id);
+  if (userIndex === -1) {
+    return res.status(404).json({ error: 'Account not found.' });
+  }
+
+  const target = db.users[userIndex];
+
+  if (actor.role === 'Super Admin') {
+    // Super Admin can update everything
+    const {
+      name,
+      joiningDate,
+      gender,
+      role,
+      branch,
+      phone,
+      personalPhone,
+      presentLocation,
+      currentLocation,
+      email,
+      profilePicture,
+      password,
+      status,
+    } = req.body;
+
+    if (phone && String(phone).trim() !== target.phone) {
+      const cleanPhone = String(phone).trim();
+      const conflict = db.users.find(u => u.phone === cleanPhone && u.id !== id);
+      if (conflict) {
+        return res.status(400).json({ error: 'Official phone number is already in use by another account.' });
+      }
+      target.phone = cleanPhone;
+    }
+
+    if (name) target.name = name.trim();
+    if (role && ['CRO', 'MK', 'Super Admin'].includes(role)) target.role = role;
+    if (branch) target.branch = branch;
+    if (gender) target.gender = gender;
+    if (joiningDate) target.joiningDate = joiningDate;
+    if (personalPhone !== undefined) target.personalPhone = personalPhone;
+    if (presentLocation !== undefined) target.presentLocation = presentLocation;
+    if (currentLocation !== undefined) target.currentLocation = currentLocation;
+    if (email !== undefined) target.email = email;
+    if (profilePicture !== undefined) target.profilePicture = profilePicture;
+    if (status && ['active', 'suspended'].includes(status)) target.status = status;
+    if (password && String(password).trim()) {
+      target.passwordHash = hashPassword(String(password).trim());
+    }
+
+    db.users[userIndex] = target;
+    saveDB(db);
+
+    return res.json({
+      success: true,
+      message: 'Account updated successfully',
+      user: sanitizeUser(target),
+    });
+  }
+
+  // CRO / MK updating their own account
+  if (actor.id !== id) {
+    return res.status(403).json({ error: 'Permission denied: You can only update your own profile.' });
+  }
+
+  // Notice: Official phone and password and role and status and branch are strictly locked for CRO/MK!
+  const {
+    name,
+    gender,
+    personalPhone,
+    presentLocation,
+    currentLocation,
+    email,
+    profilePicture,
+  } = req.body;
+
+  if (name) target.name = name.trim();
+  if (gender) target.gender = gender;
+  if (personalPhone !== undefined) target.personalPhone = personalPhone;
+  if (presentLocation !== undefined) target.presentLocation = presentLocation;
+  if (currentLocation !== undefined) target.currentLocation = currentLocation;
+  if (email !== undefined) target.email = email;
+  if (profilePicture !== undefined) target.profilePicture = profilePicture;
+
+  db.users[userIndex] = target;
+  saveDB(db);
+
+  return res.json({
+    success: true,
+    message: 'Profile information updated successfully',
+    user: sanitizeUser(target),
+  });
+});
+
+// 4. Suspend / Active Account (Super Admin only)
+app.put('/api/accounts/:id/status', authMiddleware, (req, res) => {
+  const actor = (req as any).user;
+  if (actor.role !== 'Super Admin') {
+    return res.status(403).json({ error: 'Permission denied: Only Super Admin can change account status.' });
+  }
+
+  const { id } = req.params;
+  const db = loadDB();
+
+  if (id === 'usr_super_admin') {
+    return res.status(400).json({ error: 'The Primary Super Admin account cannot be suspended.' });
+  }
+
+  const user = (db.users || []).find(u => u.id === id);
+  if (!user) {
+    return res.status(404).json({ error: 'Account not found.' });
+  }
+
+  const nextStatus: 'active' | 'suspended' = user.status === 'suspended' ? 'active' : 'suspended';
+  user.status = nextStatus;
+
+  saveDB(db);
+
+  res.json({
+    success: true,
+    status: nextStatus,
+    message: `Account for ${user.name} is now ${nextStatus === 'active' ? 'Active' : 'Suspended'}.`,
+    user: sanitizeUser(user),
+  });
+});
+
+// 5. Delete Account (Super Admin only)
+app.delete('/api/accounts/:id', authMiddleware, (req, res) => {
+  const actor = (req as any).user;
+  if (actor.role !== 'Super Admin') {
+    return res.status(403).json({ error: 'Permission denied: Only Super Admin can delete accounts.' });
+  }
+
+  const { id } = req.params;
+  const db = loadDB();
+
+  if (id === 'usr_super_admin' || id === actor.id) {
+    return res.status(400).json({ error: 'Cannot delete the Super Admin account.' });
+  }
+
+  const index = (db.users || []).findIndex(u => u.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Account not found.' });
+  }
+
+  const deleted = db.users.splice(index, 1)[0];
+  saveDB(db);
+
+  res.json({
+    success: true,
+    message: `Account for ${deleted.name} deleted successfully.`,
+  });
+});
+
 // Helper to ensure lead has initialized activityLog
 function ensureLeadActivityLog(lead: any): any[] {
   if (lead.activityLog && Array.isArray(lead.activityLog)) {
@@ -322,7 +614,7 @@ function ensureLeadActivityLog(lead: any): any[] {
       leadId: lead.id,
       type: 'created',
       previousStatus: null,
-      newStatus: 'active',
+      newStatus: lead.status || 'WP Connect',
       timestamp: lead.createdTimestamp || Date.now() - 86400000,
       formattedDate: lead.createdAt ? `${lead.createdAt} 10:00` : 'Initial Registration',
       user: {
@@ -372,12 +664,71 @@ function ensureLeadActivityLog(lead: any): any[] {
   return logs;
 }
 
+// Helper to ensure traffic has initialized activityLog
+function ensureTrafficActivityLog(traffic: any): any[] {
+  if (traffic.activityLog && Array.isArray(traffic.activityLog)) {
+    return traffic.activityLog;
+  }
+
+  const logs: any[] = [
+    {
+      id: `act_${traffic.id}_created`,
+      leadId: traffic.id,
+      type: 'created',
+      previousStatus: null,
+      newStatus: traffic.status || 'WP Connect',
+      timestamp: traffic.createdTimestamp || Date.now() - 86400000,
+      formattedDate: traffic.createdAt ? `${traffic.createdAt} 10:00` : 'Initial Registration',
+      user: {
+        id: 'usr_super_admin',
+        name: traffic.createdBy || 'Sohag',
+        role: traffic.creatorRole || 'Super Admin',
+      },
+      comment: traffic.convertedFromLeadId
+        ? `Candidate converted from Lead (${traffic.convertedFromLeadId})`
+        : 'Traffic candidate profile registered in CRM system',
+    },
+  ];
+
+  if (traffic.status === 'trash') {
+    logs.unshift({
+      id: `act_${traffic.id}_trash`,
+      leadId: traffic.id,
+      type: 'status_change',
+      previousStatus: 'WP Connect',
+      newStatus: 'trash',
+      timestamp: Date.now() - 3600000,
+      formattedDate: 'Recent',
+      user: {
+        id: 'usr_super_admin',
+        name: 'Sohag',
+        role: 'Super Admin',
+      },
+      comment: 'Candidate moved to Trash Bin',
+    });
+  }
+
+  traffic.activityLog = logs;
+  return logs;
+}
+
 // --- LEADS API ---
 // 1. Get all active leads
+// Super Admin sees all; CRO and MK only see leads created by themselves
 app.get('/api/leads', authMiddleware, (req, res) => {
   const db = loadDB();
-  const activeLeads = (db.leads || [])
-    .filter(l => l.status !== 'trash' && l.status !== 'converted')
+  const actor = (req as any).user;
+  let activeLeads = (db.leads || [])
+    .filter(l => l.status !== 'trash' && l.status !== 'converted');
+
+  if (actor.role === 'CRO' || actor.role === 'MK') {
+    activeLeads = activeLeads.filter(l => {
+      if (l.creatorId) return l.creatorId === actor.id;
+      return l.createdBy === actor.name;
+    });
+  }
+
+  const result = activeLeads
     .sort((a, b) => (a.serialNumber || 0) - (b.serialNumber || 0))
     .map(l => {
       const { percentage, stars } = computeLeadCompleteness(l);
@@ -388,20 +739,31 @@ app.get('/api/leads', authMiddleware, (req, res) => {
         stars,
         createdBy: l.createdBy || 'Sohag',
         creatorRole: l.creatorRole || 'Super Admin',
+        clientCategory: l.clientCategory || 'Normal',
         activityLog,
       };
     });
-  res.json(activeLeads);
+  res.json(result);
 });
 
 // 1.1 Get specific lead with activities
 app.get('/api/leads/:id', authMiddleware, (req, res) => {
   const { id } = req.params;
   const db = loadDB();
+  const actor = (req as any).user;
   const lead = (db.leads || []).find(l => l.id === id);
   if (!lead) {
     return res.status(404).json({ error: 'Lead not found' });
   }
+
+  // Access check for CRO and MK: cannot view other people's leads
+  if (actor.role === 'CRO' || actor.role === 'MK') {
+    const isOwner = lead.creatorId === actor.id || lead.createdBy === actor.name;
+    if (!isOwner) {
+      return res.status(403).json({ error: 'Permission denied: You can only view your own leads.' });
+    }
+  }
+
   const { percentage, stars } = computeLeadCompleteness(lead);
   lead.activityLog = ensureLeadActivityLog(lead);
   res.json({
@@ -470,6 +832,52 @@ app.put('/api/leads/:id/status', authMiddleware, (req, res) => {
   res.json({ success: true, lead, activity: activityItem });
 });
 
+// 1.35 Update lead quality category (Normal, Average, Potential, Very potential)
+app.put('/api/leads/:id/category', authMiddleware, (req, res) => {
+  const { id } = req.params;
+  const { category: rawCategory } = req.body;
+  const validCategories = ['Normal', 'Average', 'Potential', 'Very potential'];
+  const category = validCategories.find(c => c.toLowerCase() === String(rawCategory).toLowerCase().trim()) || 'Normal';
+
+  const db = loadDB();
+  const lead = (db.leads || []).find(l => l.id === id);
+  if (!lead) {
+    return res.status(404).json({ error: 'Lead not found' });
+  }
+
+  const previousCategory = lead.clientCategory || 'Normal';
+  lead.clientCategory = category;
+
+  const actor = (req as any).user;
+  const now = new Date();
+  const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+  const activityItem = {
+    id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    leadId: lead.id,
+    type: 'note',
+    previousStatus: lead.status || 'WP Connect',
+    newStatus: lead.status || 'WP Connect',
+    timestamp: Date.now(),
+    formattedDate,
+    user: {
+      id: actor?.id || 'usr_staff',
+      name: actor?.name || 'Staff Member',
+      role: actor?.role || 'Super Admin',
+      phone: actor?.phone || '',
+    },
+    comment: `Category updated from "${previousCategory}" to "${category}"`,
+  };
+
+  if (!lead.activityLog || !Array.isArray(lead.activityLog)) {
+    lead.activityLog = ensureLeadActivityLog(lead);
+  }
+  lead.activityLog.unshift(activityItem);
+
+  saveDB(db);
+  res.json({ success: true, lead, activity: activityItem, category });
+});
+
 // 1.4 Post manual note/activity to lead log
 app.post('/api/leads/:id/activities', authMiddleware, (req, res) => {
   const { id } = req.params;
@@ -522,8 +930,8 @@ app.post('/api/leads', authMiddleware, (req, res) => {
   const data = req.body;
   const db = loadDB();
 
-  if (!data.name || !data.phone) {
-    return res.status(400).json({ error: 'Name and Phone Number are required' });
+  if (!data.name || !data.phone || !data.category) {
+    return res.status(400).json({ error: 'Name, Phone Number, and Lead Source are required' });
   }
 
   // File type and security validation
@@ -547,7 +955,7 @@ app.post('/api/leads', authMiddleware, (req, res) => {
 
   const { percentage, stars } = computeLeadCompleteness(data);
 
-  const initialStatus = data.status || 'active';
+  const initialStatus = data.status || 'WP Connect';
 
   const newLead = {
     id: leadId,
@@ -557,6 +965,7 @@ app.post('/api/leads', authMiddleware, (req, res) => {
     name: String(data.name).trim(),
     phone: String(data.phone).trim(),
     email: data.email ? String(data.email).trim() : '',
+    category: String(data.category || 'FB Message').trim(),
     profession: data.profession || '',
     dateOfBirth: data.dateOfBirth || '',
     maritalStatus: data.maritalStatus || '',
@@ -573,6 +982,7 @@ app.post('/api/leads', authMiddleware, (req, res) => {
     createdBy: creatorName,
     creatorRole: creatorRole,
     status: initialStatus,
+    clientCategory: data.clientCategory || 'Normal',
     completeness: percentage,
     stars,
     activityLog: [
@@ -846,6 +1256,40 @@ app.post('/api/leads/:id/convert-traffic', authMiddleware, (req, res) => {
   const creator = (req as any).user;
   const creatorName = creator?.name || lead.createdBy || 'Sohag';
   const creatorRole = creator?.role || lead.creatorRole || 'Super Admin';
+  const actor = (req as any).user;
+  const formattedDateTime = `${formattedDate} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+  // 1. Ensure lead activity log is initialized
+  if (!lead.activityLog || !Array.isArray(lead.activityLog)) {
+    lead.activityLog = ensureLeadActivityLog(lead);
+  }
+
+  // 2. Exact status preservation: whichever status station the lead was in, maintain that exact status!
+  const preservedStatus = trafficData.status || lead.status || 'WP Connect';
+
+  // 3. Clone lead's historical activities
+  const leadHistoricalActivities = lead.activityLog.map((act: any) => ({
+    ...act,
+    originalLeadId: lead.id,
+  }));
+
+  // 4. Create transfer transition log entry for traffic
+  const transferActivityItem = {
+    id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    leadId: trafficId,
+    type: 'status_change',
+    previousStatus: preservedStatus,
+    newStatus: preservedStatus,
+    timestamp: Date.now(),
+    formattedDate: formattedDateTime,
+    user: {
+      id: actor?.id || 'usr_staff',
+      name: creatorName,
+      role: creatorRole,
+      phone: creator?.phone || '',
+    },
+    comment: `Transferred from Lead (${lead.id}) to Traffic with Status maintained at "${preservedStatus}"${trafficData.package ? ` (${trafficData.package} Package)` : ''}${trafficData.assignBy ? ` (Assigned to ${trafficData.assignBy})` : ''}`,
+  };
 
   const newTraffic = {
     id: trafficId,
@@ -884,7 +1328,9 @@ app.post('/api/leads/:id/convert-traffic', authMiddleware, (req, res) => {
     afterMarriageFee,
     paymentStatus: paidAmount > 0 ? 'pending' : 'unpaid',
     assignedTo: trafficData.assignBy ? { name: trafficData.assignBy, role: 'MK' } : null,
-    status: 'active',
+    status: preservedStatus,
+    clientCategory: trafficData.clientCategory || lead.clientCategory || 'Normal',
+    activityLog: [transferActivityItem, ...leadHistoricalActivities],
     convertedFromLeadId: lead.id,
   };
 
@@ -923,8 +1369,6 @@ app.post('/api/leads/:id/convert-traffic', authMiddleware, (req, res) => {
     lead.activityLog = ensureLeadActivityLog(lead);
   }
 
-  const actor = (req as any).user;
-  const formattedDateTime = `${formattedDate} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   lead.activityLog.unshift({
     id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     leadId: lead.id,
@@ -956,6 +1400,9 @@ app.get('/api/traffic', authMiddleware, (req, res) => {
     .sort((a, b) => a.serialNumber - b.serialNumber)
     .map(t => ({
       ...t,
+      status: t.status || 'WP Connect',
+      clientCategory: t.clientCategory || 'Normal',
+      activityLog: ensureTrafficActivityLog(t),
       createdBy: t.createdBy || 'Sohag',
       creatorRole: t.creatorRole || 'Super Admin',
     }));
@@ -1052,7 +1499,26 @@ app.post('/api/traffic', authMiddleware, (req, res) => {
     // Status
     paymentStatus: paidAmount > 0 ? 'pending' : 'unpaid',
     assignedTo: data.assignBy ? { name: data.assignBy, role: 'MK' } : null,
-    status: 'active',
+    status: data.status || 'WP Connect',
+    clientCategory: data.clientCategory || 'Normal',
+    activityLog: [
+      {
+        id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        leadId: trafficId,
+        type: 'created',
+        previousStatus: null,
+        newStatus: data.status || 'WP Connect',
+        timestamp: Date.now(),
+        formattedDate: `${formattedDate} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
+        user: {
+          id: creator?.id || 'usr_staff',
+          name: creatorName,
+          role: creatorRole,
+          phone: creator?.phone || '',
+        },
+        comment: 'Traffic candidate profile registered in CRM system',
+      },
+    ],
   };
 
   db.traffics.push(newTraffic);
@@ -1218,6 +1684,29 @@ app.put('/api/traffic/:id/transfer', authMiddleware, (req, res) => {
   };
   traffic.assignBy = targetAccountName;
 
+  if (!traffic.activityLog || !Array.isArray(traffic.activityLog)) {
+    traffic.activityLog = ensureTrafficActivityLog(traffic);
+  }
+  const now = new Date();
+  const formattedDateTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const actor = (req as any).user;
+  traffic.activityLog.unshift({
+    id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    leadId: traffic.id,
+    type: 'note',
+    previousStatus: traffic.status || 'WP Connect',
+    newStatus: traffic.status || 'WP Connect',
+    timestamp: Date.now(),
+    formattedDate: formattedDateTime,
+    user: {
+      id: actor?.id || 'usr_staff',
+      name: actor?.name || 'Staff Member',
+      role: actor?.role || 'Super Admin',
+      phone: actor?.phone || '',
+    },
+    comment: `Transferred to ${targetAccountName} (${targetRole})`,
+  });
+
   saveDB(db);
   res.json({ success: true, traffic });
 });
@@ -1233,6 +1722,9 @@ app.put('/api/traffic/:id/remove', authMiddleware, (req, res) => {
   }
 
   const actor = (req as any).user;
+  const now = new Date();
+  const formattedDateTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
   traffic.status = 'trash';
   traffic.deletedAt = Date.now();
   traffic.trashCategory = 'Traffic';
@@ -1241,8 +1733,165 @@ app.put('/api/traffic/:id/remove', authMiddleware, (req, res) => {
     name: actor?.name || 'Staff Member',
     role: actor?.role || 'Super Admin',
   };
+
+  if (!traffic.activityLog || !Array.isArray(traffic.activityLog)) {
+    traffic.activityLog = ensureTrafficActivityLog(traffic);
+  }
+  traffic.activityLog.unshift({
+    id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    leadId: traffic.id,
+    type: 'status_change',
+    previousStatus: traffic.status || 'WP Connect',
+    newStatus: 'trash',
+    timestamp: Date.now(),
+    formattedDate: formattedDateTime,
+    user: {
+      id: actor?.id || 'usr_staff',
+      name: actor?.name || 'Staff Member',
+      role: actor?.role || 'Super Admin',
+      phone: actor?.phone || '',
+    },
+    comment: 'Candidate moved to Trash bin',
+  });
+
   saveDB(db);
   res.json({ success: true, message: 'Moved to Trush bin', traffic });
+});
+
+// Update traffic status and record transition in activity log (matching lead section)
+app.put('/api/traffic/:id/status', authMiddleware, (req, res) => {
+  const { id } = req.params;
+  const { status: newStatus, comment } = req.body;
+  if (!newStatus) {
+    return res.status(400).json({ error: 'New status is required' });
+  }
+
+  const db = loadDB();
+  const traffic = (db.traffics || []).find(t => t.id === id);
+  if (!traffic) {
+    return res.status(404).json({ error: 'Traffic record not found' });
+  }
+
+  const previousStatus = traffic.status || 'WP Connect';
+  traffic.status = newStatus;
+
+  const actor = (req as any).user;
+  const now = new Date();
+  const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+  const activityItem = {
+    id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    leadId: traffic.id,
+    type: 'status_change',
+    previousStatus,
+    newStatus,
+    timestamp: Date.now(),
+    formattedDate,
+    user: {
+      id: actor?.id || 'usr_staff',
+      name: actor?.name || 'Staff Member',
+      role: actor?.role || 'Super Admin',
+      phone: actor?.phone || '',
+    },
+    comment: comment?.trim() || `Status updated from "${previousStatus}" to "${newStatus}"`,
+  };
+
+  if (!traffic.activityLog || !Array.isArray(traffic.activityLog)) {
+    traffic.activityLog = ensureTrafficActivityLog(traffic);
+  }
+  traffic.activityLog.unshift(activityItem);
+
+  saveDB(db);
+  res.json({ success: true, traffic, lead: traffic, activity: activityItem });
+});
+
+// Update traffic quality category (Normal, Average, Potential, Very potential)
+app.put('/api/traffic/:id/category', authMiddleware, (req, res) => {
+  const { id } = req.params;
+  const { category: rawCategory } = req.body;
+  const validCategories = ['Normal', 'Average', 'Potential', 'Very potential'];
+  const category = validCategories.find(c => c.toLowerCase() === String(rawCategory).toLowerCase().trim()) || 'Normal';
+
+  const db = loadDB();
+  const traffic = (db.traffics || []).find(t => t.id === id);
+  if (!traffic) {
+    return res.status(404).json({ error: 'Traffic record not found' });
+  }
+
+  const previousCategory = traffic.clientCategory || 'Normal';
+  traffic.clientCategory = category;
+
+  const actor = (req as any).user;
+  const now = new Date();
+  const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+  const activityItem = {
+    id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    leadId: traffic.id,
+    type: 'note',
+    previousStatus: traffic.status || 'WP Connect',
+    newStatus: traffic.status || 'WP Connect',
+    timestamp: Date.now(),
+    formattedDate,
+    user: {
+      id: actor?.id || 'usr_staff',
+      name: actor?.name || 'Staff Member',
+      role: actor?.role || 'Super Admin',
+      phone: actor?.phone || '',
+    },
+    comment: `Category updated from "${previousCategory}" to "${category}"`,
+  };
+
+  if (!traffic.activityLog || !Array.isArray(traffic.activityLog)) {
+    traffic.activityLog = ensureTrafficActivityLog(traffic);
+  }
+  traffic.activityLog.unshift(activityItem);
+
+  saveDB(db);
+  res.json({ success: true, traffic, activity: activityItem, category });
+});
+
+// Post manual note or activity for traffic
+app.post('/api/traffic/:id/activities', authMiddleware, (req, res) => {
+  const { id } = req.params;
+  const { type = 'note', previousStatus, newStatus, comment } = req.body;
+
+  const db = loadDB();
+  const traffic = (db.traffics || []).find(t => t.id === id);
+  if (!traffic) {
+    return res.status(404).json({ error: 'Traffic record not found' });
+  }
+
+  const actor = (req as any).user;
+  const now = new Date();
+  const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const currStatus = traffic.status || 'WP Connect';
+  const targetStatus = newStatus || currStatus;
+
+  const activityItem = {
+    id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    leadId: traffic.id,
+    type: type || 'note',
+    previousStatus: previousStatus || currStatus,
+    newStatus: targetStatus,
+    timestamp: Date.now(),
+    formattedDate,
+    user: {
+      id: actor?.id || 'usr_staff',
+      name: actor?.name || 'Staff Member',
+      role: actor?.role || 'Super Admin',
+      phone: actor?.phone || '',
+    },
+    comment: comment?.trim() || 'Internal operational note',
+  };
+
+  if (!traffic.activityLog || !Array.isArray(traffic.activityLog)) {
+    traffic.activityLog = ensureTrafficActivityLog(traffic);
+  }
+  traffic.activityLog.unshift(activityItem);
+
+  saveDB(db);
+  res.json({ success: true, traffic, lead: traffic, activity: activityItem });
 });
 
 // --- PAYMENT API ---
@@ -1989,6 +2638,9 @@ app.put('/api/settings/agency', authMiddleware, (req, res) => {
     agencySettings: db.agencySettings,
   });
 });
+
+// Setup Attendance Routes (PWA Attendance Scanner & Admin Dashboard)
+setupAttendanceRoutes(app, loadDB, saveDB, authMiddleware);
 
 // --- START SERVER WITH VITE MIDDLEWARE ---
 async function startServer() {

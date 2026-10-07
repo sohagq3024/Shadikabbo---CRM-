@@ -17,6 +17,7 @@ import {
   Send,
   Briefcase,
   GraduationCap,
+  Clock,
 } from 'lucide-react';
 import { useCrmFields } from '../context/CrmFieldsContext';
 import { TrafficProfileModal } from './TrafficProfileModal';
@@ -24,6 +25,8 @@ import { TransferModal } from './TransferModal';
 import { AddTrafficModal, AddTrafficModalProps } from './AddTrafficModal';
 import { CountryFlag, detectCountryIso } from './CountryFlag';
 import { ActionPortalMenu } from './ActionPortalMenu';
+import { getStatusMeta } from './ActivityLog';
+import { CategoryBadgeSelector, QualityCategory } from './CategoryBadgeSelector';
 export { AddTrafficModal };
 export type { AddTrafficModalProps };
 
@@ -34,12 +37,19 @@ interface TrafficPageProps {
 interface TrafficTableRowProps {
   row: any;
   isMenuActive: boolean;
+  token: string;
   onView: (row: any) => void;
+  onViewActivity: (row: any) => void;
+  onCategoryChange: (rowId: string, newCategory: QualityCategory) => void;
   onToggleMenu: (row: any, e: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
 const TrafficTableRow = React.memo<TrafficTableRowProps>(
-  ({ row, isMenuActive, onView, onToggleMenu }) => {
+  ({ row, isMenuActive, token, onView, onViewActivity, onCategoryChange, onToggleMenu }) => {
+    const statusMeta = getStatusMeta(row.status || 'WP Connect');
+    const StatusIcon = statusMeta.icon;
+    const activityCount = Array.isArray(row.activityLog) ? row.activityLog.length : 1;
+
     return (
       <tr className="hover:bg-slate-50/90 transition-colors group">
         {/* 1. Serial Number */}
@@ -119,7 +129,35 @@ const TrafficTableRow = React.memo<TrafficTableRowProps>(
           </div>
         </td>
 
-        {/* 4. Created By (The CRM Account Person who added this candidate) */}
+        {/* 4. Status with Activity Transition Link */}
+        <td className="py-2 px-3.5 w-36">
+          <button
+            type="button"
+            onClick={() => onViewActivity(row)}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all hover:scale-105 cursor-pointer shadow-2xs ${statusMeta.bg} ${statusMeta.text} ${statusMeta.border}`}
+            title="Click to view Activity Log & record status transition"
+          >
+            <StatusIcon className="w-3 h-3 shrink-0" />
+            <span className="truncate max-w-[95px]">{statusMeta.label}</span>
+          </button>
+          <div className="text-[9px] text-slate-400 mt-0.5 flex items-center gap-1 pl-1">
+            <Clock className="w-2.5 h-2.5 text-slate-400" />
+            <span>{activityCount} {activityCount === 1 ? 'activity' : 'activities'}</span>
+          </div>
+        </td>
+
+        {/* 5. Category (Quality Category selector: Normal, Average, Potential, Very potential) */}
+        <td className="py-2 px-3.5 w-36">
+          <CategoryBadgeSelector
+            category={row.clientCategory || 'Normal'}
+            itemId={row.id}
+            type="traffic"
+            token={token}
+            onCategoryChanged={(newCat) => onCategoryChange(row.id, newCat)}
+          />
+        </td>
+
+        {/* 6. Created By (The CRM Account Person who added this candidate) */}
         <td className="py-2 px-3.5 w-36">
           <div className="font-semibold text-[#181E54] text-xs truncate">
             {row.createdBy || 'Sohag'}
@@ -188,11 +226,15 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
   // 3. CRO Role Account based filtering option
   // 4. Dynamic Profession filter (from Settings)
   // 5. Dynamic Qualification filter (from Settings)
+  // 6. Dynamic Pipeline Status filter
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [croFilter, setCroFilter] = useState('');
   const [professionFilter, setProfessionFilter] = useState('');
   const [qualificationFilter, setQualificationFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [profileInitialTab, setProfileInitialTab] = useState<'overview' | 'activity'>('overview');
 
   // CRO accounts list for the filter
   const [croAccounts, setCroAccounts] = useState<any[]>([]);
@@ -351,10 +393,29 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
           if (item.qualification !== qualificationFilter) return false;
         }
 
+        // 6. Pipeline Status filtering
+        if (statusFilter) {
+          const itemStatus = String(item.status || 'WP Connect').toLowerCase();
+          const target = statusFilter.toLowerCase();
+          if (target === 'follow up') {
+            if (!itemStatus.includes('follow up') && !itemStatus.includes('follow-up')) {
+              return false;
+            }
+          } else if (itemStatus !== target) {
+            return false;
+          }
+        }
+
+        // 7. Quality Category filtering (Normal, Average, Potential, Very potential)
+        if (categoryFilter) {
+          const itemCat = String(item.clientCategory || 'Normal').toLowerCase();
+          if (itemCat !== categoryFilter.toLowerCase()) return false;
+        }
+
         return true;
       })
       .sort((a, b) => (a.serialNumber || 0) - (b.serialNumber || 0)); // Strictly sequential
-  }, [traffics, searchQuery, dateFilter, croFilter, professionFilter, qualificationFilter]);
+  }, [traffics, searchQuery, dateFilter, croFilter, professionFilter, qualificationFilter, statusFilter, categoryFilter]);
 
   // Listen for payment approval events so candidates automatically vanish from Traffic
   useEffect(() => {
@@ -370,8 +431,28 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
   // Memoized action handlers to prevent re-rendering table rows
   const handleViewTraffic = React.useCallback((row: any) => {
     setActiveMenuRow(null);
+    setProfileInitialTab('overview');
     setViewingTraffic(row);
   }, []);
+
+  const handleOpenActivityLog = React.useCallback((row: any) => {
+    setActiveMenuRow(null);
+    setProfileInitialTab('activity');
+    setViewingTraffic(row);
+  }, []);
+
+  const handleCategoryChange = React.useCallback((rowId: string, newCategory: QualityCategory) => {
+    setTraffics((prev) =>
+      prev.map((t) => (t.id === rowId ? { ...t, clientCategory: newCategory } : t))
+    );
+    if (viewingTraffic && viewingTraffic.id === rowId) {
+      setViewingTraffic((prev: any) => ({ ...prev, clientCategory: newCategory }));
+    }
+    setActionToast({
+      type: 'success',
+      message: `Candidate Category updated to "${newCategory}"`,
+    });
+  }, [viewingTraffic]);
 
   const handleTransferTraffic = React.useCallback((row: any) => {
     setActiveMenuRow(null);
@@ -421,9 +502,9 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
         </button>
       </div>
 
-      {/* FILTER CONTROLS: SEARCH, DATE, CRO ACCOUNT, PROFESSION & QUALIFICATION (Dynamic from Settings) */}
+      {/* FILTER CONTROLS: SEARCH, DATE, CRO ACCOUNT, PROFESSION, QUALIFICATION, STATUS & CATEGORY */}
       <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2.5">
           {/* 1. Manual search option */}
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -497,10 +578,42 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
               ))}
             </select>
           </div>
+
+          {/* 6. Pipeline Status filtering (same as Lead section) */}
+          <div className="relative">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+            >
+              <option value="">All Statuses</option>
+              <option value="WP Connect">WP Connect</option>
+              <option value="CV Collect">CV Collect</option>
+              <option value="Service">Service</option>
+              <option value="Follow up">Follow up</option>
+              <option value="Payment Ready">Payment Ready</option>
+              <option value="Blank">Blank</option>
+            </select>
+          </div>
+
+          {/* 7. Category filtering (Normal, Average, Potential, Very potential) */}
+          <div className="relative">
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+            >
+              <option value="">All Categories</option>
+              <option value="Normal">Normal</option>
+              <option value="Average">Average</option>
+              <option value="Potential">Potential</option>
+              <option value="Very potential">Very potential</option>
+            </select>
+          </div>
         </div>
 
         {/* Clear filters shortcut */}
-        {(searchQuery || dateFilter || croFilter || professionFilter || qualificationFilter) && (
+        {(searchQuery || dateFilter || croFilter || professionFilter || qualificationFilter || statusFilter || categoryFilter) && (
           <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
             <span className="text-slate-500">
               Showing filtered results ({filteredTraffics.length} of {traffics.length})
@@ -513,6 +626,8 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
                 setCroFilter('');
                 setProfessionFilter('');
                 setQualificationFilter('');
+                setStatusFilter('');
+                setCategoryFilter('');
               }}
               className="text-[#D81124] hover:underline font-medium cursor-pointer"
             >
@@ -537,6 +652,8 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
                 <th className="py-2.5 px-3.5 font-semibold w-16">Serial Number</th>
                 <th className="py-2.5 px-3.5 font-semibold w-36">ID &amp; Date</th>
                 <th className="py-2.5 px-3.5 font-semibold">Name</th>
+                <th className="py-2.5 px-3.5 font-semibold w-36">Status</th>
+                <th className="py-2.5 px-3.5 font-semibold w-36">Category</th>
                 <th className="py-2.5 px-3.5 font-semibold w-36">Created By</th>
                 <th className="py-2.5 px-3.5 font-semibold w-24">Gender</th>
                 <th className="py-2.5 px-3.5 font-semibold w-36">Phone</th>
@@ -546,7 +663,7 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
             <tbody className="divide-y divide-slate-100 text-slate-700">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-10 text-center text-slate-400">
+                  <td colSpan={9} className="py-10 text-center text-slate-400">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <div className="w-6 h-6 border-2 border-[#181E54] border-t-transparent rounded-full animate-spin"></div>
                       <span>Loading traffic records...</span>
@@ -555,7 +672,7 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
                 </tr>
               ) : filteredTraffics.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-10 text-center text-slate-400">
+                  <td colSpan={9} className="py-10 text-center text-slate-400">
                     <p className="text-sm font-medium text-slate-600">No traffic records found</p>
                     <p className="text-xs text-slate-400 mt-1">
                       {traffics.length === 0
@@ -570,7 +687,10 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
                     key={row.id}
                     row={row}
                     isMenuActive={activeMenuRow?.id === row.id}
+                    token={token}
                     onView={handleViewTraffic}
+                    onViewActivity={handleOpenActivityLog}
+                    onCategoryChange={handleCategoryChange}
                     onToggleMenu={handleToggleMenu}
                   />
                 ))
@@ -595,6 +715,12 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
             sublabel: 'View candidate profile and all uploaded photos',
             icon: <Eye className="w-4 h-4 text-[#181E54]" />,
             onClick: () => handleViewTraffic(activeMenuRow),
+          },
+          {
+            label: 'Activity Log',
+            sublabel: 'View history & record status transition',
+            icon: <Clock className="w-4 h-4 text-amber-600" />,
+            onClick: () => handleOpenActivityLog(activeMenuRow),
           },
           {
             label: 'Edit & Payment Info',
@@ -686,6 +812,11 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
           setEditingTraffic(trafficToEdit);
         }}
         token={token}
+        initialTab={profileInitialTab}
+        onStatusUpdated={(updated) => {
+          setViewingTraffic(updated);
+          loadTraffics();
+        }}
         onPaymentRequestSuccess={loadTraffics}
       />
 

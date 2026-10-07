@@ -5,35 +5,80 @@
       "phone": "01723867646",
       "name": "Sohag",
       "role": "Super Admin",
-      "passwordHash": "30b81cd0b46b7c04bf43424463eb94cd61db1fef173f1adafa00244de2d55e49"
+      "passwordHash": "30b81cd0b46b7c04bf43424463eb94cd61db1fef173f1adafa00244de2d55e49",
+      "status": "active",
+      "branch": "Uttara",
+      "gender": "Male",
+      "joiningDate": "2024-01-15",
+      "personalPhone": "",
+      "presentLocation": "Dhaka, Bangladesh",
+      "currentLocation": "Dhaka, Bangladesh",
+      "email": "sohag@shadikabbo.com",
+      "profilePicture": ""
     },
     {
       "id": "usr_mk_1",
       "phone": "01700000001",
       "name": "MK - Tanvir Ahmed",
       "role": "MK",
-      "passwordHash": "7c3b953d84eff96733716dc7b2786b21f3f9d74585f89cf6c3418e5f20b23ada"
+      "passwordHash": "7c3b953d84eff96733716dc7b2786b21f3f9d74585f89cf6c3418e5f20b23ada",
+      "status": "active",
+      "branch": "Uttara",
+      "gender": "Male",
+      "joiningDate": "2024-01-15",
+      "personalPhone": "",
+      "presentLocation": "Dhaka, Bangladesh",
+      "currentLocation": "Dhaka, Bangladesh",
+      "email": "",
+      "profilePicture": ""
     },
     {
       "id": "usr_mk_2",
       "phone": "01700000002",
       "name": "MK - Rashedul Islam",
       "role": "MK",
-      "passwordHash": "7c3b953d84eff96733716dc7b2786b21f3f9d74585f89cf6c3418e5f20b23ada"
+      "passwordHash": "7c3b953d84eff96733716dc7b2786b21f3f9d74585f89cf6c3418e5f20b23ada",
+      "status": "active",
+      "branch": "Uttara",
+      "gender": "Male",
+      "joiningDate": "2024-01-15",
+      "personalPhone": "",
+      "presentLocation": "Dhaka, Bangladesh",
+      "currentLocation": "Dhaka, Bangladesh",
+      "email": "",
+      "profilePicture": ""
     },
     {
       "id": "usr_cro_1",
       "phone": "01800000001",
       "name": "CRO - Farhana Khan",
       "role": "CRO",
-      "passwordHash": "caa575eb9ff288330f61a92b83d60cacdccdafd72e86ebca32433bd11ce89b94"
+      "passwordHash": "caa575eb9ff288330f61a92b83d60cacdccdafd72e86ebca32433bd11ce89b94",
+      "status": "active",
+      "branch": "Dhanmondi",
+      "gender": "Female",
+      "joiningDate": "2024-01-15",
+      "personalPhone": "",
+      "presentLocation": "Dhaka, Bangladesh",
+      "currentLocation": "Dhaka, Bangladesh",
+      "email": "",
+      "profilePicture": ""
     },
     {
       "id": "usr_cro_2",
       "phone": "01800000002",
       "name": "CRO - Mahmud Hasan",
       "role": "CRO",
-      "passwordHash": "caa575eb9ff288330f61a92b83d60cacdccdafd72e86ebca32433bd11ce89b94"
+      "passwordHash": "caa575eb9ff288330f61a92b83d60cacdccdafd72e86ebca32433bd11ce89b94",
+      "status": "active",
+      "branch": "Dhanmondi",
+      "gender": "Male",
+      "joiningDate": "2024-01-15",
+      "personalPhone": "",
+      "presentLocation": "Dhaka, Bangladesh",
+      "currentLocation": "Dhaka, Bangladesh",
+      "email": "",
+      "profilePicture": ""
     }
   ],
   "traffics": [
@@ -88,6 +133,280 @@
       "createdByName": "Sohag",
       "createdByRole": "Super Admin",
       "movedToPaidAt": 1791025610232
+    },
+    {
+      "id": "SK-0002",
+      "serialNumber": 2,
+      "createdAt": "2026-10-05",
+      "createdTimestamp": 1791180866767,
+      "name": "Tanvir Hossain",
+      "phone": "01711223344",
+      "email": "",
+      "createdBy": "Sohag",
+      "creatorRole": "Super Admin",
+      "assignBy": "",
+      "profession": "Software Engineer",
+      "jobType": "",
+      "dateOfBirth": "",
+      "maritalStatus": "",
+      "gender": "Male",
+      "bodyColor": "",
+      "height": "",
+      "religion": "",
+      "bloodGroup": "",
+      "qualification": "",
+      "requirement": "",
+      "presentCity": "",
+      "presentCountry": "",
+      "permanentCity": "",
+      "permanentCountry": "",
+      "images": [],
+      "pdf": null,
+      "package": "",
+      "price": 0,
+      "discount": 0,
+      "dueAmount": 0,
+      "paidAmount": 0,
+      "paymentMethod": "",
+      "afterMarriageFee": 0,
+      "paymentStatus": "unpaid",
+      "assignedTo": null,
+      "status": "Service",
+      "activityLog": [
+        {
+          "id": "act_1791180866918_0gaam",
+          "leadId": "SK-0002",
+          "type": "status_change",
+          "previousStatus": "Follow up 1",
+          "newStatus": "Service",
+          "timestamp": 1791180866918,
+          "formattedDate": "2026-10-05 06:14",
+          "user": {
+            "id": "usr_super_admin",
+            "name": "Sohag",
+            "role": "Super Admin",
+            "phone": "01723867646"
+          },
+          "comment": "Package proposal presented to candidate"
+        },
+        {
+          "id": "act_1791180866851_t6p2o",
+          "leadId": "SK-0002",
+          "type": "status_change",
+          "previousStatus": "WP Connect",
+          "newStatus": "Follow up 1",
+          "timestamp": 1791180866851,
+          "formattedDate": "2026-10-05 06:14",
+          "user": {
+            "id": "usr_super_admin",
+            "name": "Sohag",
+            "role": "Super Admin",
+            "phone": "01723867646"
+          },
+          "comment": "First follow-up call conducted with candidate"
+        },
+        {
+          "id": "act_1791180866767_w9jlp",
+          "leadId": "SK-0002",
+          "type": "created",
+          "previousStatus": null,
+          "newStatus": "WP Connect",
+          "timestamp": 1791180866767,
+          "formattedDate": "2026-10-05 06:14",
+          "user": {
+            "id": "usr_super_admin",
+            "name": "Sohag",
+            "role": "Super Admin",
+            "phone": "01723867646"
+          },
+          "comment": "Traffic candidate profile registered in CRM system"
+        }
+      ]
+    },
+    {
+      "id": "SK-0003",
+      "serialNumber": 3,
+      "createdAt": "2026-10-05",
+      "createdTimestamp": 1791181370017,
+      "name": "Nusrat Jahan",
+      "phone": "01811998877",
+      "email": "nusrat.doc@example.com",
+      "createdBy": "Sohag",
+      "creatorRole": "Super Admin",
+      "assignBy": "Sohag MK",
+      "profession": "Doctor",
+      "jobType": "Full Time",
+      "dateOfBirth": "1995-04-12",
+      "maritalStatus": "Never Married",
+      "gender": "Female",
+      "bodyColor": "Fair",
+      "height": "5ft 4in",
+      "religion": "Muslim",
+      "bloodGroup": "B+",
+      "qualification": "MBBS, FCPS",
+      "requirement": "Doctor or Engineer groom",
+      "presentCity": "Dhaka",
+      "presentCountry": "Bangladesh",
+      "permanentCity": "Chittagong",
+      "permanentCountry": "Bangladesh",
+      "images": [
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+      ],
+      "pdf": {
+        "name": "biodata.pdf",
+        "size": 1024,
+        "dataUrl": "data:application/pdf;base64,JVBERi0xLjQK"
+      },
+      "package": "",
+      "price": 0,
+      "discount": 0,
+      "dueAmount": 0,
+      "paidAmount": 0,
+      "paymentMethod": "",
+      "afterMarriageFee": 0,
+      "paymentStatus": "unpaid",
+      "assignedTo": {
+        "name": "Sohag MK",
+        "role": "MK"
+      },
+      "status": "Service",
+      "activityLog": [
+        {
+          "id": "act_1791181370017_03ief",
+          "leadId": "SK-0003",
+          "type": "created",
+          "previousStatus": null,
+          "newStatus": "Service",
+          "timestamp": 1791181370017,
+          "formattedDate": "2026-10-05 06:22",
+          "user": {
+            "id": "usr_super_admin",
+            "name": "Sohag",
+            "role": "Super Admin",
+            "phone": "01723867646"
+          },
+          "comment": "Traffic candidate created via Lead conversion (LD-0003)"
+        }
+      ],
+      "convertedFromLeadId": "LD-0003"
+    },
+    {
+      "id": "SK-0004",
+      "serialNumber": 4,
+      "createdAt": "2026-10-05",
+      "createdTimestamp": 1791181386712,
+      "name": "Sadia Rahman",
+      "phone": "01799887766",
+      "email": "sadia.rahman@example.com",
+      "createdBy": "Sohag",
+      "creatorRole": "Super Admin",
+      "assignBy": "Sohag MK",
+      "profession": "Banker",
+      "jobType": "Full Time",
+      "dateOfBirth": "1997-08-15",
+      "maritalStatus": "Never Married",
+      "gender": "Female",
+      "bodyColor": "Fair",
+      "height": "5ft 3in",
+      "religion": "Muslim",
+      "bloodGroup": "A+",
+      "qualification": "BBA, MBA",
+      "requirement": "Educated groom from Dhaka",
+      "presentCity": "Dhaka",
+      "presentCountry": "Bangladesh",
+      "permanentCity": "Sylhet",
+      "permanentCountry": "Bangladesh",
+      "images": [
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+      ],
+      "pdf": {
+        "name": "biodata.pdf",
+        "size": 1024,
+        "dataUrl": "data:application/pdf;base64,JVBERi0xLjQK"
+      },
+      "package": "",
+      "price": 0,
+      "discount": 0,
+      "dueAmount": 0,
+      "paidAmount": 0,
+      "paymentMethod": "",
+      "afterMarriageFee": 0,
+      "paymentStatus": "unpaid",
+      "assignedTo": {
+        "name": "Sohag MK",
+        "role": "MK"
+      },
+      "status": "Follow up 3",
+      "activityLog": [
+        {
+          "id": "act_1791181386712_72p63",
+          "leadId": "SK-0004",
+          "type": "status_change",
+          "previousStatus": "Follow up 3",
+          "newStatus": "Follow up 3",
+          "timestamp": 1791181386712,
+          "formattedDate": "2026-10-05 06:23",
+          "user": {
+            "id": "usr_super_admin",
+            "name": "Sohag",
+            "role": "Super Admin",
+            "phone": "01723867646"
+          },
+          "comment": "Transferred from Lead (LD-0004) to Traffic with Status maintained at \"Follow up 3\" (Assigned to Sohag MK)"
+        },
+        {
+          "id": "act_1791181386641_x389t",
+          "leadId": "LD-0004",
+          "type": "status_change",
+          "previousStatus": "Follow up 1",
+          "newStatus": "Follow up 3",
+          "timestamp": 1791181386641,
+          "formattedDate": "2026-10-05 06:23",
+          "user": {
+            "id": "usr_super_admin",
+            "name": "Sohag",
+            "role": "Super Admin",
+            "phone": "01723867646"
+          },
+          "comment": "Family agreed to register profile and review proposals",
+          "originalLeadId": "LD-0004"
+        },
+        {
+          "id": "act_1791181386570_ui23s",
+          "leadId": "LD-0004",
+          "type": "status_change",
+          "previousStatus": "WP Connect",
+          "newStatus": "Follow up 1",
+          "timestamp": 1791181386570,
+          "formattedDate": "2026-10-05 06:23",
+          "user": {
+            "id": "usr_super_admin",
+            "name": "Sohag",
+            "role": "Super Admin",
+            "phone": "01723867646"
+          },
+          "comment": "First call answered, requested evening callback",
+          "originalLeadId": "LD-0004"
+        },
+        {
+          "id": "act_1791181386472_wvtv4",
+          "leadId": "LD-0004",
+          "type": "created",
+          "previousStatus": null,
+          "newStatus": "WP Connect",
+          "timestamp": 1791181386472,
+          "formattedDate": "2026-10-05 06:23",
+          "user": {
+            "id": "usr_super_admin",
+            "name": "Sohag",
+            "role": "Super Admin",
+            "phone": "01723867646"
+          },
+          "comment": "Initial lead registration created in CRM system",
+          "originalLeadId": "LD-0004"
+        }
+      ],
+      "convertedFromLeadId": "LD-0004"
     }
   ],
   "paymentRequests": [
@@ -162,9 +481,49 @@
       "token": "9cb6095ad64b92959abd47d35b5c4d108913fba290669f8c44f931f623a1fa79",
       "userId": "usr_super_admin",
       "createdAt": 1791011360687
+    },
+    {
+      "token": "76884c648c78edb8c21f38fce5da10f56d68db4773eeb89c5847417fdf985648",
+      "userId": "usr_super_admin",
+      "createdAt": 1791135254174
+    },
+    {
+      "token": "c85baf4110297afed4eaaf5cbe6e4f2d047109365373f65966a5261778b7b03b",
+      "userId": "usr_super_admin",
+      "createdAt": 1791198132282
+    },
+    {
+      "token": "77e46949f5ca6b652ac42a9963250217c376bd7ab4d20cfdf2a068af31342545",
+      "userId": "usr_mk_1",
+      "createdAt": 1791198132470
+    },
+    {
+      "token": "8db70e23788ece08b8eba7519c56e25d1adc406bce5fa53e826d19ac08a52501",
+      "userId": "usr_mk_1",
+      "createdAt": 1791362274134
+    },
+    {
+      "token": "9110a1f6e8b4bbeba98f08066c1102e34b9539eaf52df6ab49ce2e2f69bbe2c4",
+      "userId": "usr_mk_1",
+      "createdAt": 1791362299288
+    },
+    {
+      "token": "2002547133c09453342739fe0760dac43328e00f12d8b817acf5ed8578b46a96",
+      "userId": "usr_super_admin",
+      "createdAt": 1791363253058
+    },
+    {
+      "token": "9041fc357b92e66d67af74661806a89f23f95c83c9170093fed8788af8404df2",
+      "userId": "usr_super_admin",
+      "createdAt": 1791363267337
+    },
+    {
+      "token": "c826dcbbfded9eac513e1fe6d5f8d33949aaa329bd6c21f0e0949f1db565bda6",
+      "userId": "usr_super_admin",
+      "createdAt": 1791363774087
     }
   ],
-  "nextSerial": 2,
+  "nextSerial": 5,
   "leads": [
     {
       "id": "LD-0001",
@@ -241,7 +600,8 @@
           "comment": "Lead candidate profile initially registered in CRM system"
         }
       ],
-      "convertedToTrafficId": "SK-0001"
+      "convertedToTrafficId": "SK-0001",
+      "category": "FB Message"
     },
     {
       "id": "LD-0002",
@@ -266,10 +626,58 @@
       "pdf": null,
       "createdBy": "Sohag",
       "creatorRole": "Super Admin",
-      "status": "contacted",
+      "status": "Follow up 2",
       "completeness": 20,
       "stars": 1,
       "activityLog": [
+        {
+          "id": "act_1791137042627_c4746",
+          "leadId": "LD-0002",
+          "type": "status_change",
+          "previousStatus": "Follow up 1",
+          "newStatus": "Follow up 2",
+          "timestamp": 1791137042627,
+          "formattedDate": "2026-10-04 18:04",
+          "user": {
+            "id": "usr_super_admin",
+            "name": "Sohag",
+            "role": "Super Admin",
+            "phone": "01723867646"
+          },
+          "comment": "2nd follow-up discussion with guardian"
+        },
+        {
+          "id": "act_1791137042553_c5v0v",
+          "leadId": "LD-0002",
+          "type": "status_change",
+          "previousStatus": "WP Connect",
+          "newStatus": "Follow up 1",
+          "timestamp": 1791137042553,
+          "formattedDate": "2026-10-04 18:04",
+          "user": {
+            "id": "usr_super_admin",
+            "name": "Sohag",
+            "role": "Super Admin",
+            "phone": "01723867646"
+          },
+          "comment": "1st follow-up call completed"
+        },
+        {
+          "id": "act_1791137034543_v5euf",
+          "leadId": "LD-0002",
+          "type": "status_change",
+          "previousStatus": "contacted",
+          "newStatus": "WP Connect",
+          "timestamp": 1791137034543,
+          "formattedDate": "2026-10-04 18:03",
+          "user": {
+            "id": "usr_super_admin",
+            "name": "Sohag",
+            "role": "Super Admin",
+            "phone": "01723867646"
+          },
+          "comment": "Contact initiated via WhatsApp"
+        },
         {
           "id": "act_1791030426745_cssff",
           "leadId": "LD-0002",
@@ -301,10 +709,205 @@
           },
           "comment": "Lead candidate profile initially registered in CRM system"
         }
-      ]
+      ],
+      "category": "WP Marketing",
+      "jobType": "",
+      "bodyColor": "",
+      "bloodGroup": "",
+      "requirement": ""
+    },
+    {
+      "id": "LD-0003",
+      "serialNumber": 3,
+      "createdAt": "2026-10-05",
+      "createdTimestamp": 1791181369782,
+      "name": "Nusrat Jahan",
+      "phone": "01811998877",
+      "email": "",
+      "category": "FB Call",
+      "profession": "Doctor",
+      "dateOfBirth": "",
+      "maritalStatus": "",
+      "gender": "Female",
+      "height": "",
+      "religion": "",
+      "qualification": "",
+      "presentCity": "",
+      "presentCountry": "Bangladesh",
+      "permanentCity": "",
+      "permanentCountry": "Bangladesh",
+      "images": [],
+      "pdf": null,
+      "createdBy": "Sohag",
+      "creatorRole": "Super Admin",
+      "status": "converted",
+      "completeness": 36,
+      "stars": 1,
+      "activityLog": [
+        {
+          "id": "act_1791181370017_3a7qw",
+          "leadId": "LD-0003",
+          "type": "status_change",
+          "previousStatus": "Follow up 2",
+          "newStatus": "converted",
+          "timestamp": 1791181370017,
+          "formattedDate": "2026-10-05 06:22",
+          "user": {
+            "id": "usr_super_admin",
+            "name": "Sohag",
+            "role": "Super Admin",
+            "phone": "01723867646"
+          },
+          "comment": "Lead successfully converted to Traffic Candidate SK-0003 (Assigned to Sohag MK)"
+        },
+        {
+          "id": "act_1791181369945_l16te",
+          "leadId": "LD-0003",
+          "type": "status_change",
+          "previousStatus": "Follow up 1",
+          "newStatus": "Follow up 2",
+          "timestamp": 1791181369945,
+          "formattedDate": "2026-10-05 06:22",
+          "user": {
+            "id": "usr_super_admin",
+            "name": "Sohag",
+            "role": "Super Admin",
+            "phone": "01723867646"
+          },
+          "comment": "Discussed match requirements with parents"
+        },
+        {
+          "id": "act_1791181369875_3xb8w",
+          "leadId": "LD-0003",
+          "type": "status_change",
+          "previousStatus": "WP Connect",
+          "newStatus": "Follow up 1",
+          "timestamp": 1791181369875,
+          "formattedDate": "2026-10-05 06:22",
+          "user": {
+            "id": "usr_super_admin",
+            "name": "Sohag",
+            "role": "Super Admin",
+            "phone": "01723867646"
+          },
+          "comment": "First call answered, requested evening callback"
+        },
+        {
+          "id": "act_1791181369782_h7ef5",
+          "leadId": "LD-0003",
+          "type": "created",
+          "previousStatus": null,
+          "newStatus": "WP Connect",
+          "timestamp": 1791181369782,
+          "formattedDate": "2026-10-05 06:22",
+          "user": {
+            "id": "usr_super_admin",
+            "name": "Sohag",
+            "role": "Super Admin",
+            "phone": "01723867646"
+          },
+          "comment": "Initial lead registration created in CRM system"
+        }
+      ],
+      "convertedToTrafficId": "SK-0003"
+    },
+    {
+      "id": "LD-0004",
+      "serialNumber": 4,
+      "createdAt": "2026-10-05",
+      "createdTimestamp": 1791181386472,
+      "name": "Sadia Rahman",
+      "phone": "01799887766",
+      "email": "",
+      "category": "FB Message",
+      "profession": "Banker",
+      "dateOfBirth": "",
+      "maritalStatus": "",
+      "gender": "Female",
+      "height": "",
+      "religion": "",
+      "qualification": "",
+      "presentCity": "",
+      "presentCountry": "Bangladesh",
+      "permanentCity": "",
+      "permanentCountry": "Bangladesh",
+      "images": [],
+      "pdf": null,
+      "createdBy": "Sohag",
+      "creatorRole": "Super Admin",
+      "status": "converted",
+      "completeness": 36,
+      "stars": 1,
+      "activityLog": [
+        {
+          "id": "act_1791181386712_duy2g",
+          "leadId": "LD-0004",
+          "type": "status_change",
+          "previousStatus": "Follow up 3",
+          "newStatus": "converted",
+          "timestamp": 1791181386712,
+          "formattedDate": "2026-10-05 06:23",
+          "user": {
+            "id": "usr_super_admin",
+            "name": "Sohag",
+            "role": "Super Admin",
+            "phone": "01723867646"
+          },
+          "comment": "Lead successfully converted to Traffic Candidate SK-0004 (Assigned to Sohag MK)"
+        },
+        {
+          "id": "act_1791181386641_x389t",
+          "leadId": "LD-0004",
+          "type": "status_change",
+          "previousStatus": "Follow up 1",
+          "newStatus": "Follow up 3",
+          "timestamp": 1791181386641,
+          "formattedDate": "2026-10-05 06:23",
+          "user": {
+            "id": "usr_super_admin",
+            "name": "Sohag",
+            "role": "Super Admin",
+            "phone": "01723867646"
+          },
+          "comment": "Family agreed to register profile and review proposals"
+        },
+        {
+          "id": "act_1791181386570_ui23s",
+          "leadId": "LD-0004",
+          "type": "status_change",
+          "previousStatus": "WP Connect",
+          "newStatus": "Follow up 1",
+          "timestamp": 1791181386570,
+          "formattedDate": "2026-10-05 06:23",
+          "user": {
+            "id": "usr_super_admin",
+            "name": "Sohag",
+            "role": "Super Admin",
+            "phone": "01723867646"
+          },
+          "comment": "First call answered, requested evening callback"
+        },
+        {
+          "id": "act_1791181386472_wvtv4",
+          "leadId": "LD-0004",
+          "type": "created",
+          "previousStatus": null,
+          "newStatus": "WP Connect",
+          "timestamp": 1791181386472,
+          "formattedDate": "2026-10-05 06:23",
+          "user": {
+            "id": "usr_super_admin",
+            "name": "Sohag",
+            "role": "Super Admin",
+            "phone": "01723867646"
+          },
+          "comment": "Initial lead registration created in CRM system"
+        }
+      ],
+      "convertedToTrafficId": "SK-0004"
     }
   ],
-  "nextLeadSerial": 3,
+  "nextLeadSerial": 5,
   "customFields": {
     "professions": [
       "Doctor",
@@ -403,6 +1006,14 @@
       "VIP Royal",
       "Diamond"
     ],
+    "packagePrices": {
+      "Standard": 10000,
+      "Premium": 15000,
+      "Gold": 25000,
+      "Platinum": 50000,
+      "VIP Royal": 100000,
+      "Diamond": 35000
+    },
     "jobTypes": [
       "Private Job",
       "Government Job",
@@ -465,6 +1076,15 @@
       "Sweden",
       "Japan",
       "Other"
+    ],
+    "leadCategories": [
+      "FB Message",
+      "FB Call",
+      "FB Comment",
+      "Call center",
+      "Reference",
+      "WP Marketing",
+      "Others source"
     ]
   },
   "agencySettings": {
@@ -476,5 +1096,24 @@
     "currency": "BDT (৳)",
     "timezone": "Asia/Dhaka (GMT+6)",
     "dateFormat": "DD/MM/YYYY"
-  }
+  },
+  "attendance": [
+    {
+      "id": "att_2026-10-07_usr_cro_2",
+      "date": "2026-10-07",
+      "userId": "usr_cro_2",
+      "userName": "CRO - Mahmud Hasan",
+      "userRole": "CRO",
+      "userPhone": "01800000002",
+      "inTime": "10:00 AM",
+      "inTimestamp": 1791363723677,
+      "outTime": "06:00 PM",
+      "outTimestamp": 1791363723677,
+      "status": "present",
+      "lateMinutes": 30,
+      "earlyOutMinutes": 30,
+      "scanMethod": "manual",
+      "notes": "None"
+    }
+  ]
 }

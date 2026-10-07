@@ -21,6 +21,8 @@ import { LeadProfileModal } from './LeadProfileModal';
 import { CountryFlag, detectCountryIso } from './CountryFlag';
 import { ActionPortalMenu } from './ActionPortalMenu';
 import { getStatusMeta } from './ActivityLog';
+import { useCrmFields } from '../context/CrmFieldsContext';
+import { CategoryBadgeSelector, QualityCategory } from './CategoryBadgeSelector';
 
 interface LeadPageProps {
   token: string;
@@ -30,13 +32,50 @@ interface LeadTableRowProps {
   row: any;
   index: number;
   isMenuActive: boolean;
+  token: string;
   onView: (row: any) => void;
   onViewActivity: (row: any) => void;
+  onCategoryChange: (rowId: string, newCategory: QualityCategory) => void;
   onToggleMenu: (row: any, e: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
+const renderSourceBadge = (category?: string) => {
+  const cat = category || 'FB Message';
+  let badgeStyle = 'bg-slate-100 text-slate-700 border-slate-200';
+  let dotColor = 'bg-slate-500';
+
+  if (cat === 'FB Message') {
+    badgeStyle = 'bg-blue-50 text-blue-700 border-blue-200';
+    dotColor = 'bg-blue-600';
+  } else if (cat === 'FB Call') {
+    badgeStyle = 'bg-cyan-50 text-cyan-700 border-cyan-200';
+    dotColor = 'bg-cyan-600';
+  } else if (cat === 'FB Comment') {
+    badgeStyle = 'bg-indigo-50 text-indigo-700 border-indigo-200';
+    dotColor = 'bg-indigo-600';
+  } else if (cat === 'Call center') {
+    badgeStyle = 'bg-purple-50 text-purple-700 border-purple-200';
+    dotColor = 'bg-purple-600';
+  } else if (cat === 'Reference') {
+    badgeStyle = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    dotColor = 'bg-emerald-600';
+  } else if (cat === 'Others source') {
+    badgeStyle = 'bg-amber-50 text-amber-700 border-amber-200';
+    dotColor = 'bg-amber-600';
+  }
+
+  return (
+    <span
+      className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide border shadow-2xs ${badgeStyle}`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${dotColor}`} />
+      <span className="truncate max-w-[105px]">{cat}</span>
+    </span>
+  );
+};
+
 const LeadTableRow = React.memo<LeadTableRowProps>(
-  ({ row, index, isMenuActive, onView, onViewActivity, onToggleMenu }) => {
+  ({ row, index, isMenuActive, token, onView, onViewActivity, onCategoryChange, onToggleMenu }) => {
     const completeness = typeof row.completeness === 'number' ? row.completeness : 0;
     const stars = typeof row.stars === 'number' ? row.stars : (completeness < 20 ? 0 : Math.min(5, Math.floor(completeness / 20)));
     const statusMeta = getStatusMeta(row.status || 'active');
@@ -132,7 +171,18 @@ const LeadTableRow = React.memo<LeadTableRowProps>(
           </div>
         </td>
 
-        {/* 5. Created By (The CRM Account Person who added this lead) */}
+        {/* 5. Category (Quality Category selector: Normal, Average, Potential, Very potential) */}
+        <td className="py-2 px-3.5 w-36">
+          <CategoryBadgeSelector
+            category={row.clientCategory || 'Normal'}
+            itemId={row.id}
+            type="lead"
+            token={token}
+            onCategoryChanged={(newCat) => onCategoryChange(row.id, newCat)}
+          />
+        </td>
+
+        {/* 6. Created By (The CRM Account Person who added this lead) */}
         <td className="py-2 px-3.5 w-36">
           <div className="font-semibold text-[#181E54] text-xs truncate">
             {row.createdBy || 'Sohag'}
@@ -142,22 +192,9 @@ const LeadTableRow = React.memo<LeadTableRowProps>(
           </div>
         </td>
 
-        {/* 5. Gender */}
-        <td className="py-2 px-3.5 w-24">
-          <span
-            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide ${
-              row.gender?.toLowerCase() === 'female'
-                ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                : 'bg-blue-50 text-blue-700 border border-blue-200'
-            }`}
-          >
-            <span
-              className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
-                row.gender?.toLowerCase() === 'female' ? 'bg-rose-500' : 'bg-blue-500'
-              }`}
-            />
-            {row.gender || 'Pending'}
-          </span>
+        {/* 7. Source */}
+        <td className="py-2 px-3.5 w-32">
+          {renderSourceBadge(row.category)}
         </td>
 
         {/* 6. Phone */}
@@ -227,13 +264,16 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
   // Filters required:
   // 1. Manual search
   // 2. Profession
-  // 3. Date filtering
-  // 4. Gender filtering
-  // 5. Status filtering
+  // 3. Status filtering
+  // 4. Quality Category filtering (Normal, Average, Potential, Very potential)
+  // 5. Source filtering
+  // 6. Date filtering
+  const { fields } = useCrmFields();
   const [searchQuery, setSearchQuery] = useState('');
   const [professionFilter, setProfessionFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
-  const [genderFilter, setGenderFilter] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
   // Modals & Menu State
@@ -280,6 +320,20 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
     setActionToast({
       type: 'success',
       message: `Lead ${updatedLead.id} status updated to "${updatedLead.status}"`,
+    });
+  }, [viewingLead]);
+
+  // Handle Quality Category direct update
+  const handleCategoryChange = useCallback((rowId: string, newCategory: QualityCategory) => {
+    setLeads((prev) =>
+      prev.map((l) => (l.id === rowId ? { ...l, clientCategory: newCategory } : l))
+    );
+    if (viewingLead && viewingLead.id === rowId) {
+      setViewingLead((prev: any) => ({ ...prev, clientCategory: newCategory }));
+    }
+    setActionToast({
+      type: 'success',
+      message: `Candidate Category updated to "${newCategory}"`,
     });
   }, [viewingLead]);
 
@@ -335,20 +389,34 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
           return false;
         }
 
-        // 4. Gender filtering
-        if (genderFilter && item.gender !== genderFilter) {
+        // 4. Quality Category filtering (Normal, Average, Potential, Very potential)
+        if (categoryFilter) {
+          const itemCat = String(item.clientCategory || 'Normal').toLowerCase();
+          if (itemCat !== categoryFilter.toLowerCase()) return false;
+        }
+
+        // 5. Source filtering
+        if (sourceFilter && (item.category || 'FB Message') !== sourceFilter) {
           return false;
         }
 
-        // 5. Status filtering
-        if (statusFilter && (item.status || 'active') !== statusFilter) {
-          return false;
+        // 6. Status filtering
+        if (statusFilter) {
+          const itemStatus = String(item.status || 'Blank').toLowerCase();
+          const target = statusFilter.toLowerCase();
+          if (target === 'follow up') {
+            if (!itemStatus.includes('follow up') && !itemStatus.includes('follow-up')) {
+              return false;
+            }
+          } else if (itemStatus !== target) {
+            return false;
+          }
         }
 
         return true;
       })
       .sort((a, b) => (a.serialNumber || 0) - (b.serialNumber || 0));
-  }, [leads, searchQuery, professionFilter, dateFilter, genderFilter, statusFilter]);
+  }, [leads, searchQuery, professionFilter, dateFilter, categoryFilter, sourceFilter, statusFilter]);
 
   // Memoized action handlers
   const handleViewLead = useCallback((row: any) => {
@@ -455,30 +523,54 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
               className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
             >
               <option value="">All Statuses</option>
-              <option value="active">Active Lead</option>
-              <option value="contacted">Contacted</option>
-              <option value="in-progress">In Progress</option>
-              <option value="qualified">Qualified</option>
-              <option value="negotiation">Negotiation</option>
-              <option value="follow-up">Follow-Up</option>
-              <option value="on-hold">On Hold</option>
+              <option value="WP Connect">WP Connect</option>
+              <option value="CV Collect">CV Collect</option>
+              <option value="Service">Service</option>
+              <option value="Follow up">Follow up</option>
+              <option value="Payment Ready">Payment Ready</option>
+              <option value="Blank">Blank</option>
             </select>
           </div>
 
-          {/* 4. Gender filtering */}
+          {/* 4. Quality Category filtering (Normal, Average, Potential, Very potential) */}
           <div>
             <select
-              value={genderFilter}
-              onChange={(e) => setGenderFilter(e.target.value)}
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
               className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
             >
-              <option value="">All Genders</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
+              <option value="">All Categories</option>
+              <option value="Normal">Normal</option>
+              <option value="Average">Average</option>
+              <option value="Potential">Potential</option>
+              <option value="Very potential">Very potential</option>
             </select>
           </div>
 
-          {/* 5. Date filtering option */}
+          {/* 5. Source filtering */}
+          <div>
+            <select
+              value={sourceFilter}
+              onChange={(e) => setSourceFilter(e.target.value)}
+              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+            >
+              <option value="">All Sources</option>
+              {(fields.leadCategories || [
+                'FB Message',
+                'FB Call',
+                'FB Comment',
+                'Call center',
+                'Reference',
+                'Others source',
+              ]).map((c: string) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 6. Date filtering option */}
           <div className="relative">
             <input
               type="date"
@@ -499,7 +591,7 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
         </div>
 
         {/* Clear filters shortcut */}
-        {(searchQuery || professionFilter || statusFilter || dateFilter || genderFilter) && (
+        {(searchQuery || professionFilter || statusFilter || dateFilter || categoryFilter || sourceFilter) && (
           <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
             <span className="text-slate-500">
               Showing filtered results ({filteredLeads.length} of {leads.length})
@@ -511,7 +603,8 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
                 setProfessionFilter('');
                 setStatusFilter('');
                 setDateFilter('');
-                setGenderFilter('');
+                setCategoryFilter('');
+                setSourceFilter('');
               }}
               className="text-[#D81124] hover:underline font-medium cursor-pointer"
             >
@@ -537,8 +630,9 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
                 <th className="py-2.5 px-3.5 font-semibold w-36">ID &amp; Date</th>
                 <th className="py-2.5 px-3.5 font-semibold">Name</th>
                 <th className="py-2.5 px-3.5 font-semibold w-36">Status</th>
+                <th className="py-2.5 px-3.5 font-semibold w-36">Category</th>
                 <th className="py-2.5 px-3.5 font-semibold w-36">Created By</th>
-                <th className="py-2.5 px-3.5 font-semibold w-24">Gender</th>
+                <th className="py-2.5 px-3.5 font-semibold w-32">Source</th>
                 <th className="py-2.5 px-3.5 font-semibold w-36">Phone</th>
                 <th className="py-2.5 px-3.5 font-semibold w-40">Info Level</th>
                 <th className="py-2.5 px-3.5 font-semibold text-right w-20">Action</th>
@@ -547,7 +641,7 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
             <tbody className="divide-y divide-slate-100 text-slate-700">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="py-10 text-center text-slate-400">
+                  <td colSpan={10} className="py-10 text-center text-slate-400">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <div className="w-6 h-6 border-2 border-[#181E54] border-t-transparent rounded-full animate-spin" />
                       <span>Loading matrimonial leads...</span>
@@ -556,7 +650,7 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
                 </tr>
               ) : filteredLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-400">
+                  <td colSpan={10} className="py-12 text-center text-slate-400">
                     <p className="text-sm font-semibold text-slate-600 mb-1">No leads found</p>
                     <p className="text-xs text-slate-400">
                       {leads.length === 0
@@ -572,8 +666,10 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
                     row={row}
                     index={index}
                     isMenuActive={activeMenuRow?.id === row.id}
+                    token={token}
                     onView={handleViewLead}
                     onViewActivity={handleOpenActivityLog}
+                    onCategoryChange={handleCategoryChange}
                     onToggleMenu={handleToggleMenu}
                   />
                 ))

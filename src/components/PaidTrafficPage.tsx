@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, MoreVertical, Eye, CreditCard, UserCheck, Trash2, User } from 'lucide-react';
+import { Search, MoreVertical, Eye, CreditCard, UserCheck, Trash2, User, FileText } from 'lucide-react';
 import { TrafficProfileModal } from './TrafficProfileModal';
 import { TrafficFormModal } from './TrafficFormModal';
 import { CheckPaymentModal } from './CheckPaymentModal';
 import { ChangeAssignModal } from './ChangeAssignModal';
 import { CountryFlag, detectCountryIso } from './CountryFlag';
 import { ActionPortalMenu } from './ActionPortalMenu';
+import { InvoiceModal } from './InvoiceModal';
+import { ErrorBoundary } from './ErrorBoundary';
 import { useCrmFields } from '../context/CrmFieldsContext';
 
 interface PaidTrafficPageProps {
@@ -168,6 +170,7 @@ export const PaidTrafficPage: React.FC<PaidTrafficPageProps> = ({ token }) => {
   const [editingTraffic, setEditingTraffic] = useState<any | null>(null);
   const [checkingPayment, setCheckingPayment] = useState<any | null>(null);
   const [changingAssign, setChangingAssign] = useState<any | null>(null);
+  const [viewingInvoice, setViewingInvoice] = useState<any | null>(null);
 
   const loadPaidTraffic = async () => {
     setLoading(true);
@@ -473,6 +476,16 @@ export const PaidTrafficPage: React.FC<PaidTrafficPageProps> = ({ token }) => {
             onClick: () => handleCheckPayment(activeMenuRow),
           },
           {
+            label: 'Official Invoice',
+            sublabel: 'View & download verified payment invoice',
+            icon: <FileText className="w-4 h-4 text-[#181E54]" />,
+            onClick: () => {
+              setViewingInvoice(activeMenuRow);
+              setActiveMenuRow(null);
+              setMenuTriggerRect(null);
+            },
+          },
+          {
             label: 'Change Assign',
             sublabel: 'Reassign client to another MK account',
             icon: <UserCheck className="w-4 h-4 text-blue-600" />,
@@ -507,11 +520,12 @@ export const PaidTrafficPage: React.FC<PaidTrafficPageProps> = ({ token }) => {
         />
       )}
 
-      {/* Chack [ayment Modal */}
+      {/* Check payment Modal */}
       <CheckPaymentModal
         isOpen={!!checkingPayment}
         onClose={() => setCheckingPayment(null)}
         traffic={checkingPayment}
+        onViewInvoice={(t) => setViewingInvoice(t)}
       />
 
       {/* Change Assign Modal */}
@@ -522,6 +536,15 @@ export const PaidTrafficPage: React.FC<PaidTrafficPageProps> = ({ token }) => {
         token={token}
         onChangeSuccess={loadPaidTraffic}
       />
+
+      {/* Official Invoice Modal */}
+      <ErrorBoundary>
+        <InvoiceModal
+          isOpen={!!viewingInvoice}
+          onClose={() => setViewingInvoice(null)}
+          payment={viewingInvoice}
+        />
+      </ErrorBoundary>
     </div>
   );
 };

@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PROFESSIONS } from './AddLeadModal';
+import { getStatusMeta } from './ActivityLog';
 
 export interface ConvertTrafficModalProps {
   isOpen: boolean;
@@ -414,6 +415,7 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
       name: name.trim(),
       phone: phone.trim(),
       email: email.trim(),
+      status: lead.status || 'WP Connect',
       assignBy,
       profession,
       jobType,
@@ -493,6 +495,9 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                       Promoted from Lead <span className="font-mono text-amber-300">{lead.id}</span> to Traffic Candidate{' '}
                       <span className="font-mono text-emerald-300 font-bold">{conversionDone.id}</span>.
                     </p>
+                    <p className="text-xs text-emerald-300 font-medium mt-1">
+                      Status preserved at &quot;{conversionDone.status || lead.status || 'WP Connect'}&quot; with full Activity Log history!
+                    </p>
                   </div>
                   <div className="p-3 bg-white/10 rounded-2xl border border-white/10 text-xs text-slate-200">
                     Removed from Lead section and transferred directly into the <strong>Traffic</strong> section.
@@ -519,14 +524,27 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 shrink-0">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-bold uppercase tracking-wider border border-amber-200">
                 Pipeline: Lead ➔ Traffic
               </span>
               <h2 className="text-lg md:text-xl font-bold text-[#181E54]">Convert Lead to Traffic</h2>
+              {(() => {
+                const meta = getStatusMeta(lead.status || 'WP Connect');
+                const Icon = meta.icon;
+                return (
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border shadow-2xs ${meta.bg} ${meta.text} ${meta.border}`}
+                    title="This status station and complete activity history will be retained in Traffic"
+                  >
+                    <Icon className="w-3 h-3 shrink-0" />
+                    <span>Station: {meta.label} (Maintained)</span>
+                  </span>
+                );
+              })()}
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Fulfill all mandatory requirements to promote candidate <strong className="text-slate-800">{lead.name}</strong> from preliminary inquiry into full Traffic.
+              Fulfill all mandatory requirements to promote candidate <strong className="text-slate-800">{lead.name}</strong> from preliminary inquiry into full Traffic with their current status station retained.
             </p>
           </div>
 

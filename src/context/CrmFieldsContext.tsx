@@ -96,8 +96,8 @@ export const CrmFieldsProvider: React.FC<{ children: React.ReactNode; token?: st
     const trimmed = item.trim();
     if (!trimmed) return false;
 
-    const currentList = fields[category] || [];
-    if (currentList.some((existing) => existing.toLowerCase() === trimmed.toLowerCase())) {
+    const currentList = Array.isArray(fields[category]) ? (fields[category] as string[]) : [];
+    if (currentList.some((existing: string) => existing.toLowerCase() === trimmed.toLowerCase())) {
       return false; // Avoid duplicates
     }
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Edit3,
@@ -18,9 +18,12 @@ import {
   Download,
   Maximize2,
   Eye,
+  User,
 } from 'lucide-react';
 import { CountryFlag, detectCountryIso } from './CountryFlag';
 import { ImageLightboxModal, downloadCandidateImage } from './ImageLightboxModal';
+import { ActivityLog, getStatusMeta } from './ActivityLog';
+import { CategoryBadgeSelector } from './CategoryBadgeSelector';
 
 interface TrafficProfileModalProps {
   isOpen: boolean;
@@ -29,6 +32,8 @@ interface TrafficProfileModalProps {
   onEdit: (traffic: any, initialStep?: 1 | 2 | 3) => void;
   token?: string;
   onPaymentRequestSuccess?: () => void;
+  initialTab?: 'overview' | 'activity';
+  onStatusUpdated?: (traffic: any) => void;
 }
 
 export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
@@ -38,13 +43,26 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
   onEdit,
   token,
   onPaymentRequestSuccess,
+  initialTab = 'overview',
+  onStatusUpdated,
 }) => {
+  const [currentTraffic, setCurrentTraffic] = useState<any>(traffic);
+  const [activeTab, setActiveTab] = useState<'overview' | 'activity'>(initialTab);
   const [isSendingRequest, setIsSendingRequest] = useState(false);
   const [requestMessage, setRequestMessage] = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
-  if (!isOpen || !traffic) return null;
+  useEffect(() => {
+    setCurrentTraffic(traffic);
+    if (initialTab) setActiveTab(initialTab);
+  }, [traffic, initialTab]);
+
+  if (!isOpen || !currentTraffic) return null;
+
+  const statusMeta = getStatusMeta(currentTraffic.status || 'WP Connect');
+  const StatusIcon = statusMeta.icon;
+  const activityCount = Array.isArray(currentTraffic.activityLog) ? currentTraffic.activityLog.length : 1;
 
   const handleOpenPhoto = (index: number) => {
     setLightboxIndex(index);
@@ -128,13 +146,36 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
             </button>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-[#181E54]">{traffic.name}</h2>
+                <h2 className="text-lg font-bold text-[#181E54]">{currentTraffic.name}</h2>
                 <span className="text-[11px] font-mono px-2 py-0.5 bg-slate-200 text-slate-700 rounded-md">
-                  {traffic.id}
+                  {currentTraffic.id}
                 </span>
+
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border shadow-2xs ${statusMeta.bg} ${statusMeta.text} ${statusMeta.border}`}
+                >
+                  <StatusIcon className="w-3.5 h-3.5 shrink-0" />
+                  <span>{statusMeta.label}</span>
+                </span>
+
+                {/* Quality Category Selector in Header */}
+                {token && (
+                  <CategoryBadgeSelector
+                    category={currentTraffic.clientCategory || 'Normal'}
+                    itemId={currentTraffic.id}
+                    type="traffic"
+                    token={token}
+                    onCategoryChanged={(newCat) => {
+                      setCurrentTraffic((prev: any) => ({ ...prev, clientCategory: newCat }));
+                      if (onStatusUpdated) {
+                        onStatusUpdated({ ...currentTraffic, clientCategory: newCat });
+                      }
+                    }}
+                  />
+                )}
               </div>
               <p className="text-xs text-slate-500">
-                Created: {traffic.createdAt} · Created By: <span className="font-semibold text-[#181E54]">{traffic.createdBy || 'Sohag'} ({traffic.creatorRole || 'Super Admin'})</span>
+                Created: {currentTraffic.createdAt} · Created By: <span className="font-semibold text-[#181E54]">{currentTraffic.createdBy || 'Sohag'} ({currentTraffic.creatorRole || 'Super Admin'})</span>
               </p>
             </div>
           </div>
@@ -145,7 +186,7 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
               type="button"
               onClick={() => {
                 onClose();
-                onEdit(traffic);
+                onEdit(currentTraffic);
               }}
               title="Edit Profile"
               className="p-2 text-slate-600 hover:text-white hover:bg-[#181E54] border border-slate-200 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
@@ -164,8 +205,68 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
           </div>
         </div>
 
-        {/* Content Body */}
-        <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto text-xs text-slate-700">
+        {/* Navigation Tabs */}
+        <div className="px-6 py-2.5 bg-gradient-to-r from-slate-50 via-indigo-50/20 to-slate-50 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-slate-200 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setActiveTab('overview')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'overview'
+                  ? 'bg-[#181E54] text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>Bio-Data &amp; Details</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('activity')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'activity'
+                  ? 'bg-[#181E54] text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span>Activity Log</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  activeTab === 'activity'
+                    ? 'bg-[#D81124] text-white'
+                    : 'bg-slate-200 text-slate-700'
+                }`}
+              >
+                {activityCount}
+              </span>
+            </button>
+          </div>
+
+          {currentTraffic.package && (
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200">
+                {currentTraffic.package} Package
+              </span>
+            </div>
+          )}
+        </div>
+
+        {activeTab === 'activity' ? (
+          <div className="p-6 max-h-[75vh] overflow-y-auto text-xs">
+            <ActivityLog
+              traffic={currentTraffic}
+              token={token || ''}
+              onStatusUpdated={(updated) => {
+                setCurrentTraffic(updated);
+                if (onStatusUpdated) onStatusUpdated(updated);
+              }}
+            />
+          </div>
+        ) : (
+          /* Content Body */
+          <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto text-xs text-slate-700">
           
           {/* Part 1: Basic Info */}
           <div>
@@ -471,6 +572,7 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
           </div>
 
         </div>
+        )}
 
         {/* Footer */}
         <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50 flex justify-end">

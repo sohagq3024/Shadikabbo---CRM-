@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Clock,
   ArrowRight,
@@ -18,6 +18,8 @@ import {
   Send,
   Filter,
   Search,
+  FileCheck,
+  RotateCcw,
 } from 'lucide-react';
 
 export interface ActivityUser {
@@ -40,9 +42,10 @@ export interface ActivityLogItem {
 }
 
 export interface ActivityLogProps {
-  lead: any;
+  lead?: any;
+  traffic?: any;
   token: string;
-  onStatusUpdated?: (updatedLead: any) => void;
+  onStatusUpdated?: (updatedRecord: any) => void;
   compact?: boolean;
 }
 
@@ -50,6 +53,49 @@ export const LEAD_STATUS_CONFIG: Record<
   string,
   { label: string; bg: string; text: string; border: string; icon: React.ComponentType<{ className?: string }> }
 > = {
+  'wp-connect': {
+    label: 'WP Connect',
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-700',
+    border: 'border-emerald-300',
+    icon: PhoneCall,
+  },
+  'cv-collect': {
+    label: 'CV Collect',
+    bg: 'bg-blue-50',
+    text: 'text-blue-700',
+    border: 'border-blue-300',
+    icon: FileCheck,
+  },
+  service: {
+    label: 'Service',
+    bg: 'bg-purple-50',
+    text: 'text-purple-700',
+    border: 'border-purple-300',
+    icon: Sparkles,
+  },
+  'follow-up': {
+    label: 'Follow up',
+    bg: 'bg-amber-50',
+    text: 'text-amber-800',
+    border: 'border-amber-300',
+    icon: Clock,
+  },
+  'payment-ready': {
+    label: 'Payment Ready',
+    bg: 'bg-teal-50',
+    text: 'text-teal-800',
+    border: 'border-teal-300',
+    icon: CheckCircle2,
+  },
+  blank: {
+    label: 'Blank',
+    bg: 'bg-slate-100',
+    text: 'text-slate-600',
+    border: 'border-slate-300',
+    icon: PauseCircle,
+  },
+  // Legacy status support
   active: {
     label: 'Active Lead',
     bg: 'bg-blue-50',
@@ -85,13 +131,6 @@ export const LEAD_STATUS_CONFIG: Record<
     border: 'border-indigo-200',
     icon: MessageSquare,
   },
-  'follow-up': {
-    label: 'Follow-Up',
-    bg: 'bg-amber-50',
-    text: 'text-amber-800',
-    border: 'border-amber-200',
-    icon: Clock,
-  },
   'on-hold': {
     label: 'On Hold',
     bg: 'bg-slate-100',
@@ -115,11 +154,83 @@ export const LEAD_STATUS_CONFIG: Record<
   },
 };
 
-export function getStatusMeta(status: string = 'active') {
-  const normalized = (status || 'active').toLowerCase();
+export function getStatusMeta(status: string = 'Blank') {
+  const raw = String(status || 'Blank').trim();
+  const lower = raw.toLowerCase().replace(/[-_]/g, ' ');
+
+  // 1. Dynamic Follow up (e.g. "Follow up 1", "Follow up 2", "Follow up 3")
+  const followUpMatch = lower.match(/^follow\s*up\s*(\d+)?$/i);
+  if (followUpMatch) {
+    const num = followUpMatch[1] ? ` ${followUpMatch[1]}` : '';
+    return {
+      label: `Follow up${num}`,
+      bg: 'bg-amber-50',
+      text: 'text-amber-800',
+      border: 'border-amber-300',
+      icon: Clock,
+    };
+  }
+
+  // 2. WP Connect
+  if (lower === 'wp connect' || lower === 'wpconnect' || lower === 'whatsapp connect') {
+    return {
+      label: 'WP Connect',
+      bg: 'bg-emerald-50',
+      text: 'text-emerald-700',
+      border: 'border-emerald-300',
+      icon: PhoneCall,
+    };
+  }
+
+  // 3. CV Collect
+  if (lower === 'cv collect' || lower === 'cvcollect' || lower === 'biodata collect') {
+    return {
+      label: 'CV Collect',
+      bg: 'bg-blue-50',
+      text: 'text-blue-700',
+      border: 'border-blue-300',
+      icon: FileCheck,
+    };
+  }
+
+  // 4. Service
+  if (lower === 'service' || lower === 'service discussion') {
+    return {
+      label: 'Service',
+      bg: 'bg-purple-50',
+      text: 'text-purple-700',
+      border: 'border-purple-300',
+      icon: Sparkles,
+    };
+  }
+
+  // 5. Payment Ready
+  if (lower === 'payment ready' || lower === 'paymentready') {
+    return {
+      label: 'Payment Ready',
+      bg: 'bg-teal-50',
+      text: 'text-teal-800',
+      border: 'border-teal-300',
+      icon: CheckCircle2,
+    };
+  }
+
+  // 6. Blank
+  if (lower === 'blank' || lower === 'none' || lower === '') {
+    return {
+      label: 'Blank',
+      bg: 'bg-slate-100',
+      text: 'text-slate-600',
+      border: 'border-slate-300',
+      icon: PauseCircle,
+    };
+  }
+
+  const key = lower.replace(/\s+/g, '-');
   return (
-    LEAD_STATUS_CONFIG[normalized] || {
-      label: status || 'Active',
+    LEAD_STATUS_CONFIG[key] ||
+    LEAD_STATUS_CONFIG[lower] || {
+      label: raw || 'Blank',
       bg: 'bg-slate-100',
       text: 'text-slate-700',
       border: 'border-slate-200',
@@ -147,18 +258,77 @@ function getRelativeTimeString(timestamp: number): string {
 
 export const ActivityLog: React.FC<ActivityLogProps> = ({
   lead,
+  traffic,
   token,
   onStatusUpdated,
   compact = false,
 }) => {
-  const currentStatus = lead?.status || 'active';
+  const currentItem = traffic || lead;
+  const isTraffic = Boolean(traffic || (currentItem?.id && String(currentItem.id).startsWith('SK-')));
+  const currentStatus = currentItem?.status || 'WP Connect';
   const activities: ActivityLogItem[] = useMemo(() => {
-    return Array.isArray(lead?.activityLog) ? lead.activityLog : [];
-  }, [lead?.activityLog]);
+    return Array.isArray(currentItem?.activityLog) ? currentItem.activityLog : [];
+  }, [currentItem?.activityLog]);
 
   // Form states for status transition
   const [isTransitionFormOpen, setIsTransitionFormOpen] = useState(false);
-  const [selectedNewStatus, setSelectedNewStatus] = useState<string>('contacted');
+
+  // Calculate total previous follow-up sessions across activity log & current status
+  const currentFollowUpCount = useMemo(() => {
+    let highest = 0;
+    let count = 0;
+    if (Array.isArray(currentItem?.activityLog)) {
+      for (const act of currentItem.activityLog) {
+        const match = String(act.newStatus || act.comment || '').match(/follow\s*up\s*(\d+)/i);
+        if (match) {
+          const n = parseInt(match[1], 10);
+          if (n > highest) highest = n;
+          count++;
+        } else if (
+          String(act.newStatus || '').toLowerCase().includes('follow up') ||
+          String(act.newStatus || '').toLowerCase().includes('follow-up')
+        ) {
+          count++;
+        }
+      }
+    }
+    const currMatch = String(currentItem?.status || '').match(/follow\s*up\s*(\d+)/i);
+    if (currMatch) {
+      const n = parseInt(currMatch[1], 10);
+      if (n > highest) highest = n;
+    }
+    return Math.max(highest, count);
+  }, [currentItem?.activityLog, currentItem?.status]);
+
+  const nextFollowUpNumber = currentFollowUpCount + 1;
+
+  // Selected base status type from the menu: 'WP Connect' | 'CV Collect' | 'Service' | 'Follow up' | 'Payment Ready' | 'Blank'
+  const [selectedBaseStatus, setSelectedBaseStatus] = useState<string>(() => {
+    const curr = (currentItem?.status || '').toLowerCase();
+    if (curr === 'blank' || curr === '') return 'WP Connect';
+    if (curr === 'wp connect' || curr === 'wp_connect') return 'CV Collect';
+    if (curr === 'cv collect' || curr === 'cv_collect') return 'Service';
+    if (curr === 'service') return 'Follow up';
+    if (curr.includes('follow up') || curr.includes('follow-up')) return 'Follow up';
+    if (curr === 'payment ready' || curr === 'payment_ready') return 'Payment Ready';
+    return 'WP Connect';
+  });
+
+  // Follow-up amount / round counter (1, 2, 3...)
+  const [followUpAmount, setFollowUpAmount] = useState<number>(nextFollowUpNumber);
+
+  useEffect(() => {
+    setFollowUpAmount(nextFollowUpNumber);
+  }, [nextFollowUpNumber]);
+
+  // Compute final destination status string to be persisted
+  const targetDestinationStatus = useMemo(() => {
+    if (selectedBaseStatus === 'Follow up') {
+      return `Follow up ${followUpAmount || 1}`;
+    }
+    return selectedBaseStatus;
+  }, [selectedBaseStatus, followUpAmount]);
+
   const [transitionComment, setTransitionComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -198,10 +368,12 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({
 
   const handleStatusSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!lead?.id || !selectedNewStatus) return;
+    if (!currentItem?.id || !targetDestinationStatus) return;
 
-    if (selectedNewStatus === currentStatus) {
-      setSubmitError(`Lead is already in "${getStatusMeta(currentStatus).label}" status. Select a different status to record a transition.`);
+    if (targetDestinationStatus.toLowerCase() === currentStatus.toLowerCase()) {
+      setSubmitError(
+        `Record is already in "${getStatusMeta(currentStatus).label}" status. Select a different status or advance the follow-up round to record a transition.`
+      );
       return;
     }
 
@@ -209,31 +381,38 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({
     setSubmitError(null);
     setActionSuccess(null);
 
+    const apiPath = isTraffic
+      ? `/api/traffic/${currentItem.id}/status`
+      : `/api/leads/${currentItem.id}/status`;
+
     try {
-      const response = await fetch(`/api/leads/${lead.id}/status`, {
+      const response = await fetch(apiPath, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          status: selectedNewStatus,
-          comment: transitionComment.trim(),
+          status: targetDestinationStatus,
+          comment:
+            transitionComment.trim() ||
+            `Status updated from "${getStatusMeta(currentStatus).label}" to "${targetDestinationStatus}"`,
         }),
       });
 
       if (!response.ok) {
         const err = await response.json();
-        throw new Error(err.error || 'Failed to update lead status');
+        throw new Error(err.error || 'Failed to update status');
       }
 
       const data = await response.json();
-      setActionSuccess(`Status successfully transitioned from "${currentStatus}" to "${selectedNewStatus}"!`);
+      const updatedEntity = data.traffic || data.lead;
+      setActionSuccess(`Status successfully transitioned from "${getStatusMeta(currentStatus).label}" to "${targetDestinationStatus}"!`);
       setTransitionComment('');
       setIsTransitionFormOpen(false);
 
-      if (onStatusUpdated && data.lead) {
-        onStatusUpdated(data.lead);
+      if (onStatusUpdated && updatedEntity) {
+        onStatusUpdated(updatedEntity);
       }
     } catch (err: any) {
       setSubmitError(err.message || 'Error executing status transition.');
@@ -256,7 +435,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({
                 Current Pipeline Stage
               </span>
               <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-              <span className="text-[10px] font-mono text-slate-500 font-semibold">{lead?.id}</span>
+              <span className="text-[10px] font-mono text-slate-500 font-semibold">{currentItem?.id}</span>
             </div>
 
             <div className="flex items-center gap-2.5 mt-1.5 flex-wrap">
@@ -268,7 +447,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({
               </span>
 
               <span className="text-xs text-slate-500">
-                Candidate: <strong className="text-slate-800 font-semibold">{lead?.name}</strong>
+                Candidate: <strong className="text-slate-800 font-semibold">{currentItem?.name}</strong>
               </span>
             </div>
           </div>
@@ -329,22 +508,83 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({
                   New Status (Destination) <span className="text-[#D81124]">*</span>
                 </label>
                 <select
-                  value={selectedNewStatus}
-                  onChange={(e) => setSelectedNewStatus(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+                  value={selectedBaseStatus}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSelectedBaseStatus(val);
+                    if (val === 'Follow up') {
+                      setFollowUpAmount(nextFollowUpNumber);
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54] cursor-pointer"
                 >
-                  <option value="active">Active Lead (New Inquiry)</option>
-                  <option value="contacted">Contacted (Candidate / Guardian)</option>
-                  <option value="in-progress">In Progress (Biodata Review)</option>
-                  <option value="qualified">Qualified (Matching Ready)</option>
-                  <option value="negotiation">Negotiation (Package & Terms)</option>
-                  <option value="follow-up">Follow-Up (Scheduled)</option>
-                  <option value="on-hold">On Hold (Postponed by Candidate)</option>
-                  <option value="converted">Converted (Transfer to Traffic)</option>
-                  <option value="trash">Trash (Disqualified / Removed)</option>
+                  <option value="WP Connect">WP Connect</option>
+                  <option value="CV Collect">CV Collect</option>
+                  <option value="Service">Service</option>
+                  <option value="Follow up">
+                    Follow up {nextFollowUpNumber > 0 ? `(${nextFollowUpNumber})` : ''}
+                  </option>
+                  <option value="Payment Ready">Payment Ready</option>
+                  <option value="Blank">Blank</option>
                 </select>
               </div>
             </div>
+
+            {/* Dynamic Follow-up Counter Widget */}
+            {selectedBaseStatus === 'Follow up' && (
+              <div className="p-3 bg-amber-50/90 border border-amber-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 animate-in fade-in duration-150">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                    #{followUpAmount}
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-amber-900">
+                      Follow up Session #{followUpAmount}
+                    </div>
+                    <div className="text-[10px] text-amber-700">
+                      Amount increments on every follow-up session (1, 2, 3...)
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-end sm:self-auto">
+                  <span className="text-[11px] font-bold text-amber-900">
+                    Follow-up Round:
+                  </span>
+                  <div className="flex items-center bg-white border border-amber-300 rounded-lg overflow-hidden shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => setFollowUpAmount((prev) => Math.max(1, prev - 1))}
+                      className="px-2.5 py-1 text-slate-700 hover:bg-amber-100 font-bold text-xs transition-colors cursor-pointer select-none"
+                      title="Decrease round (-1)"
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      min={1}
+                      max={999}
+                      value={followUpAmount}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        if (!isNaN(val) && val >= 1) {
+                          setFollowUpAmount(val);
+                        }
+                      }}
+                      className="w-12 text-center text-xs font-mono font-bold text-[#181E54] py-1 border-x border-amber-200 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFollowUpAmount((prev) => prev + 1)}
+                      className="px-2.5 py-1 text-slate-700 hover:bg-amber-100 font-bold text-xs transition-colors cursor-pointer select-none"
+                      title="Increase round (+1)"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Transition Preview Badge */}
             <div className="p-2.5 bg-white border border-slate-200/80 rounded-xl flex items-center justify-between gap-2 text-xs">
@@ -354,8 +594,8 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({
                   {currentMeta.label}
                 </span>
                 <ArrowRight className="w-3.5 h-3.5 text-[#D81124]" />
-                <span className={`px-2 py-0.5 rounded-md font-semibold text-[10px] border ${getStatusMeta(selectedNewStatus).bg} ${getStatusMeta(selectedNewStatus).text} ${getStatusMeta(selectedNewStatus).border}`}>
-                  {getStatusMeta(selectedNewStatus).label}
+                <span className={`px-2 py-0.5 rounded-md font-semibold text-[10px] border ${getStatusMeta(targetDestinationStatus).bg} ${getStatusMeta(targetDestinationStatus).text} ${getStatusMeta(targetDestinationStatus).border}`}>
+                  {getStatusMeta(targetDestinationStatus).label}
                 </span>
               </div>
             </div>

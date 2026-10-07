@@ -20,6 +20,7 @@ export interface CrmFieldSeedings {
   jobTypes: string[];
   cities: string[];
   countries: string[];
+  leadCategories: string[];
 }
 
 export interface AgencySettings {
@@ -202,9 +203,24 @@ export const DEFAULT_FIELD_SEEDINGS: CrmFieldSeedings = {
     'Japan',
     'Other',
   ],
+  leadCategories: [
+    'FB Message',
+    'FB Call',
+    'FB Comment',
+    'Call center',
+    'Reference',
+    'Others source',
+  ],
 };
 
 export const FIELD_CATEGORIES_META: CrmFieldCategoryMeta[] = [
+  {
+    key: 'leadCategories',
+    label: 'Source',
+    icon: 'Layers',
+    description: 'Inbound lead source acquisition channels (FB Message, FB Call, FB Comment, Call center, Reference, Others source)',
+    connectedSections: ['Lead Table (Source)', 'Add Lead Form (Step 1)', 'Lead Profile'],
+  },
   {
     key: 'professions',
     label: 'Profession',

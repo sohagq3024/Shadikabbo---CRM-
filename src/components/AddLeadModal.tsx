@@ -21,6 +21,7 @@ import {
   Phone,
   Mail,
   Star,
+  Layers,
 } from 'lucide-react';
 import { CountryFlag, COUNTRY_CODES, CountryCodeOption, detectCountryIso } from './CountryFlag';
 import { useCrmFields } from '../context/CrmFieldsContext';
@@ -104,6 +105,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [category, setCategory] = useState('');
   const [selectedCountry, setSelectedCountry] = useState<CountryCodeOption>(COUNTRY_CODES[0]);
   const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
   const [countrySearch, setCountrySearch] = useState('');
@@ -171,6 +173,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
       setName(initialData.name || '');
       setPhone(initialData.phone || '');
       setEmail(initialData.email || '');
+      setCategory(initialData.category || '');
       setProfession(initialData.profession || '');
       setJobType(initialData.jobType || '');
       setDateOfBirth(initialData.dateOfBirth || '');
@@ -194,6 +197,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
       setName('');
       setPhone('');
       setEmail('');
+      setCategory('');
       setProfession('');
       setJobType('');
       setDateOfBirth('');
@@ -282,9 +286,10 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
   // Live Completeness Score calculation
   const completeness = useMemo(() => {
     let score = 0;
-    // Part 1: Mandatory for Lead (10% + 10% = 20%) -> Guarantees 20% & 1 Star
-    if (name.trim()) score += 10;
-    if (phone.trim()) score += 10;
+    // Part 1: Mandatory for Lead (Name + Phone + Category = 20%) -> Guarantees 20% & 1 Star
+    if (name.trim()) score += 8;
+    if (phone.trim()) score += 6;
+    if (category.trim()) score += 6;
 
     // Part 2: Specific Optional Fields (each adds 8% -> 10 options * 8% = 80%)
     if (profession && profession.trim()) score += 8;
@@ -306,6 +311,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
   }, [
     name,
     phone,
+    category,
     profession,
     dateOfBirth,
     maritalStatus,
@@ -328,6 +334,9 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
     if (!phone.trim()) {
       newErrors.phone = 'Official phone number is required';
     }
+    if (!category.trim()) {
+      newErrors.category = 'Lead Source is mandatory to count as a lead';
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -345,8 +354,8 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
-    if (!name.trim() || !phone.trim()) {
-      setGeneralError('Candidate Name and Phone Number are required.');
+    if (!name.trim() || !phone.trim() || !category.trim()) {
+      setGeneralError('Candidate Name, Phone Number, and Lead Source are required.');
       setCurrentStep(1);
       return;
     }
@@ -358,6 +367,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
       name: name.trim(),
       phone: phone.trim(),
       email: email.trim(),
+      category: category.trim(),
       profession,
       jobType,
       dateOfBirth,
@@ -500,11 +510,11 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
             <button
               type="button"
               onClick={() => {
-                if (name && phone) goToStep(2);
+                if (name && phone && category) goToStep(2);
               }}
-              disabled={!name || !phone}
+              disabled={!name || !phone || !category}
               className={`flex items-center gap-2 relative z-10 bg-white px-2 py-1 rounded-full focus:outline-none group ${
-                !name || !phone ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                !name || !phone || !category ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
               }`}
             >
               <div
@@ -705,6 +715,64 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                         className="w-full pl-10 pr-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                       />
                     </div>
+                  </div>
+
+                  {/* 4. Source (Mandatory Selection Menu to count as Lead) */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-semibold text-slate-700">
+                        Source <span className="text-[#D81124]">*</span>
+                      </label>
+                      <span className="text-[10px] text-slate-400 font-medium">
+                        Mandatory to qualify as a Lead
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <Layers className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <select
+                        value={category}
+                        onChange={(e) => {
+                          setCategory(e.target.value);
+                          if (errors.category) {
+                            setErrors((prev) => ({ ...prev, category: '' }));
+                          }
+                        }}
+                        required
+                        className={`w-full pl-10 pr-10 py-2.5 bg-white border rounded-xl text-xs appearance-none focus:outline-none focus:ring-2 cursor-pointer transition-colors ${
+                          errors.category
+                            ? 'border-red-500 focus:ring-red-500 bg-red-50/20 text-red-900'
+                            : category
+                            ? 'border-slate-300 focus:ring-[#181E54] text-slate-900 font-medium'
+                            : 'border-slate-300 focus:ring-[#181E54] text-slate-400'
+                        }`}
+                      >
+                        <option value="" disabled>
+                          Select Lead Source...
+                        </option>
+                        {(fields.leadCategories && fields.leadCategories.length > 0
+                          ? fields.leadCategories
+                          : [
+                              'FB Message',
+                              'FB Call',
+                              'FB Comment',
+                              'Call center',
+                              'Reference',
+                              'Others source',
+                            ]
+                        ).map((cat: string) => (
+                          <option key={cat} value={cat} className="text-slate-800 py-1 font-medium">
+                            {cat}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                    {errors.category && (
+                      <p className="text-[11px] text-red-600 mt-1 flex items-center gap-1 font-medium">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-500" />
+                        <span>{errors.category}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
               </motion.div>

@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 180" fill="none">
+  <!-- Sohag Authority Authentic Signature -->
+  <!-- Left sharp acute needle flourish -->
+  <path
+    d="M 145 92 L 42 145 L 125 118"
+    stroke="#181E54"
+    stroke-width="3"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- Cursive "S" & loops -->
+  <!-- Letter 1 (S & lower loop) -->
+  <path
+    d="M 125 118 C 115 115 110 125 112 135 C 114 145 130 148 138 140 C 144 134 140 120 132 120 C 122 120 118 132 122 142"
+    stroke="#181E54"
+    stroke-width="2.8"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- Letter 2 & 3 loops ('o', 'a', 'g' arches) -->
+  <path
+    d="M 138 138 C 145 125 152 118 160 120 C 168 122 165 142 152 145 C 142 147 142 132 154 124 C 165 118 172 138 178 144 C 185 132 192 122 198 124 C 206 126 204 142 194 144 C 188 145 192 130 204 124 C 215 120 222 134 226 142"
+    stroke="#181E54"
+    stroke-width="2.6"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- Letter loops continued -->
+  <path
+    d="M 218 138 C 224 126 232 122 238 126 C 246 130 244 144 235 145 C 230 145 234 135 242 128 C 250 122 258 130 262 142"
+    stroke="#181E54"
+    stroke-width="2.6"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- Tall ascender flourish (needle loop reaching high up) -->
+  <path
+    d="M 248 142 L 274 38 C 277 32 280 34 278 44 L 260 135 C 259 142 264 146 270 144 C 275 142 280 135 284 126 C 285 134 285 142 282 145"
+    stroke="#181E54"
+    stroke-width="3"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- Baseline connector line under the cursive name -->
+  <path
+    d="M 115 145 L 285 142"
+    stroke="#181E54"
+    stroke-width="2.2"
+    stroke-linecap="round"
+  />
+
+  <!-- Main crossing slash line across the signature to the right with end tick -->
+  <path
+    d="M 105 114 L 355 76 C 358 75.5 362 76 358 79 L 354 82"
+    stroke="#181E54"
+    stroke-width="2.8"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

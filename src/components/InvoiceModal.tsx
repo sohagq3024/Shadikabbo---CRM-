@@ -1,6 +1,18 @@
-import React, { useRef } from 'react';
-import { X, Printer, Download, CheckCircle, ShieldCheck } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import {
+  X,
+  Printer,
+  Download,
+  Check,
+  Copy,
+  User,
+  Calendar,
+  ShieldCheck,
+  ZoomIn,
+  ZoomOut,
+} from 'lucide-react';
 import { ShadikabboLogo } from './ShadikabboLogo';
+import { AuthoritySignature } from './AuthoritySignature';
 
 interface InvoiceModalProps {
   isOpen: boolean;
@@ -14,263 +26,1100 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   payment,
 }) => {
   const invoiceRef = useRef<HTMLDivElement>(null);
+  const [copied, setCopied] = useState(false);
+  // Default zoomed out at 78% so the entire invoice fits comfortably on screen without scrolling
+  const [zoomLevel, setZoomLevel] = useState<number>(78);
 
   if (!isOpen || !payment) return null;
+
+  // Extracted and formatted invoice data with safe fallbacks
+  const candidateName = String(payment.name || 'Nasrin islam');
+  const trafficId = String(
+    payment.trafficId || (payment.id ? String(payment.id).replace('PAY-', 'SK-') : 'SK-0001')
+  );
+  const phone = String(payment.phone || '+880 01552955264');
+  const servicePackage = String(payment.package || 'Platinum');
+  const invoiceDate = String(payment.date || new Date().toISOString().split('T')[0]);
+  const paymentMethod = String(payment.paymentMethod || 'bKash');
+
+  // Amounts
+  const paidAmount = Number(payment.paidAmount) || 0;
+  const dueAmount = Number(payment.dueAmount) || 0;
+  const packageTotal = (paidAmount + dueAmount) > 0 ? (paidAmount + dueAmount) : 50000;
+  const afterMarriageFee = Number(payment.afterMarriageAmount || payment.afterMarriageFee) || 50000;
+
+  // Formatted Invoice ID matching reference template "INV- SK-0001-0232"
+  const rawInvoiceId = String(payment.invoiceId || '').trim();
+  const invoiceId = rawInvoiceId
+    ? (rawInvoiceId.startsWith('INV-') ? rawInvoiceId : `INV- ${rawInvoiceId}`)
+    : `INV- ${trafficId}-0232`;
 
   const handlePrint = () => {
     window.print();
   };
 
+  const handleCopyInvoiceNumber = () => {
+    navigator.clipboard.writeText(invoiceId);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel((prev) => Math.max(50, prev - 10));
+  };
+
+  const handleZoomIn = () => {
+    setZoomLevel((prev) => Math.min(120, prev + 10));
+  };
+
+  const handleResetZoom = () => {
+    setZoomLevel(78);
+  };
+
   const handleDownload = () => {
-    // Generate clean self-contained HTML invoice download
-    if (!invoiceRef.current) return;
-    const content = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Invoice - ${payment.invoiceId || 'Shadikabbo'}</title>
-        <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #1e293b; max-width: 800px; margin: 0 auto; }
-          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #181e54; padding-bottom: 20px; margin-bottom: 30px; }
-          .brand-title { color: #181e54; font-size: 24px; font-weight: 800; }
-          .brand-red { color: #d81124; }
-          .meta { margin-bottom: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; font-size: 14px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; margin-bottom: 30px; }
-          th { background: #f1f5f9; padding: 12px; text-align: left; font-size: 12px; color: #475569; text-transform: uppercase; border-bottom: 1px solid #cbd5e1; }
-          td { padding: 14px 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
-          .text-right { text-align: right; }
-          .total-box { margin-left: auto; width: 300px; font-size: 14px; line-height: 1.8; }
-          .total-row { display: flex; justify-content: space-between; padding: 4px 0; }
-          .grand-total { border-top: 2px solid #181e54; font-weight: bold; font-size: 16px; color: #181e54; margin-top: 8px; padding-top: 8px; }
-          .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; font-size: 12px; color: #64748b; }
-          .stamp { border: 2px dashed #d81124; padding: 8px 16px; border-radius: 8px; color: #d81124; font-weight: bold; display: inline-block; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
+    // Generate an authentic standalone HTML invoice document
+    const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Invoice - ${invoiceId}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&family=Caveat:wght@700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #f1f5f9;
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      color: #0f172a;
+      display: flex;
+      justify-content: center;
+      padding: 30px 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .invoice-card {
+      width: 100%;
+      max-width: 720px;
+      background: #ffffff;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.12);
+      position: relative;
+      border: 1px solid #e2e8f0;
+    }
+    .inner-canvas {
+      position: relative;
+      padding: 32px 38px 90px 38px;
+      z-index: 10;
+    }
+    .top-swoosh {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 220px;
+      height: 120px;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .bottom-swoosh {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 85px;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 22px;
+      position: relative;
+      z-index: 10;
+    }
+    .brand-subtitle {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #475569;
+      margin-top: 4px;
+      letter-spacing: -0.1px;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .red-divider-bar {
+      width: 3.5px;
+      height: 42px;
+      background: #d81124;
+      border-radius: 99px;
+    }
+    .invoice-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      line-height: 1.1;
+    }
+    .title-official { color: #181e54; }
+    .title-invoice { color: #d81124; }
+    .inv-pill {
+      display: inline-block;
+      margin-top: 5px;
+      background: #eef4fb;
+      color: #181e54;
+      font-family: 'Plus Jakarta Sans', monospace;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 4px 14px;
+      border-radius: 99px;
+      letter-spacing: 0.4px;
+      border: 1px solid #dce8f6;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .meta-box {
+      background: #f1f6fb;
+      border: 1px solid #dce7f2;
+      border-radius: 16px;
+      padding: 14px 16px;
+    }
+    .meta-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .meta-icon-circle {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #181e54;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+    .meta-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 11.5px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      color: #181e54;
+      text-transform: uppercase;
+    }
+    .red-line {
+      flex: 1;
+      height: 2px;
+      background: #d81124;
+      border-radius: 99px;
+    }
+    .meta-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 11.5px;
+    }
+    .meta-row {
+      display: grid;
+      grid-template-columns: 95px 12px 1fr;
+      align-items: center;
+      line-height: 1.35;
+    }
+    .meta-label { color: #334155; font-weight: 500; }
+    .meta-colon { color: #0f172a; font-weight: 700; }
+    .meta-val { color: #0f172a; font-weight: 600; }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #16a34a;
+      color: #ffffff;
+      font-size: 9.5px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      padding: 2.5px 8px;
+      border-radius: 99px;
+      text-transform: uppercase;
+    }
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      border: 1px solid #dce7f2;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 18px;
+      background: #ffffff;
+    }
+    th {
+      background: #181e54;
+      color: #ffffff;
+      font-family: 'Outfit', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      padding: 10px 14px;
+      text-transform: uppercase;
+      border-right: 1px solid #283280;
+    }
+    th:last-child { border-right: none; }
+    td {
+      padding: 11px 14px;
+      font-size: 11.5px;
+      color: #1e293b;
+      border-bottom: 1px solid #eef2f6;
+      border-right: 1px solid #eef2f6;
+    }
+    td:last-child { border-right: none; }
+    tr:last-child td { border-bottom: none; }
+    .sl-col { width: 54px; text-align: center; font-weight: 700; color: #475569; }
+    .desc-col { font-weight: 600; color: #1e293b; }
+    .amount-col { text-align: right; font-weight: 700; font-family: 'Plus Jakarta Sans', monospace; }
+    .amount-navy { color: #181e54; font-size: 12.5px; }
+    .amount-green { color: #16a34a; font-size: 12.5px; }
+    .amount-red { color: #d81124; font-size: 12.5px; }
+
+    .summary-card {
+      width: 320px;
+      margin-left: auto;
+      background: #f1f6fb;
+      border: 1px solid #dce7f2;
+      border-radius: 14px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+    }
+    .summary-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #1e293b;
+    }
+    .banner-after-marriage {
+      background: #181e54;
+      color: #ffffff;
+      border-radius: 8px;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+    }
+    .banner-title { font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 700; }
+    .banner-val { font-family: 'Plus Jakarta Sans', monospace; font-size: 13.5px; font-weight: 800; }
+
+    .middle-cta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 6px;
+      margin-bottom: 22px;
+    }
+    .scan-pay-lockup {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .qr-frame {
+      width: 72px;
+      height: 72px;
+      border: 2px solid #d81124;
+      border-radius: 12px;
+      padding: 3px;
+      background: #ffffff;
+    }
+    .stamp-container {
+      text-align: right;
+    }
+    .accepted-stamp-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 2px solid #d81124;
+      border-radius: 10px;
+      padding: 6px 14px;
+      background: #ffffff;
+    }
+    .stamp-badge-circle {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #d81124;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 900;
+    }
+    .stamp-text {
+      font-family: 'Outfit', sans-serif;
+      font-size: 10.5px;
+      font-weight: 800;
+      letter-spacing: 0.7px;
+      color: #181e54;
+      text-transform: uppercase;
+    }
+    .stamp-subcaption {
+      font-size: 10px;
+      color: #475569;
+      margin-top: 4px;
+      font-weight: 500;
+    }
+    .footer-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      position: relative;
+      z-index: 10;
+      padding-top: 6px;
+    }
+    .thankyou-box {
+      max-width: 320px;
+    }
+    .thankyou-script {
+      font-family: 'Caveat', cursive;
+      font-size: 32px;
+      font-weight: 700;
+      color: #181e54;
+      line-height: 1;
+      position: relative;
+      display: inline-block;
+    }
+    .thankyou-underline {
+      display: block;
+      width: 65px;
+      height: 2.5px;
+      background: #d81124;
+      border-radius: 99px;
+      margin-top: 2px;
+      margin-bottom: 6px;
+    }
+    .thankyou-text {
+      font-size: 10.5px;
+      color: #475569;
+      line-height: 1.45;
+      font-weight: 500;
+    }
+    .signature-box {
+      text-align: right;
+    }
+    .sig-line {
+      width: 145px;
+      height: 1.5px;
+      background: #181e54;
+      margin: 5px 0 5px auto;
+    }
+    .sig-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: #181e54;
+    }
+    .sig-subtitle {
+      font-size: 10px;
+      font-weight: 600;
+      color: #181e54;
+    }
+    @media print {
+      body { background: transparent !important; padding: 0 !important; }
+      .invoice-card { box-shadow: none !important; border: none !important; max-width: 100% !important; border-radius: 0 !important; }
+      .print-btn-bar { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="invoice-card">
+    <!-- Top Left Swoosh SVG -->
+    <svg class="top-swoosh" viewBox="0 0 240 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M -20 -10 C 60 10 140 30 170 80 C 185 105 160 135 120 120 C 70 100 20 60 -30 60 Z" fill="#D81124" />
+      <path d="M -10 -20 C 70 -5 120 20 140 60 C 130 50 100 30 50 20 C 10 10 -20 10 -30 0 Z" fill="#181E54" />
+    </svg>
+
+    <div class="inner-canvas">
+      <!-- HEADER -->
+      <div class="header-row">
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-family: 'Outfit', sans-serif; font-size: 26px; font-weight: 900; color: #181e54; letter-spacing: -0.5px;">SHADI</span>
+            <span style="font-family: 'Outfit', sans-serif; font-size: 26px; font-weight: 900; color: #d81124; letter-spacing: -0.5px;">KABBO.COM</span>
+          </div>
+          <div class="brand-subtitle">Premium Matrimonial CRM &amp; Matchmaking Consultancy</div>
+        </div>
+
+        <div class="header-right">
+          <div class="red-divider-bar"></div>
           <div>
-            <div class="brand-title">SHADI<span class="brand-red">KABBO.COM</span></div>
-            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Premium Matrimonial CRM & Matchmaking Consultancy</div>
+            <div class="invoice-title">
+              <span class="title-official">OFFICIAL </span>
+              <span class="title-invoice">INVOICE</span>
+            </div>
+            <div class="inv-pill">${invoiceId}</div>
           </div>
-          <div style="text-align: right;">
-            <div style="font-size: 20px; font-weight: bold; color: #181e54;">OFFICIAL INVOICE</div>
-            <div style="font-size: 13px; color: #64748b; margin-top: 4px;">${payment.invoiceId || 'INV-2026-001'}</div>
+        </div>
+      </div>
+
+      <!-- METADATA CARDS -->
+      <div class="meta-grid">
+        <!-- Billed To -->
+        <div class="meta-box">
+          <div class="meta-header">
+            <div class="meta-icon-circle">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div class="meta-title">BILLED TO</div>
+            <div class="red-line"></div>
+          </div>
+          <div class="meta-rows">
+            <div class="meta-row">
+              <span class="meta-label">Customer Name</span>
+              <span class="meta-colon">:</span>
+              <span class="meta-val">${candidateName}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Traffic ID</span>
+              <span class="meta-colon">:</span>
+              <span class="meta-val">${trafficId}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Phone</span>
+              <span class="meta-colon">:</span>
+              <span class="meta-val">${phone}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Service Package</span>
+              <span class="meta-colon">:</span>
+              <span class="meta-val">${servicePackage}</span>
+            </div>
           </div>
         </div>
 
-        <div class="meta">
+        <!-- Invoice Details -->
+        <div class="meta-box">
+          <div class="meta-header">
+            <div class="meta-icon-circle">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+            </div>
+            <div class="meta-title">INVOICE DETAILS</div>
+            <div class="red-line"></div>
+          </div>
+          <div class="meta-rows">
+            <div class="meta-row">
+              <span class="meta-label">Date</span>
+              <span class="meta-colon">:</span>
+              <span class="meta-val">${invoiceDate}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Payment Method</span>
+              <span class="meta-colon">:</span>
+              <span class="meta-val">${paymentMethod}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Status</span>
+              <span class="meta-colon">:</span>
+              <div>
+                <span class="status-badge">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  PAID / VERIFIED
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABLE -->
+      <table>
+        <thead>
+          <tr>
+            <th class="sl-col">SL</th>
+            <th>DESCRIPTION</th>
+            <th style="text-align: right; width: 160px;">AMOUNT (BDT)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="sl-col">01</td>
+            <td class="desc-col">Matrimonial Membership Package (${servicePackage})</td>
+            <td class="amount-col amount-navy">${packageTotal.toLocaleString()} BDT</td>
+          </tr>
+          <tr>
+            <td class="sl-col">02</td>
+            <td class="desc-col">Paid Initial Deposit</td>
+            <td class="amount-col amount-green">-${paidAmount.toLocaleString()} BDT</td>
+          </tr>
+          <tr>
+            <td class="sl-col">03</td>
+            <td class="desc-col">Remaining Due Balance</td>
+            <td class="amount-col amount-red">${dueAmount.toLocaleString()} BDT</td>
+          </tr>
+          <tr>
+            <td class="sl-col">04</td>
+            <td class="desc-col">After Marriage Amount (AMA) Agreement</td>
+            <td class="amount-col amount-navy">${afterMarriageFee.toLocaleString()} BDT</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- TOTALS CARD -->
+      <div class="summary-card">
+        <div class="summary-line">
+          <span>Total Paid:</span>
+          <span style="color: #16a34a; font-family: monospace; font-size: 13px; font-weight: 700;">${paidAmount.toLocaleString()} BDT</span>
+        </div>
+        <div class="summary-line" style="border-top: 1px solid #e2e8f0; padding-top: 6px;">
+          <span>Remaining Due:</span>
+          <span style="color: #d81124; font-family: monospace; font-size: 13px; font-weight: 700;">${dueAmount.toLocaleString()} BDT</span>
+        </div>
+        <div class="banner-after-marriage">
+          <span class="banner-title">After Marriage Fee:</span>
+          <span class="banner-val">${afterMarriageFee.toLocaleString()} BDT</span>
+        </div>
+      </div>
+
+      <!-- MIDDLE ROW: BKASH QR & OFFICIAL ACCEPTED -->
+      <div class="middle-cta-row">
+        <!-- Scan & Pay QR -->
+        <div class="scan-pay-lockup">
+          <div class="qr-frame">
+            <svg viewBox="0 0 100 100" width="100%" height="100%">
+              <rect x="5" y="5" width="28" height="28" fill="#0f172a" rx="4"/>
+              <rect x="9" y="9" width="20" height="20" fill="#ffffff" rx="2"/>
+              <rect x="13" y="13" width="12" height="12" fill="#0f172a" rx="1"/>
+              <rect x="67" y="5" width="28" height="28" fill="#0f172a" rx="4"/>
+              <rect x="71" y="9" width="20" height="20" fill="#ffffff" rx="2"/>
+              <rect x="75" y="13" width="12" height="12" fill="#0f172a" rx="1"/>
+              <rect x="5" y="67" width="28" height="28" fill="#0f172a" rx="4"/>
+              <rect x="9" y="71" width="20" height="20" fill="#ffffff" rx="2"/>
+              <rect x="13" y="75" width="12" height="12" fill="#0f172a" rx="1"/>
+              <rect x="38" y="8" width="6" height="6" fill="#0f172a"/>
+              <rect x="50" y="8" width="6" height="6" fill="#d81124"/>
+              <rect x="38" y="20" width="6" height="6" fill="#d81124"/>
+              <rect x="46" y="24" width="14" height="6" fill="#0f172a"/>
+              <rect x="10" y="38" width="10" height="6" fill="#0f172a"/>
+              <rect x="26" y="42" width="8" height="12" fill="#0f172a"/>
+              <rect x="40" y="38" width="20" height="20" fill="#d81124"/>
+              <rect x="44" y="42" width="12" height="12" fill="#ffffff"/>
+              <rect x="48" y="46" width="4" height="4" fill="#d81124"/>
+              <rect x="68" y="40" width="14" height="6" fill="#0f172a"/>
+              <rect x="86" y="46" width="6" height="14" fill="#0f172a"/>
+              <rect x="38" y="68" width="8" height="8" fill="#0f172a"/>
+              <rect x="52" y="68" width="14" height="6" fill="#0f172a"/>
+              <rect x="72" y="74" width="8" height="8" fill="#d81124"/>
+              <rect x="84" y="70" width="10" height="14" fill="#0f172a"/>
+              <rect x="42" y="84" width="14" height="6" fill="#0f172a"/>
+              <rect x="62" y="86" width="10" height="6" fill="#0f172a"/>
+            </svg>
+          </div>
           <div>
-            <strong>BILLED TO:</strong><br>
-            <strong>Customer:</strong> ${payment.name}<br>
-            <strong>Traffic ID:</strong> ${payment.trafficId}<br>
-            <strong>Phone:</strong> ${payment.phone || 'N/A'}<br>
-            <strong>Service Package:</strong> ${payment.package || 'Custom'}
-          </div>
-          <div style="text-align: right;">
-            <strong>INVOICE DETAILS:</strong><br>
-            <strong>Date:</strong> ${payment.date}<br>
-            <strong>Payment Method:</strong> ${payment.paymentMethod || 'bKash'}<br>
-            <strong>Status:</strong> PAID / VERIFIED
+            <div style="font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 800; color: #e2136e; letter-spacing: 0.5px;">bKash</div>
+            <div style="font-size: 11.5px; font-weight: 800; color: #181e54;">Scan &amp; Pay</div>
+            <div style="font-size: 10px; color: #475569; margin-top: 2px; line-height: 1.3;">Pay easily with bKash<br>or any mobile banking app.</div>
           </div>
         </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Description</th>
-              <th class="text-right">Amount (BDT)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Matrimonial Membership Package (${payment.package || 'Standard'})</td>
-              <td class="text-right">${((payment.paidAmount || 0) + (payment.dueAmount || 0)).toLocaleString()} BDT</td>
-            </tr>
-            <tr>
-              <td>Paid Initial Deposit</td>
-              <td class="text-right" style="color: #16a34a; font-weight: bold;">-${(payment.paidAmount || 0).toLocaleString()} BDT</td>
-            </tr>
-            <tr>
-              <td>Remaining Due Balance</td>
-              <td class="text-right" style="color: #dc2626; font-weight: bold;">${(payment.dueAmount || 0).toLocaleString()} BDT</td>
-            </tr>
-            <tr>
-              <td>After Marriage Amount (AMA) Agreement</td>
-              <td class="text-right" style="color: #181e54; font-weight: bold;">${(payment.afterMarriageAmount || 0).toLocaleString()} BDT</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div class="total-box">
-          <div class="total-row"><span>Total Paid:</span> <span style="font-weight: bold; color: #16a34a;">${(payment.paidAmount || 0).toLocaleString()} BDT</span></div>
-          <div class="total-row"><span>Remaining Due:</span> <span style="font-weight: bold; color: #dc2626;">${(payment.dueAmount || 0).toLocaleString()} BDT</span></div>
-          <div class="total-row grand-total"><span>After Marriage Fee:</span> <span>${(payment.afterMarriageAmount || 0).toLocaleString()} BDT</span></div>
-        </div>
-
-        <div class="footer">
-          <div>
-            <div class="stamp">OFFICIAL PAYMENT ACCEPTED</div>
-            <p style="margin-top: 10px;">Authorized Signature: Shadikabbo Accounts</p>
+        <!-- Official Stamp -->
+        <div class="stamp-container">
+          <div class="accepted-stamp-box">
+            <div class="stamp-badge-circle">✓</div>
+            <div class="stamp-text">OFFICIAL PAYMENT ACCEPTED</div>
           </div>
-          <div style="text-align: right;">
-            <p>Thank you for placing your trust in Shadikabbo.com</p>
-            <p>Official Support: 01723867646</p>
+          <div class="stamp-subcaption">Authorized Signature: Shadikabbo Accounts</div>
+        </div>
+      </div>
+
+      <!-- FOOTER -->
+      <div class="footer-row">
+        <!-- Thank you -->
+        <div class="thankyou-box">
+          <div class="thankyou-script">Thank you!</div>
+          <span class="thankyou-underline"></span>
+          <div class="thankyou-text">
+            Thank you for placing your trust in Shadikabbo.com.<br>
+            We are committed to helping you find the right match<br>
+            and build a happy future.
           </div>
         </div>
-      </body>
-      </html>
-    `;
-    const blob = new Blob([content], { type: 'text/html' });
+
+        <!-- Authorized Signature -->
+        <div class="signature-box">
+          <svg width="150" height="52" viewBox="0 0 360 150" fill="none" style="display: block; margin-left: auto;">
+            <path d="M 134 84 L 34 116 L 108 100" stroke="#181E54" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M 106 100 C 96 104 94 114 100 120 C 106 126 118 126 124 118 C 128 112 126 102 118 100 C 112 98 106 106 110 118 C 114 106 124 94 132 94 C 140 94 140 118 134 122 C 128 124 126 112 136 102 C 142 96 150 96 154 108 C 156 118 148 122 144 122 C 146 110 154 100 162 100 C 170 100 170 118 164 122 C 168 110 176 100 184 100 C 192 100 192 118 186 122 C 190 110 198 100 206 100 C 214 100 216 116 210 122 C 214 112 222 102 228 102 C 236 102 240 114 234 122" stroke="#181E54" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M 104 122 L 244 119" stroke="#181E54" stroke-width="2.2" stroke-linecap="round"/>
+            <path d="M 226 120 L 255 24 C 257 18 260 20 258 28 L 238 112 C 236 118 242 122 248 120 C 253 118 257 112 258 104 L 257 122" stroke="#181E54" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M 104 84 L 340 58 C 343 57.5 346 58 344 61 L 339 64" stroke="#181E54" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div class="sig-line"></div>
+          <div class="sig-title">Authorized Signature</div>
+          <div class="sig-subtitle">Authority · Shadikabbo Accounts</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Double Wave SVG -->
+    <svg class="bottom-swoosh" viewBox="0 0 820 110" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 0 110 L 0 50 C 180 85 460 20 820 70 L 820 110 Z" fill="#181E54"/>
+      <path d="M 0 110 L 0 78 C 220 100 500 48 820 86 L 820 110 Z" fill="#D81124"/>
+    </svg>
+  </div>
+</body>
+</html>`;
+
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Invoice_${payment.invoiceId || payment.trafficId}.html`;
+    a.download = `Shadikabbo_Invoice_${invoiceId.replace(/\s+/g, '_')}.html`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 md:p-6 print:p-0 print:bg-white">
-      <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-6 print:shadow-none print:border-none print:m-0">
+    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 print:p-0 print:bg-white">
+      {/* Modal Container */}
+      <div className="relative w-full max-w-4xl bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[96vh] print:shadow-none print:border-none print:m-0 print:max-h-none print:rounded-none">
         
-        {/* Header Controls (Hidden on print) */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 print:hidden">
+        {/* Header Control Toolbar (Hidden in Print) */}
+        <div className="flex flex-wrap items-center justify-between px-4 sm:px-6 py-2.5 sm:py-3 border-b border-slate-100 bg-slate-50/95 shrink-0 print:hidden gap-2">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-[#D81124]" />
-            <h2 className="text-base font-bold text-[#181E54]">Official Payment Invoice</h2>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <div className="flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-[#D81124]" />
+              <h2 className="text-xs sm:text-sm font-bold text-[#181E54]">Official Invoice</h2>
+            </div>
+            <span className="text-[10px] sm:text-[11px] font-mono text-slate-500 bg-slate-200/70 px-2 py-0.5 rounded-md font-semibold">
+              {invoiceId}
+            </span>
           </div>
-          <div className="flex items-center gap-2">
+
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Interactive Zoom Controls */}
+            <div className="flex items-center bg-slate-200/60 border border-slate-300/70 rounded-xl px-1 py-0.5 gap-0.5">
+              <button
+                type="button"
+                onClick={handleZoomOut}
+                className="p-1 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg transition-colors cursor-pointer"
+                title="Zoom Out (-)"
+              >
+                <ZoomOut className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const cycle = [68, 78, 90, 100];
+                  const next = cycle[(cycle.indexOf(zoomLevel) + 1) % cycle.length] || 78;
+                  setZoomLevel(next);
+                }}
+                className="text-[10px] font-mono font-bold text-slate-700 hover:text-[#181E54] hover:bg-white px-1.5 py-0.5 rounded transition-colors min-w-[34px] text-center cursor-pointer select-none"
+                title="Click to cycle zoom level"
+              >
+                {zoomLevel}%
+              </button>
+
+              <button
+                type="button"
+                onClick={handleZoomIn}
+                className="p-1 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg transition-colors cursor-pointer"
+                title="Zoom In (+)"
+              >
+                <ZoomIn className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResetZoom}
+                className="text-[10px] font-semibold text-slate-600 hover:text-[#181E54] hover:bg-white px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+                title="Reset to comfortable fit (78%)"
+              >
+                Fit
+              </button>
+            </div>
+
+            {/* Copy Invoice No */}
+            <button
+              onClick={handleCopyInvoiceNumber}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl transition-all cursor-pointer shadow-2xs"
+              title="Copy invoice ID"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
+              <span className="hidden sm:inline">{copied ? 'Copied' : 'Copy'}</span>
+            </button>
+
+            {/* Print Button */}
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl transition-all cursor-pointer shadow-2xs"
             >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Print</span>
+              <Printer className="w-3.5 h-3.5 text-slate-500" />
+              <span className="hidden sm:inline">Print</span>
             </button>
+
+            {/* Download Button */}
             <button
               onClick={handleDownload}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#181E54] hover:bg-[#121642] text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#181E54] hover:bg-[#121642] text-white text-xs font-semibold rounded-xl shadow-xs transition-all cursor-pointer active:scale-95"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span>Download Invoice</span>
+              <Download className="w-3.5 h-3.5 text-red-400" />
+              <span>Download</span>
             </button>
+
+            {/* Close Button */}
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+              className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 rounded-xl transition-colors cursor-pointer ml-0.5"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Invoice Printable View */}
-        <div ref={invoiceRef} className="p-8 space-y-6 text-xs text-slate-800 bg-white">
-          
-          {/* Logo & Invoice Title */}
-          <div className="flex items-start justify-between border-b-2 border-[#181E54] pb-6">
-            <div>
-              <ShadikabboLogo size="md" />
-              <p className="text-[11px] text-slate-500 mt-2">
-                Premium Matrimonial CRM &amp; Matchmaking Consultancy
-              </p>
-            </div>
-            <div className="text-right">
-              <span className="text-xl font-extrabold text-[#181E54] tracking-wide block">
-                INVOICE
-              </span>
-              <span className="font-mono text-xs font-bold text-slate-600 block mt-1">
-                {payment.invoiceId || 'INV-2026-001'}
-              </span>
-              <span className="inline-block mt-2 px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold text-[10px]">
-                PAID &amp; VERIFIED
-              </span>
+        {/* ----------------- SCROLLABLE DOCUMENT VIEWER ----------------- */}
+        <div className="flex-1 overflow-y-auto bg-slate-100/90 p-3 sm:p-5 flex justify-center items-start print:p-0 print:bg-white print:overflow-visible">
+          {/* Zoom Scaled Invoice Container */}
+          <div
+            style={{
+              transform: `scale(${zoomLevel / 100})`,
+              transformOrigin: 'top center',
+              width: '680px',
+              maxWidth: '100%',
+              marginBottom: zoomLevel < 100 ? `-${(100 - zoomLevel) * 7.5}px` : 0,
+            }}
+            className="transition-transform duration-150 ease-out shrink-0 print:transform-none print:w-full print:m-0"
+          >
+            {/* INVOICE SHEET VIEW (Matches Reference Picture 100%) */}
+            <div
+              ref={invoiceRef}
+              className="relative bg-white text-slate-900 select-text overflow-hidden rounded-2xl shadow-xl border border-slate-200/90 print:shadow-none print:border-none print:rounded-none"
+            >
+              {/* Top Left Swoosh Wave Accent */}
+              <div className="absolute top-0 left-0 w-44 sm:w-56 h-20 sm:h-28 pointer-events-none z-0">
+                <svg
+                  viewBox="0 0 240 140"
+                  className="w-full h-full"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M -20 -10 C 60 10 140 30 170 80 C 185 105 160 135 120 120 C 70 100 20 60 -30 60 Z"
+                    fill="#D81124"
+                  />
+                  <path
+                    d="M -10 -20 C 70 -5 120 20 140 60 C 130 50 100 30 50 20 C 10 10 -20 10 -30 0 Z"
+                    fill="#181E54"
+                  />
+                </svg>
+              </div>
+
+              <div className="relative z-10 px-6 sm:px-8 pt-5 pb-20 space-y-4">
+                {/* 1. HEADER: BRAND LOGO (LEFT) & OFFICIAL INVOICE (RIGHT) */}
+                <div className="flex items-start justify-between gap-3 pt-1">
+                  <div>
+                    <ShadikabboLogo size="md" />
+                    <p className="text-[10.5px] font-semibold text-slate-600 mt-0.5 tracking-tight">
+                      Premium Matrimonial CRM &amp; Matchmaking Consultancy
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 text-right">
+                    <div className="w-1 h-10 bg-[#D81124] rounded-full"></div>
+                    <div>
+                      <div className="font-extrabold text-xl sm:text-2xl tracking-wide leading-none font-sans">
+                        <span className="text-[#181E54]">OFFICIAL </span>
+                        <span className="text-[#D81124]">INVOICE</span>
+                      </div>
+                      <div className="inline-block mt-1.5 px-3.5 py-0.5 bg-[#EEF4FB] text-[#181E54] rounded-full text-xs font-bold tracking-wider border border-[#DCE8F6] shadow-2xs">
+                        {invoiceId}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. METADATA: BILLED TO (LEFT) & INVOICE DETAILS (RIGHT) */}
+                <div className="grid grid-cols-2 gap-3.5 sm:gap-4 pt-1">
+                  {/* Card 1: BILLED TO */}
+                  <div className="bg-[#F1F6FB] border border-[#DCE7F2] rounded-xl p-3 sm:p-3.5 shadow-2xs">
+                    <div className="flex items-center gap-2 mb-2.5">
+                      <div className="w-6 h-6 rounded-full bg-[#181E54] text-white flex items-center justify-center shrink-0 shadow-xs">
+                        <User className="w-3.5 h-3.5 text-white" />
+                      </div>
+                      <h3 className="font-extrabold text-[11px] tracking-wider text-[#181E54] uppercase">
+                        BILLED TO
+                      </h3>
+                      <div className="flex-1 h-[1.5px] bg-[#D81124] rounded-full ml-1"></div>
+                    </div>
+
+                    <div className="space-y-1.5 text-[11px]">
+                      <div className="grid grid-cols-[90px_10px_1fr] items-center">
+                        <span className="text-slate-600 font-medium">Customer Name</span>
+                        <span className="font-bold text-slate-800">:</span>
+                        <span className="font-bold text-slate-900 truncate">{candidateName}</span>
+                      </div>
+                      <div className="grid grid-cols-[90px_10px_1fr] items-center">
+                        <span className="text-slate-600 font-medium">Traffic ID</span>
+                        <span className="font-bold text-slate-800">:</span>
+                        <span className="font-bold text-slate-900 font-mono">{trafficId}</span>
+                      </div>
+                      <div className="grid grid-cols-[90px_10px_1fr] items-center">
+                        <span className="text-slate-600 font-medium">Phone</span>
+                        <span className="font-bold text-slate-800">:</span>
+                        <span className="font-semibold text-slate-900">{phone}</span>
+                      </div>
+                      <div className="grid grid-cols-[90px_10px_1fr] items-center">
+                        <span className="text-slate-600 font-medium">Service Package</span>
+                        <span className="font-bold text-slate-800">:</span>
+                        <span className="font-bold text-slate-900">{servicePackage}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 2: INVOICE DETAILS */}
+                  <div className="bg-[#F1F6FB] border border-[#DCE7F2] rounded-xl p-3 sm:p-3.5 shadow-2xs">
+                    <div className="flex items-center gap-2 mb-2.5">
+                      <div className="w-6 h-6 rounded-full bg-[#181E54] text-white flex items-center justify-center shrink-0 shadow-xs">
+                        <Calendar className="w-3.5 h-3.5 text-white" />
+                      </div>
+                      <h3 className="font-extrabold text-[11px] tracking-wider text-[#181E54] uppercase">
+                        INVOICE DETAILS
+                      </h3>
+                      <div className="flex-1 h-[1.5px] bg-[#D81124] rounded-full ml-1"></div>
+                    </div>
+
+                    <div className="space-y-1.5 text-[11px]">
+                      <div className="grid grid-cols-[98px_10px_1fr] items-center">
+                        <span className="text-slate-600 font-medium">Date</span>
+                        <span className="font-bold text-slate-800">:</span>
+                        <span className="font-semibold text-slate-900 font-mono">{invoiceDate}</span>
+                      </div>
+                      <div className="grid grid-cols-[98px_10px_1fr] items-center">
+                        <span className="text-slate-600 font-medium">Payment Method</span>
+                        <span className="font-bold text-slate-800">:</span>
+                        <span className="font-bold text-slate-900">{paymentMethod}</span>
+                      </div>
+                      <div className="grid grid-cols-[98px_10px_1fr] items-center">
+                        <span className="text-slate-600 font-medium">Status</span>
+                        <span className="font-bold text-slate-800">:</span>
+                        <div>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#16A34A] text-white text-[9px] font-extrabold tracking-wider shadow-2xs">
+                            <Check className="w-2.5 h-2.5 stroke-[3]" />
+                            PAID / VERIFIED
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. INVOICE TABLE: SL, DESCRIPTION, AMOUNT (BDT) */}
+                <div className="border border-[#DCE7F2] rounded-xl overflow-hidden shadow-2xs bg-white">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-[#181E54] text-white text-[11px] font-bold uppercase tracking-wider">
+                        <th className="py-2.5 px-3 w-14 text-center border-r border-[#2C3477]">SL</th>
+                        <th className="py-2.5 px-4 border-r border-[#2C3477]">DESCRIPTION</th>
+                        <th className="py-2.5 px-4 text-right w-40">AMOUNT (BDT)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#EEF2F6] text-[11.5px]">
+                      {/* Row 01 */}
+                      <tr className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-2.5 px-3 text-center font-semibold text-slate-600 border-r border-[#EEF2F6]">01</td>
+                        <td className="py-2.5 px-4 font-medium text-slate-800 border-r border-[#EEF2F6]">
+                          Matrimonial Membership Package ({servicePackage})
+                        </td>
+                        <td className="py-2.5 px-4 text-right font-bold text-[#181E54] font-mono text-xs">
+                          {packageTotal.toLocaleString()} BDT
+                        </td>
+                      </tr>
+
+                      {/* Row 02 */}
+                      <tr className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-2.5 px-3 text-center font-semibold text-slate-600 border-r border-[#EEF2F6]">02</td>
+                        <td className="py-2.5 px-4 font-medium text-slate-800 border-r border-[#EEF2F6]">
+                          Paid Initial Deposit
+                        </td>
+                        <td className="py-2.5 px-4 text-right font-bold text-[#16A34A] font-mono text-xs">
+                          -{paidAmount.toLocaleString()} BDT
+                        </td>
+                      </tr>
+
+                      {/* Row 03 */}
+                      <tr className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-2.5 px-3 text-center font-semibold text-slate-600 border-r border-[#EEF2F6]">03</td>
+                        <td className="py-2.5 px-4 font-medium text-slate-800 border-r border-[#EEF2F6]">
+                          Remaining Due Balance
+                        </td>
+                        <td className="py-2.5 px-4 text-right font-bold text-[#D81124] font-mono text-xs">
+                          {dueAmount.toLocaleString()} BDT
+                        </td>
+                      </tr>
+
+                      {/* Row 04 */}
+                      <tr className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-2.5 px-3 text-center font-semibold text-slate-600 border-r border-[#EEF2F6]">04</td>
+                        <td className="py-2.5 px-4 font-medium text-slate-800 border-r border-[#EEF2F6]">
+                          After Marriage Amount (AMA) Agreement
+                        </td>
+                        <td className="py-2.5 px-4 text-right font-bold text-[#181E54] font-mono text-xs">
+                          {afterMarriageFee.toLocaleString()} BDT
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* 4. TOTALS BREAKDOWN CARD (RIGHT-ALIGNED) */}
+                <div className="w-[300px] ml-auto bg-[#F1F6FB] border border-[#DCE7F2] rounded-xl p-3 shadow-2xs space-y-1.5">
+                  <div className="flex items-center justify-between text-[11.5px]">
+                    <span className="font-bold text-slate-700">Total Paid:</span>
+                    <span className="font-extrabold text-[#16A34A] font-mono text-xs">
+                      {paidAmount.toLocaleString()} BDT
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11.5px] pt-1 border-t border-slate-200">
+                    <span className="font-bold text-slate-700">Remaining Due:</span>
+                    <span className="font-extrabold text-[#D81124] font-mono text-xs">
+                      {dueAmount.toLocaleString()} BDT
+                    </span>
+                  </div>
+                  <div className="bg-[#181E54] text-white rounded-lg px-3 py-2 flex items-center justify-between shadow-xs mt-1.5">
+                    <span className="font-bold text-[10.5px] uppercase tracking-wide">After Marriage Fee:</span>
+                    <span className="font-extrabold text-xs sm:text-[13px] font-mono">
+                      {afterMarriageFee.toLocaleString()} BDT
+                    </span>
+                  </div>
+                </div>
+
+                {/* 5. MIDDLE ROW: SCAN & PAY (LEFT) & OFFICIAL PAYMENT ACCEPTED STAMP (RIGHT) */}
+                <div className="flex items-center justify-between gap-3 pt-1">
+                  {/* Left: Scan & Pay with bKash QR */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-[66px] h-[66px] border-2 border-[#D81124] rounded-xl p-1 bg-white shadow-xs shrink-0 flex items-center justify-center">
+                      <svg viewBox="0 0 100 100" className="w-full h-full">
+                        <rect x="5" y="5" width="28" height="28" fill="#0f172a" rx="4"/>
+                        <rect x="9" y="9" width="20" height="20" fill="#ffffff" rx="2"/>
+                        <rect x="13" y="13" width="12" height="12" fill="#0f172a" rx="1"/>
+                        <rect x="67" y="5" width="28" height="28" fill="#0f172a" rx="4"/>
+                        <rect x="71" y="9" width="20" height="20" fill="#ffffff" rx="2"/>
+                        <rect x="75" y="13" width="12" height="12" fill="#0f172a" rx="1"/>
+                        <rect x="5" y="67" width="28" height="28" fill="#0f172a" rx="4"/>
+                        <rect x="9" y="71" width="20" height="20" fill="#ffffff" rx="2"/>
+                        <rect x="13" y="75" width="12" height="12" fill="#0f172a" rx="1"/>
+                        <rect x="38" y="8" width="6" height="6" fill="#0f172a"/>
+                        <rect x="50" y="8" width="6" height="6" fill="#d81124"/>
+                        <rect x="38" y="20" width="6" height="6" fill="#d81124"/>
+                        <rect x="46" y="24" width="14" height="6" fill="#0f172a"/>
+                        <rect x="10" y="38" width="10" height="6" fill="#0f172a"/>
+                        <rect x="26" y="42" width="8" height="12" fill="#0f172a"/>
+                        <rect x="40" y="38" width="20" height="20" fill="#d81124"/>
+                        <rect x="44" y="42" width="12" height="12" fill="#ffffff"/>
+                        <rect x="48" y="46" width="4" height="4" fill="#d81124"/>
+                        <rect x="68" y="40" width="14" height="6" fill="#0f172a"/>
+                        <rect x="86" y="46" width="6" height="14" fill="#0f172a"/>
+                        <rect x="38" y="68" width="8" height="8" fill="#0f172a"/>
+                        <rect x="52" y="68" width="14" height="6" fill="#0f172a"/>
+                        <rect x="72" y="74" width="8" height="8" fill="#d81124"/>
+                        <rect x="84" y="70" width="10" height="14" fill="#0f172a"/>
+                        <rect x="42" y="84" width="14" height="6" fill="#0f172a"/>
+                        <rect x="62" y="86" width="10" height="6" fill="#0f172a"/>
+                      </svg>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center gap-1">
+                        <svg width="18" height="18" viewBox="0 0 40 40" fill="none">
+                          <polygon points="20,2 38,14 26,22" fill="#E2136E"/>
+                          <polygon points="2,14 20,2 14,22" fill="#E2136E"/>
+                          <polygon points="14,22 26,22 20,38" fill="#C1105D"/>
+                        </svg>
+                        <span className="font-extrabold text-base text-[#E2136E] tracking-tight">bKash</span>
+                      </div>
+                      <div className="font-extrabold text-[11.5px] text-[#181E54]">Scan &amp; Pay</div>
+                      <p className="text-[10px] text-slate-500 leading-tight mt-0.5 font-medium">
+                        Pay easily with bKash<br />or any mobile banking app.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right: Official Payment Accepted Stamp */}
+                  <div className="text-right">
+                    <div className="inline-flex items-center gap-1.5 border-2 border-[#D81124] rounded-lg px-3 py-1.5 bg-white shadow-2xs">
+                      <div className="w-4 h-4 rounded-full bg-[#D81124] text-white flex items-center justify-center shrink-0">
+                        <Check className="w-3 h-3 stroke-[3]" />
+                      </div>
+                      <span className="font-extrabold text-[10.5px] tracking-wider text-[#181E54] uppercase">
+                        OFFICIAL PAYMENT ACCEPTED
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+                      Authorized Signature: Shadikabbo Accounts
+                    </p>
+                  </div>
+                </div>
+
+                {/* 6. FOOTER: THANK YOU (LEFT) & AUTHORIZED SIGNATURE (RIGHT) */}
+                <div className="flex items-end justify-between gap-4 pt-2">
+                  {/* Left Thank You */}
+                  <div className="max-w-xs">
+                    <div className="relative inline-block">
+                      <span
+                        className="text-2xl sm:text-3xl font-extrabold text-[#181E54] tracking-tight block"
+                        style={{ fontFamily: "'Plus Jakarta Sans', cursive, sans-serif", fontStyle: 'italic' }}
+                      >
+                        Thank you!
+                      </span>
+                      <div className="w-16 h-0.5 bg-[#D81124] rounded-full mt-0.5"></div>
+                    </div>
+                    <p className="text-[10px] text-slate-600 font-medium leading-relaxed mt-1">
+                      Thank you for placing your trust in Shadikabbo.com.<br />
+                      We are committed to helping you find the right match and build a happy future.
+                    </p>
+                  </div>
+
+                  {/* Right Authorized Signature with exact uploaded handwriting */}
+                  <div className="text-right">
+                    <div className="inline-block ml-auto">
+                      <AuthoritySignature
+                        width={152}
+                        height={54}
+                        color="#181E54"
+                        className="ml-auto block hover:scale-105 transition-transform"
+                      />
+                      <div className="w-36 h-[1.5px] bg-[#181E54] my-0.5 ml-auto"></div>
+                      <div className="font-extrabold text-[11px] text-[#181E54]">Authorized Signature</div>
+                      <div className="font-semibold text-[10px] text-slate-600">Authority · Shadikabbo Accounts</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Dual Wave Accent (Flowing Navy & Red Curves) */}
+              <div className="absolute bottom-0 left-0 w-full h-14 sm:h-18 pointer-events-none z-0">
+                <svg
+                  viewBox="0 0 820 110"
+                  preserveAspectRatio="none"
+                  className="w-full h-full"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M 0 110 L 0 50 C 180 85 460 20 820 70 L 820 110 Z" fill="#181E54" />
+                  <path d="M 0 110 L 0 78 C 220 100 500 48 820 86 L 820 110 Z" fill="#D81124" />
+                </svg>
+              </div>
             </div>
           </div>
-
-          {/* Meta Details */}
-          <div className="grid grid-cols-2 gap-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-            <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                Billed Client
-              </span>
-              <p className="font-bold text-sm text-slate-900">{payment.name}</p>
-              <p className="text-slate-500 mt-0.5">Traffic ID: <span className="font-mono text-slate-700">{payment.trafficId}</span></p>
-              {payment.phone && <p className="text-slate-500">Phone: {payment.phone}</p>}
-              <p className="text-slate-500">Package: {payment.package || 'Gold Package'}</p>
-            </div>
-            <div className="text-right">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                Invoice Details
-              </span>
-              <p className="text-slate-600">Date: <span className="font-semibold text-slate-900">{payment.date}</span></p>
-              <p className="text-slate-600">Payment Method: <span className="font-semibold text-slate-900">{payment.paymentMethod || 'bKash'}</span></p>
-              <p className="text-slate-600">Handled By: <span className="font-semibold text-slate-900">{payment.assignedBy || 'MK/CRO'}</span></p>
-            </div>
-          </div>
-
-          {/* Table Breakdown */}
-          <div className="border border-slate-200 rounded-2xl overflow-hidden">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-100 border-b border-slate-200 text-slate-600 font-semibold uppercase">
-                <tr>
-                  <th className="py-2.5 px-4">Line Item Description</th>
-                  <th className="py-2.5 px-4 text-right">Amount (BDT)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                <tr>
-                  <td className="py-3 px-4 font-medium text-slate-800">
-                    Registration &amp; Consultation Fee ({payment.package || 'Standard'})
-                  </td>
-                  <td className="py-3 px-4 text-right font-mono font-bold">
-                    {((payment.paidAmount || 0) + (payment.dueAmount || 0)).toLocaleString()} BDT
-                  </td>
-                </tr>
-                <tr className="bg-emerald-50/50">
-                  <td className="py-3 px-4 font-semibold text-emerald-800">
-                    Paid Amount (Received &amp; Approved)
-                  </td>
-                  <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600">
-                    {(payment.paidAmount || 0).toLocaleString()} BDT
-                  </td>
-                </tr>
-                <tr className="bg-red-50/30">
-                  <td className="py-3 px-4 font-semibold text-red-800">
-                    Remaining Due Amount
-                  </td>
-                  <td className="py-3 px-4 text-right font-mono font-bold text-red-600">
-                    {(payment.dueAmount || 0).toLocaleString()} BDT
-                  </td>
-                </tr>
-                <tr className="bg-slate-50">
-                  <td className="py-3 px-4 font-semibold text-[#181E54]">
-                    After Marriage Amount (AMA) Agreement
-                  </td>
-                  <td className="py-3 px-4 text-right font-mono font-bold text-[#181E54]">
-                    {(payment.afterMarriageAmount || 0).toLocaleString()} BDT
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* Authorization Footer */}
-          <div className="pt-6 border-t border-slate-200 flex items-center justify-between">
-            <div className="border-2 border-dashed border-[#D81124] px-4 py-2 rounded-xl text-center">
-              <span className="text-[10px] font-black tracking-widest text-[#D81124] uppercase block">
-                SHADIKABBO OFFICIAL STAMP
-              </span>
-              <span className="text-[9px] text-slate-500 font-mono">VERIFIED TRANSACTION</span>
-            </div>
-            <div className="text-right">
-              <p className="text-xs font-semibold text-slate-800">Authorized Officer</p>
-              <div className="h-8 border-b border-slate-300 w-36 ml-auto mt-1" />
-              <p className="text-[10px] text-slate-400 mt-1">Shadikabbo CRM Accounts</p>
-            </div>
-          </div>
-
         </div>
-
       </div>
     </div>
   );

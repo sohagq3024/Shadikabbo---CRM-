@@ -34,3 +34,18 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* High-fidelity print styles for official invoices */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  @page {
+    margin: 10mm;
+    size: auto;
+  }
+  body {
+    background: #ffffff !important;
+  }
+}

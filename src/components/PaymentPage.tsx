@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Calendar, Filter, Download, DollarSign, Bell, User, CheckCircle2, AlertCircle } from 'lucide-react';
 import { PaymentRequestsModal } from './PaymentRequestsModal';
 import { InvoiceModal } from './InvoiceModal';
+import { ErrorBoundary } from './ErrorBoundary';
 import { ImageLightboxModal } from './ImageLightboxModal';
 
 interface PaymentPageProps {
@@ -444,11 +445,13 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({ token }) => {
       />
 
       {/* Invoice Modal for specific invoice view & download */}
-      <InvoiceModal
-        isOpen={!!selectedInvoicePayment}
-        onClose={() => setSelectedInvoicePayment(null)}
-        payment={selectedInvoicePayment}
-      />
+      <ErrorBoundary>
+        <InvoiceModal
+          isOpen={!!selectedInvoicePayment}
+          onClose={() => setSelectedInvoicePayment(null)}
+          payment={selectedInvoicePayment}
+        />
+      </ErrorBoundary>
 
       {/* Full-screen Image Lightbox Modal with Zoom, Rotation & Download */}
       {lightboxPayment && (

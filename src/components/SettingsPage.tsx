@@ -27,6 +27,7 @@ import {
   Save,
   MapPin,
   Globe,
+  Layers,
   Download,
   Upload,
   Copy,
@@ -119,10 +120,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ token }) => {
 
   // Current category items with search filtering
   const currentCategoryItems = useMemo(() => {
-    const list = fields[selectedCategoryKey] || [];
+    const list: string[] = Array.isArray(fields[selectedCategoryKey])
+      ? (fields[selectedCategoryKey] as string[])
+      : [];
     if (!categorySearchQuery.trim()) return list;
     const q = categorySearchQuery.toLowerCase().trim();
-    return list.filter((item) => item.toLowerCase().includes(q));
+    return list.filter((item: string) => item.toLowerCase().includes(q));
   }, [fields, selectedCategoryKey, categorySearchQuery]);
 
   // Helper to format option values cleanly
@@ -200,7 +203,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ token }) => {
 
   // Move item up / down in order
   const handleMoveItem = async (index: number, direction: 'up' | 'down') => {
-    const list = [...(fields[selectedCategoryKey] || [])];
+    const rawList: string[] = Array.isArray(fields[selectedCategoryKey])
+      ? (fields[selectedCategoryKey] as string[])
+      : [];
+    const list = [...rawList];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= list.length) return;
 
@@ -376,6 +382,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ token }) => {
         return <MapPin className={className} />;
       case 'Globe':
         return <Globe className={className} />;
+      case 'Layers':
+        return <Layers className={className} />;
       default:
         return <Building2 className={className} />;
     }
@@ -618,7 +626,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ token }) => {
                         {currentCategoryMeta.label}
                       </h2>
                       <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        {(fields[selectedCategoryKey] || []).length} Options
+                        {Array.isArray(fields[selectedCategoryKey]) ? (fields[selectedCategoryKey] as string[]).length : 0} Options
                       </span>
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5">
@@ -727,7 +735,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ token }) => {
                 </div>
               ) : (
                 <div className="divide-y divide-slate-100 overflow-y-auto max-h-[500px] min-h-[320px] scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 hover:scrollbar-thumb-slate-400 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-slate-100">
-                  {currentCategoryItems.map((item, index) => {
+                  {currentCategoryItems.map((item: string, index: number) => {
                     const isEditingThis =
                       editingItem?.category === selectedCategoryKey &&
                       editingItem?.item === item;
@@ -798,7 +806,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ token }) => {
                             <button
                               type="button"
                               onClick={() => handleMoveItem(index, 'down')}
-                              disabled={index === (fields[selectedCategoryKey] || []).length - 1}
+                              disabled={index === (Array.isArray(fields[selectedCategoryKey]) ? (fields[selectedCategoryKey] as string[]).length : 0) - 1}
                               className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-md transition-colors disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
                               title="Move down in dropdown"
                             >

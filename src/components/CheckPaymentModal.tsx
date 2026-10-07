@@ -1,16 +1,18 @@
 import React from 'react';
-import { X, DollarSign, CheckCircle2, Calendar, CreditCard, Shield } from 'lucide-react';
+import { X, DollarSign, CheckCircle2, Calendar, CreditCard, Shield, FileText } from 'lucide-react';
 
 interface CheckPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   traffic: any;
+  onViewInvoice?: (traffic: any) => void;
 }
 
 export const CheckPaymentModal: React.FC<CheckPaymentModalProps> = ({
   isOpen,
   onClose,
   traffic,
+  onViewInvoice,
 }) => {
   if (!isOpen || !traffic) return null;
 
@@ -90,7 +92,22 @@ export const CheckPaymentModal: React.FC<CheckPaymentModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50 flex justify-end">
+        <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
+          {onViewInvoice ? (
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onViewInvoice(traffic);
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#181E54] hover:bg-[#121642] text-white font-semibold rounded-xl text-xs transition-colors cursor-pointer shadow-xs"
+            >
+              <FileText className="w-3.5 h-3.5 text-red-400" />
+              <span>View Official Invoice</span>
+            </button>
+          ) : (
+            <div></div>
+          )}
           <button
             type="button"
             onClick={onClose}

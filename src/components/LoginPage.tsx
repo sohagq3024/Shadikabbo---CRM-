@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ShadikabboLogo } from './ShadikabboLogo';
 import { LoginSlideCarousel } from './LoginSlideCarousel';
+import { PWAInstallButton } from './PWAInstallButton';
 import { Lock, Phone, AlertCircle, X, ShieldCheck } from 'lucide-react';
 
 interface LoginPageProps {
@@ -52,7 +53,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-slate-50 flex items-center justify-center p-4 md:p-8">
+    <div className="min-h-screen w-full bg-slate-50 flex items-center justify-center p-4 md:p-8 relative">
+      {/* Top Right "Add to Home Screen" install button for mobile & desktop */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20">
+        <PWAInstallButton />
+      </div>
+
       <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center bg-white rounded-3xl p-6 md:p-12 shadow-xl border border-slate-100">
         
         {/* LEFT SIDE: Shadikabbo uploaded logo & 3-image switching section */}
