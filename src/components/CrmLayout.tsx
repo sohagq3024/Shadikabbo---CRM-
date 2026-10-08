@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ShadikabboLogo } from './ShadikabboLogo';
 import { PWAInstallButton } from './PWAInstallButton';
 import {
@@ -10,6 +10,7 @@ import {
   UserCog,
   MapPin,
   CalendarCheck,
+  ClipboardList,
   Settings,
   Trash2,
   LogOut,
@@ -32,7 +33,9 @@ export type SidebarPage =
   | 'Account'
   | 'Tracking'
   | 'Attendance'
+  | 'Daily Report'
   | 'Settings'
+  | 'Trash Bin'
   | 'Trush bin';
 
 interface CrmLayoutProps {
@@ -95,10 +98,11 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
       ? [{ label: 'Tracking' as SidebarPage, icon: <MapPin className="w-4 h-4" /> }]
       : []),
     { label: 'Attendance', icon: <CalendarCheck className="w-4 h-4" /> },
+    { label: 'Daily Report', icon: <ClipboardList className="w-4 h-4" /> },
     ...(role === 'Super Admin'
       ? [
           { label: 'Settings' as SidebarPage, icon: <Settings className="w-4 h-4" /> },
-          { label: 'Trush bin' as SidebarPage, icon: <Trash2 className="w-4 h-4" /> },
+          { label: 'Trash Bin' as SidebarPage, icon: <Trash2 className="w-4 h-4" /> },
         ]
       : []),
   ];
@@ -125,25 +129,30 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
   const directTabPages: SidebarPage[] = ['Dashboard', 'Lead', primaryWorkflowPage];
   const isMoreActive = !directTabPages.includes(activePage);
 
-  const handleMobileNavClick = (page: SidebarPage) => {
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+  // Robust haptic feedback function for mobile touch and click interactions
+  const lastVibrateTime = React.useRef<number>(0);
+  const triggerHaptic = (pattern: number | number[] = 15) => {
+    const now = Date.now();
+    // Guard against double triggers from both touchstart and click events within 80ms
+    if (now - lastVibrateTime.current < 80) return;
+    lastVibrateTime.current = now;
+
+    if (typeof window !== 'undefined' && 'navigator' in window && typeof navigator.vibrate === 'function') {
       try {
-        navigator.vibrate(12);
+        navigator.vibrate(pattern);
       } catch {
-        // Safe fallback
+        // Safe fallback if vibrate permission is restricted or unsupported
       }
     }
+  };
+
+  const handleMobileNavClick = (page: SidebarPage) => {
+    triggerHaptic(15);
     handleNavClick(page);
   };
 
   const handleMobileScanClick = () => {
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      try {
-        navigator.vibrate([18, 25, 18]);
-      } catch {
-        // Safe fallback
-      }
-    }
+    triggerHaptic([20, 30, 20]);
     if (onOpenScanner) {
       onOpenScanner();
     } else {
@@ -152,13 +161,7 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
   };
 
   const handleMobileMoreClick = () => {
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      try {
-        navigator.vibrate(12);
-      } catch {
-        // Safe fallback
-      }
-    }
+    triggerHaptic(15);
     setMobileMenuOpen(true);
   };
 
@@ -170,14 +173,14 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
           TOP RIGHT: Profile picture area, specific profile name, role (Super Admin)
           IMPORTANT: Neutral profile placeholder/icon (NO demo photograph)
       ================================================== */}
-      <header className="h-16 bg-white border-b border-slate-200 sticky top-0 z-40 px-4 md:px-8 flex items-center justify-between shadow-xs">
+      <header className="h-14 sm:h-16 bg-white border-b border-slate-200 sticky top-0 z-40 px-2.5 sm:px-4 md:px-8 flex items-center justify-between shadow-xs">
         {/* TOP LEFT */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Mobile hamburger menu toggle */}
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors"
+            className="md:hidden p-1.5 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors"
             aria-label="Toggle Navigation Menu"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -187,10 +190,10 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
         </div>
 
         {/* TOP RIGHT */}
-        <div className="flex items-center gap-2 sm:gap-2.5">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           {/* Subtle Network Status Indicator (Online / Offline) */}
           <div
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all select-none ${
+            className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-semibold border transition-all select-none shrink-0 ${
               isOnline
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80 shadow-2xs'
                 : 'bg-rose-50 text-rose-700 border-rose-300 shadow-2xs animate-pulse'
@@ -202,14 +205,14 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
             }
           >
             {isOnline ? (
-              <span className="relative flex h-2 w-2">
+              <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-emerald-500"></span>
               </span>
             ) : (
-              <span className="inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+              <span className="inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-rose-500"></span>
             )}
-            <span className="font-semibold tracking-tight text-[11px]">
+            <span className="font-semibold tracking-tight text-[10px] sm:text-[11px]">
               {isOnline ? 'Online' : 'Offline'}
             </span>
           </div>
@@ -217,12 +220,12 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
           {/* Add to Home Screen (PWA Install Button) */}
           <PWAInstallButton />
 
-          {/* Quick Staff Attendance Scanner shortcut */}
+          {/* Quick Staff Attendance Scanner shortcut (hidden on mobile since bottom navigation bar has prominent center scanner) */}
           {onOpenScanner && (
             <button
               type="button"
               onClick={onOpenScanner}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#181E54] text-white hover:bg-[#121742] text-xs font-bold transition-all shadow-xs cursor-pointer"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#181E54] text-white hover:bg-[#121742] text-xs font-bold transition-all shadow-xs cursor-pointer"
               title="Open Daily Attendance Scanner"
             >
               <Camera className="w-3.5 h-3.5 text-white" />
@@ -234,7 +237,7 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
           <button
             type="button"
             onClick={() => onSelectPage('Account')}
-            className="flex items-center gap-2 sm:gap-2.5 p-1 -mr-1 rounded-xl hover:bg-slate-100/90 transition-all cursor-pointer group select-none text-left focus:outline-none"
+            className="flex items-center gap-1.5 sm:gap-2.5 p-0.5 sm:p-1 rounded-xl hover:bg-slate-100/90 transition-all cursor-pointer group select-none text-left focus:outline-none shrink-0"
             title="View My Profile / Account"
           >
             <div className="text-right hidden sm:block">
@@ -247,7 +250,7 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
             </div>
 
             {/* Profile Avatar: Shows uploaded/existing profile picture, with clean fallback */}
-            <div className="w-9 h-9 rounded-full bg-[#181E54] text-white flex items-center justify-center shadow-xs border-2 border-white ring-2 ring-[#D81124]/40 overflow-hidden shrink-0 group-hover:ring-[#D81124]/70 transition-all">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#181E54] text-white flex items-center justify-center shadow-xs border-2 border-white ring-2 ring-[#D81124]/40 overflow-hidden shrink-0 group-hover:ring-[#D81124]/70 transition-all">
               {user?.profilePicture && !avatarError ? (
                 <img
                   src={user.profilePicture}
@@ -256,7 +259,7 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
                   onError={() => setAvatarError(true)}
                 />
               ) : (
-                <User className="w-5 h-5 text-white/90" />
+                <User className="w-4 h-4 sm:w-5 sm:h-5 text-white/90" />
               )}
             </div>
           </button>
@@ -287,7 +290,10 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
             <ShadikabboLogo size="sm" />
             <button
               type="button"
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={() => {
+                triggerHaptic(10);
+                setMobileMenuOpen(false);
+              }}
               className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer"
               aria-label="Close Navigation Drawer"
             >
@@ -298,12 +304,18 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
           {/* Top nav items */}
           <nav className="space-y-1">
             {navItems.map((item) => {
-              const isActive = activePage === item.label;
+              const isActive =
+                activePage === item.label ||
+                (item.label === 'Trash Bin' && activePage === 'Trush bin');
               return (
                 <button
                   key={item.label}
                   type="button"
-                  onClick={() => handleNavClick(item.label)}
+                  onTouchStart={() => triggerHaptic(12)}
+                  onClick={() => {
+                    triggerHaptic(12);
+                    handleNavClick(item.label);
+                  }}
                   className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 cursor-pointer ${
                     isActive
                       ? 'bg-[#181E54] text-white shadow-sm'
@@ -356,6 +368,7 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
           {/* Tab 1: Dashboard */}
           <button
             type="button"
+            onTouchStart={() => triggerHaptic(15)}
             onClick={() => handleMobileNavClick('Dashboard')}
             className={`group flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all duration-100 ease-out select-none touch-manipulation cursor-pointer active:scale-[0.88] active:translate-y-0.5 active:opacity-90 ${
               activePage === 'Dashboard' ? 'text-[#181E54]' : 'text-slate-500 hover:text-slate-800'
@@ -382,6 +395,7 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
           {/* Tab 2: Leads */}
           <button
             type="button"
+            onTouchStart={() => triggerHaptic(15)}
             onClick={() => handleMobileNavClick('Lead')}
             className={`group flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all duration-100 ease-out select-none touch-manipulation cursor-pointer active:scale-[0.88] active:translate-y-0.5 active:opacity-90 ${
               activePage === 'Lead' ? 'text-[#181E54]' : 'text-slate-500 hover:text-slate-800'
@@ -409,6 +423,7 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
           <div className="flex flex-col items-center justify-center -mt-4 touch-manipulation">
             <button
               type="button"
+              onTouchStart={() => triggerHaptic([20, 30, 20])}
               onClick={handleMobileScanClick}
               className="relative w-12 h-12 rounded-full bg-gradient-to-tr from-[#181E54] via-[#1f2868] to-[#2b3582] text-white shadow-lg shadow-[#181E54]/30 border-2 border-white flex items-center justify-center active:scale-[0.85] active:translate-y-1 active:shadow-sm active:ring-2 active:ring-[#D81124]/60 transition-all duration-100 ease-out cursor-pointer group select-none touch-manipulation"
               title="Quick QR Attendance Scanner"
@@ -425,6 +440,7 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
           {/* Tab 4: Matchmaking (MK / Admin) or Paid Traffic (CRO) */}
           <button
             type="button"
+            onTouchStart={() => triggerHaptic(15)}
             onClick={() => handleMobileNavClick(primaryWorkflowPage)}
             className={`group flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all duration-100 ease-out select-none touch-manipulation cursor-pointer active:scale-[0.88] active:translate-y-0.5 active:opacity-90 ${
               activePage === primaryWorkflowPage
@@ -455,6 +471,7 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
           {/* Tab 5: More Menu Drawer */}
           <button
             type="button"
+            onTouchStart={() => triggerHaptic(15)}
             onClick={handleMobileMoreClick}
             className={`group flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all duration-100 ease-out select-none touch-manipulation cursor-pointer relative active:scale-[0.88] active:translate-y-0.5 active:opacity-90 ${
               isMoreActive ? 'text-[#181E54]' : 'text-slate-500 hover:text-slate-800'

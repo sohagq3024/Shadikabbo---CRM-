@@ -14,7 +14,9 @@ import { StaffScannerView } from './components/StaffScannerView';
 import { AccountPage } from './components/AccountPage';
 import { MatchmakingPage } from './components/MatchmakingPage';
 import { DashboardPage } from './components/DashboardPage';
+import { DailyReportPage } from './components/DailyReportPage';
 import { CrmFieldsProvider } from './context/CrmFieldsContext';
+import { initTactileEffects } from './utils/tactileEffects';
 
 export default function App() {
   // Persistent 1-time login support: check localStorage first, fallback to sessionStorage
@@ -59,6 +61,27 @@ export default function App() {
           localStorage.setItem('shadikabbo_user', JSON.stringify(data.user));
           sessionStorage.setItem('shadikabbo_token', savedToken);
           sessionStorage.setItem('shadikabbo_user', JSON.stringify(data.user));
+
+          // Mandatory attendance enforcement for CRO & MK staff (exempt on assigned weekly day off)
+          if (data.user.role === 'CRO' || data.user.role === 'MK') {
+            try {
+              const attRes = await fetch('/api/attendance/my-status', {
+                headers: { Authorization: `Bearer ${savedToken}` },
+              });
+              if (attRes.ok) {
+                const attData = await attRes.json();
+                if (!attData.hasCheckedIn && !attData.isDayOffToday) {
+                  setStaffViewMode('scanner');
+                } else {
+                  setStaffViewMode('crm');
+                }
+              } else {
+                setStaffViewMode('crm');
+              }
+            } catch {
+              setStaffViewMode('crm');
+            }
+          }
         } else {
           // Token expired or invalid
           localStorage.removeItem('shadikabbo_token');
@@ -78,7 +101,13 @@ export default function App() {
     verifySession();
   }, []);
 
-  const handleLoginSuccess = (authenticatedUser: any, sessionToken: string) => {
+  // Universal tactile micro-interactions and smooth ripple animations
+  useEffect(() => {
+    const cleanup = initTactileEffects();
+    return cleanup;
+  }, []);
+
+  const handleLoginSuccess = async (authenticatedUser: any, sessionToken: string) => {
     setUser(authenticatedUser);
     setToken(sessionToken);
     localStorage.setItem('shadikabbo_token', sessionToken);
@@ -86,8 +115,28 @@ export default function App() {
     sessionStorage.setItem('shadikabbo_token', sessionToken);
     sessionStorage.setItem('shadikabbo_user', JSON.stringify(authenticatedUser));
     
-    // Direct all users (CRO, MK, Super Admin) directly to CRM web app on login
-    setStaffViewMode('crm');
+    // For CRO & MK staff: check if today's In-time attendance has been recorded (exempt on Day Off)
+    if (authenticatedUser.role === 'CRO' || authenticatedUser.role === 'MK') {
+      try {
+        const attRes = await fetch('/api/attendance/my-status', {
+          headers: { Authorization: `Bearer ${sessionToken}` },
+        });
+        if (attRes.ok) {
+          const attData = await attRes.json();
+          if (!attData.hasCheckedIn && !attData.isDayOffToday) {
+            setStaffViewMode('scanner');
+          } else {
+            setStaffViewMode('crm');
+          }
+        } else {
+          setStaffViewMode('crm');
+        }
+      } catch {
+        setStaffViewMode('crm');
+      }
+    } else {
+      setStaffViewMode('crm');
+    }
     setActivePage('Dashboard');
   };
 
@@ -187,6 +236,11 @@ export default function App() {
           )
         )}
 
+        {/* Daily Report Section */}
+        {activePage === 'Daily Report' && (
+          <DailyReportPage token={token} user={user} />
+        )}
+
         {/* Dashboard Overview */}
         {activePage === 'Dashboard' && (
           <DashboardPage
@@ -212,7 +266,7 @@ export default function App() {
         )}
 
         {/* Super Admin specific sections */}
-        {activePage === 'Trush bin' && <TrashBinPage token={token} />}
+        {(activePage === 'Trash Bin' || activePage === 'Trush bin') && <TrashBinPage token={token} />}
         {activePage === 'Settings' && <SettingsPage token={token} />}
         {activePage === 'Tracking' && <EmptyPage title="Tracking" />}
       </CrmLayout>

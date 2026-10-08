@@ -9,6 +9,9 @@ import {
   getOfficeQrDataUrl,
   OFFICE_QR_SECRET,
   AttendanceRecord,
+  isStaffDayOff,
+  getStaffDayOffList,
+  DAY_NAMES,
 } from './attendanceService';
 
 export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, saveDB: (db: any) => void, authMiddleware: any) {
@@ -23,7 +26,7 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
     }
   });
 
-  // 2. Get list of MK and CRO staff members
+  // 2. Get list of MK and CRO staff members with their configured day-off schedule
   app.get('/api/attendance/staff-list', authMiddleware, (req, res) => {
     const db = loadDB();
     const staff = getStaffMembers(db).map((u: any) => ({
@@ -31,8 +34,62 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
       name: u.name,
       role: u.role,
       phone: u.phone || '',
+      weeklyOffDays: getStaffDayOffList(u),
     }));
-    res.json({ staff });
+    res.json({ staff, allDays: DAY_NAMES });
+  });
+
+  // 2.5 Day-Off Management Endpoints (Super Admin Only)
+  app.get('/api/attendance/day-off-settings', authMiddleware, (req, res) => {
+    const db = loadDB();
+    const staff = getStaffMembers(db).map((u: any) => ({
+      id: u.id,
+      name: u.name,
+      role: u.role,
+      phone: u.phone || '',
+      weeklyOffDays: getStaffDayOffList(u),
+    }));
+    res.json({ staff, allDays: DAY_NAMES });
+  });
+
+  app.post('/api/attendance/day-off-settings', authMiddleware, (req, res) => {
+    const db = loadDB();
+    const currentUser = (req as any).user;
+    if (!currentUser || currentUser.role !== 'Super Admin') {
+      return res.status(403).json({ error: 'Only Super Admin can manage staff weekly day-off' });
+    }
+
+    const { userId, weeklyOffDays, updates } = req.body;
+
+    if (Array.isArray(updates)) {
+      // Bulk update
+      updates.forEach((item: any) => {
+        const u = (db.users || []).find((usr: any) => usr.id === item.userId);
+        if (u) {
+          u.weeklyOffDays = Array.isArray(item.weeklyOffDays) ? item.weeklyOffDays : ['Friday'];
+        }
+      });
+      saveDB(db);
+      return res.json({ success: true, message: 'Staff day-off schedules updated successfully' });
+    }
+
+    if (!userId || !Array.isArray(weeklyOffDays)) {
+      return res.status(400).json({ error: 'userId and weeklyOffDays array are required' });
+    }
+
+    const targetUser = (db.users || []).find((u: any) => u.id === userId);
+    if (!targetUser) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+
+    targetUser.weeklyOffDays = weeklyOffDays;
+    saveDB(db);
+
+    res.json({
+      success: true,
+      message: `Weekly day-off updated for ${targetUser.name}`,
+      weeklyOffDays: targetUser.weeklyOffDays,
+    });
   });
 
   // 3. Scan Office QR Code (Daily Attendance Record)
@@ -237,7 +294,10 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
     ensureAttendanceInitialized(db);
 
     const user = (req as any).user;
-    const todayStr = formatDateYMD(new Date());
+    const now = new Date();
+    const todayStr = formatDateYMD(now);
+    const isDayOffToday = isStaffDayOff(user, now);
+    const weeklyOffDays = getStaffDayOffList(user);
 
     const todayRecord = (db.attendance || []).find(
       (a: AttendanceRecord) => a.date === todayStr && a.userId === user.id
@@ -249,14 +309,17 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
         id: user.id,
         name: user.name,
         role: user.role,
+        weeklyOffDays,
       },
+      isDayOffToday,
+      weeklyOffDays,
       hasCheckedIn: !!todayRecord && todayRecord.status === 'present',
       hasCheckedOut: !!todayRecord && !!todayRecord.outTime && todayRecord.outTime !== '-',
       record: todayRecord || null,
     });
   });
 
-  // 5. Admin Dashboard Attendance Summary Table (Requirement 3 - Real Logic, No Fake Data)
+  // 5. Admin Dashboard Attendance Summary Table (Requirement 3 - Real Logic, Individual Day-Off)
   // Columns: Date, Total Employee (MK + CRO only), Present Total, Absent Total, Day Off Total
   app.get('/api/attendance/summary', authMiddleware, (req, res) => {
     const db = loadDB();
@@ -284,7 +347,7 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
       }
     });
 
-    // Build real summary rows
+    // Build real summary rows based on each staff member's configured weekly day-off
     const summaryList = Array.from(datesSet).map((dateStr) => {
       const d = new Date(dateStr + 'T12:00:00');
       const isFriday = d.getDay() === 5;
@@ -293,13 +356,26 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
         (att: AttendanceRecord) => att.date === dateStr && staff.some((s: any) => s.id === att.userId)
       );
 
-      const presentTotal = dateRecords.filter((r: AttendanceRecord) => r.status === 'present').length;
-      const dayOffTotal = isFriday
-        ? totalStaffCount
-        : dateRecords.filter((r: AttendanceRecord) => r.status === 'day_off').length;
-      const absentTotal = isFriday
-        ? 0
-        : Math.max(0, totalStaffCount - presentTotal - dayOffTotal);
+      let presentTotal = 0;
+      let dayOffTotal = 0;
+      let absentTotal = 0;
+
+      staff.forEach((member: any) => {
+        const record = dateRecords.find((r: AttendanceRecord) => r.userId === member.id);
+        const isOff = isStaffDayOff(member, d);
+
+        if (record && record.status === 'present') {
+          presentTotal++;
+        } else if (record && record.status === 'day_off') {
+          dayOffTotal++;
+        } else if (isOff) {
+          // Individual assigned day-off
+          dayOffTotal++;
+        } else {
+          // Working day with no scan
+          absentTotal++;
+        }
+      });
 
       return {
         date: dateStr,
@@ -321,8 +397,8 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
     });
   });
 
-  // 6. Specific Date Details Pop-up (Requirement 4 - Real List)
-  // Shows list of who was Present and who was Absent with Name and Role
+  // 6. Specific Date Details Pop-up (Requirement 4 - Real List with individual day-offs)
+  // Shows list of who was Present and who was Absent with Name, Role & Assigned Day-Off
   app.get('/api/attendance/date/:date', authMiddleware, (req, res) => {
     const db = loadDB();
     ensureAttendanceInitialized(db);
@@ -330,7 +406,7 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
     const { date } = req.params;
     const staff = getStaffMembers(db);
     const d = new Date(date + 'T12:00:00');
-    const isFriday = d.getDay() === 5;
+    const dayOfWeekName = d.toLocaleDateString('en-US', { weekday: 'long' });
 
     const presentList: any[] = [];
     const absentList: any[] = [];
@@ -340,6 +416,8 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
       const record = (db.attendance || []).find(
         (a: AttendanceRecord) => a.date === date && a.userId === user.id
       );
+      const isUserDayOff = isStaffDayOff(user, d);
+      const userOffDays = getStaffDayOffList(user);
 
       if (record && record.status === 'present') {
         presentList.push({
@@ -357,15 +435,17 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
           status: 'present',
           scanMethod: record.scanMethod || 'qr_scanner',
           notes: record.notes || '',
+          weeklyOffDays: userOffDays,
         });
-      } else if ((record && record.status === 'day_off') || (isFriday && !record)) {
+      } else if ((record && record.status === 'day_off') || isUserDayOff) {
         dayOffList.push({
           id: user.id,
           name: user.name,
           role: user.role,
           phone: user.phone || '',
           status: 'day_off',
-          reason: isFriday ? 'Weekly Holiday (Friday)' : (record?.notes || 'Day Off'),
+          reason: record?.notes || `Weekly Day Off (${dayOfWeekName})`,
+          weeklyOffDays: userOffDays,
         });
       } else {
         absentList.push({
@@ -374,7 +454,8 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
           role: user.role,
           phone: user.phone || '',
           status: 'absent',
-          reason: record?.notes || 'No attendance record found for this date',
+          reason: record?.notes || 'No attendance record found for this working day',
+          weeklyOffDays: userOffDays,
         });
       }
     });
@@ -386,7 +467,6 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
       presentCount: presentList.length,
       absentCount: absentList.length,
       dayOffCount: dayOffList.length,
-      isFriday,
       presentList,
       absentList,
       dayOffList,
@@ -394,7 +474,7 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
   });
 
   // 7. Specific Person Monthly Details Pop-up (Requirement 5)
-  // Shows full month breakdown: date, In-time, Out-time, late minutes, early out minutes
+  // Shows full month breakdown respecting each employee's individual weekly day-off
   app.get('/api/attendance/employee/:userId', authMiddleware, (req, res) => {
     const db = loadDB();
     ensureAttendanceInitialized(db);
@@ -414,6 +494,7 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
     // Calculate days in requested month
     const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
     const todayStr = formatDateYMD(new Date());
+    const userOffDays = getStaffDayOffList(user);
 
     const dailyLogs: any[] = [];
     let presentCount = 0;
@@ -426,7 +507,9 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
       const dayDate = new Date(year, monthIndex, day, 12, 0, 0);
       const dateStr = formatDateYMD(dayDate);
       const isFuture = dateStr > todayStr;
-      const isFriday = dayDate.getDay() === 5;
+      const isIndividualDayOff = isStaffDayOff(user, dayDate);
+      const dayNameShort = dayDate.toLocaleDateString('en-US', { weekday: 'short' });
+      const dayNameFull = dayDate.toLocaleDateString('en-US', { weekday: 'long' });
 
       const record = (db.attendance || []).find(
         (a: AttendanceRecord) => a.date === dateStr && a.userId === user.id
@@ -453,7 +536,7 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
         presentCount++;
         totalLateMinutes += lateMinutes;
         totalEarlyOutMinutes += earlyOutMinutes;
-      } else if ((record && record.status === 'day_off') || isFriday) {
+      } else if ((record && record.status === 'day_off') || isIndividualDayOff) {
         status = 'day_off';
         dayOffCount++;
       } else {
@@ -464,14 +547,15 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
       dailyLogs.push({
         day,
         date: dateStr,
-        dayName: dayDate.toLocaleDateString('en-US', { weekday: 'short' }),
+        dayName: dayNameShort,
         status,
         inTime,
         outTime,
         lateMinutes,
         earlyOutMinutes,
         workDuration: durationStr,
-        isFriday,
+        isDayOff: isIndividualDayOff || status === 'day_off',
+        dayOffReason: isIndividualDayOff ? `Weekly Off (${dayNameFull})` : (record?.notes || ''),
         scanMethod: record?.scanMethod || 'qr_scanner',
         notes: record?.notes || '',
       });
@@ -488,9 +572,11 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
         name: user.name,
         role: user.role,
         phone: user.phone || '',
+        weeklyOffDays: userOffDays,
       },
       month: monthQuery,
       monthName,
+      userWeeklyOffDays: userOffDays,
       stats: {
         totalDays: daysInMonth,
         presentCount,
@@ -566,9 +652,9 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
       userName: targetStaff.name,
       userRole: targetStaff.role,
       userPhone: targetStaff.phone || '',
-      inTime: inTime || (status === 'present' ? '09:30 AM' : '-'),
+      inTime: inTime || (status === 'present' ? '10:00 AM' : '-'),
       inTimestamp: Date.now(),
-      outTime: outTime || (status === 'present' ? '06:30 PM' : '-'),
+      outTime: outTime || (status === 'present' ? '06:00 PM' : '-'),
       outTimestamp: Date.now(),
       status,
       lateMinutes,

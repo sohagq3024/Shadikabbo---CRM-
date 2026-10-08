@@ -263,7 +263,7 @@ export const TrashBinPage: React.FC<TrashBinPageProps> = ({ token }) => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-bold text-[#181E54]">Trush Bin</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-[#181E54]">Trash Bin</h1>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
               {counts.total} in Recycle
             </span>

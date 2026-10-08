@@ -226,9 +226,9 @@ export const PaidTrafficPage: React.FC<PaidTrafficPageProps> = ({ token, user })
     };
   }, []);
 
-  // Remove from Paid Traffic (moves to Trush bin)
+  // Remove from Paid Traffic (moves to Trash Bin)
   const handleRemove = async (id: string) => {
-    if (!confirm('Remove this client from Paid Traffic? It will be moved to Trush bin.')) {
+    if (!confirm('Remove this client from Paid Traffic? It will be moved to Trash Bin.')) {
       return;
     }
 

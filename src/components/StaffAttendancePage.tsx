@@ -192,7 +192,7 @@ export const StaffAttendancePage: React.FC<StaffAttendancePageProps> = ({
               <tbody className="divide-y divide-slate-100 text-xs font-mono">
                 {dailyLogs.map((log: any) => {
                   const isPresent = log.status === 'present';
-                  const isDayOff = log.status === 'day_off';
+                  const isDayOff = log.status === 'day_off' || log.isDayOff;
                   const isAbsent = log.status === 'absent';
                   const isFuture = log.status === 'future';
 

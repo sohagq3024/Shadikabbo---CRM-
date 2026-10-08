@@ -62,7 +62,10 @@
       "presentLocation": "Dhaka, Bangladesh",
       "currentLocation": "Dhaka, Bangladesh",
       "email": "",
-      "profilePicture": ""
+      "profilePicture": "",
+      "weeklyOffDays": [
+        "Saturday"
+      ]
     },
     {
       "id": "usr_cro_2",
@@ -92,7 +95,7 @@
       "email": "liza967654@gmail.com",
       "createdBy": "Sohag",
       "creatorRole": "Super Admin",
-      "assignBy": "MK - Tanvir Ahmed",
+      "assignBy": "MK - Tanvir Ahmed, MK - Rashedul Islam",
       "profession": "Chartered Accountant",
       "jobType": "Government Job",
       "dateOfBirth": "2001-01-01",
@@ -125,6 +128,7 @@
       "afterMarriageFee": 50000,
       "paymentStatus": "accepted",
       "assignedTo": {
+        "id": "usr_mk_1",
         "name": "MK - Tanvir Ahmed",
         "role": "MK"
       },
@@ -132,7 +136,22 @@
       "convertedFromLeadId": "LD-0001",
       "createdByName": "Sohag",
       "createdByRole": "Super Admin",
-      "movedToPaidAt": 1791025610232
+      "movedToPaidAt": 1791025610232,
+      "assignedMKs": [
+        {
+          "id": "usr_mk_1",
+          "name": "MK - Tanvir Ahmed",
+          "role": "MK",
+          "assignedAt": 1791457687150
+        },
+        {
+          "id": "usr_mk_2",
+          "name": "MK - Rashedul Islam",
+          "role": "MK",
+          "assignedAt": 1791457687150
+        }
+      ],
+      "assignedAt": 1791457687150
     },
     {
       "id": "SK-0002",
@@ -521,6 +540,41 @@
       "token": "c826dcbbfded9eac513e1fe6d5f8d33949aaa329bd6c21f0e0949f1db565bda6",
       "userId": "usr_super_admin",
       "createdAt": 1791363774087
+    },
+    {
+      "token": "ab1c8b784fd4b8d9d323de8587324df4fa4a9224c281686714b3ad35b9f984dc",
+      "userId": "usr_super_admin",
+      "createdAt": 1791450882298
+    },
+    {
+      "token": "01b1000249a583b828247af6cd54d41ebda8def220a70450f8a9c7303a3d5561",
+      "userId": "usr_super_admin",
+      "createdAt": 1791455195695
+    },
+    {
+      "token": "9631457aca833726c968fc30b1cc4f0e4b8e8486f72088a8391bb81ed967ba1e",
+      "userId": "usr_super_admin",
+      "createdAt": 1791455205488
+    },
+    {
+      "token": "de3979d75ec245cafcaaea8efb6937c825f99e84576c8366c545cafe0492f26a",
+      "userId": "usr_cro_1",
+      "createdAt": 1791458466797
+    },
+    {
+      "token": "93a1b397435f31caceda515bfa85b3942c0039b08b526eb920fde4bf1abf7689",
+      "userId": "usr_mk_1",
+      "createdAt": 1791458476948
+    },
+    {
+      "token": "f1870c582356d1cb44bc304e63c6e6d12c6fb3f90fdfed5fbf63216a5e9e5cc9",
+      "userId": "usr_mk_1",
+      "createdAt": 1791458494932
+    },
+    {
+      "token": "ce72b2946db64b1d310bb28eff4eff09ef9816c4ddd8a423c630897278212c3a",
+      "userId": "usr_super_admin",
+      "createdAt": 1791458501994
     }
   ],
   "nextSerial": 5,
@@ -1114,6 +1168,68 @@
       "earlyOutMinutes": 30,
       "scanMethod": "manual",
       "notes": "None"
+    },
+    {
+      "id": "att_2026-10-08_usr_super_admin",
+      "date": "2026-10-08",
+      "userId": "usr_super_admin",
+      "userName": "Sohag",
+      "userRole": "MK",
+      "userPhone": "01723867646",
+      "inTime": "09:53 AM",
+      "inTimestamp": 1791453222552,
+      "outTime": "09:56 AM",
+      "outTimestamp": 1791453372095,
+      "status": "present",
+      "lateMinutes": 23,
+      "earlyOutMinutes": 514,
+      "scanMethod": "qr_scanner",
+      "notes": "Late by 23 minutes; Early departure by 514 mins",
+      "workDurationMinutes": 2
+    }
+  ],
+  "dailyReports": [
+    {
+      "id": "DLR-20261008-usr_mk_1",
+      "date": "2026-10-08",
+      "userId": "usr_mk_1",
+      "userName": "MK - Tanvir Ahmed",
+      "userRole": "MK",
+      "userPhone": "01700000001",
+      "attendance": {
+        "status": "Present",
+        "inTime": "-",
+        "outTime": "-",
+        "lateMinutes": 0,
+        "scanMethod": "qr_scanner",
+        "notes": ""
+      },
+      "metrics": {
+        "leadsAddedCount": 2,
+        "leadSources": {
+          "FB Message": 2
+        },
+        "trafficsAddedCount": 1,
+        "leadsTransferredToTrafficCount": 1,
+        "paidTrafficsCount": 1,
+        "sellingAmount": 15000,
+        "matchmaking": {
+          "totalServicesCount": 4,
+          "uniqueClientsCount": 3,
+          "pendingServicesCount": 1,
+          "serviceTypeBreakdown": {
+            "Incoming Call": 2,
+            "CV Send": 2
+          }
+        }
+      },
+      "manualInputs": {
+        "receivedCalls": 18,
+        "messagesAssigned": 32,
+        "notes": "Active followups with clients"
+      },
+      "submittedAt": 1791458495002,
+      "updatedAt": 1791458495002
     }
   ]
 }

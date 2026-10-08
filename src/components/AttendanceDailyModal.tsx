@@ -55,11 +55,6 @@ export const AttendanceDailyModal: React.FC<AttendanceDailyModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-bold text-[#181E54]">Daily Attendance Details</h2>
-                {data?.isFriday && (
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                    Weekly Holiday (Friday)
-                  </span>
-                )}
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
                 {data?.dayName || date} · Total Staff (MK & CRO): <strong>{data?.totalEmployees || 0}</strong>
@@ -134,7 +129,7 @@ export const AttendanceDailyModal: React.FC<AttendanceDailyModalProps> = ({
                     </h3>
                   </div>
                   <span className="text-[11px] text-emerald-700 font-medium">
-                    Office standard: 09:30 AM – 06:30 PM
+                    Office standard: 10:00 AM – 06:00 PM
                   </span>
                 </div>
 
@@ -272,7 +267,10 @@ export const AttendanceDailyModal: React.FC<AttendanceDailyModalProps> = ({
                         className="px-2.5 py-1 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5"
                       >
                         <span className="text-[10px] font-bold text-slate-500 uppercase">{emp.role}:</span>
-                        {emp.name}
+                        <span>{emp.name}</span>
+                        <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200 font-normal">
+                          {emp.reason || 'Day Off'}
+                        </span>
                       </span>
                     ))}
                   </div>

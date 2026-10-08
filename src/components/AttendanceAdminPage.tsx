@@ -16,11 +16,13 @@ import {
   ShieldCheck,
   AlertCircle,
   HelpCircle,
+  CalendarOff,
 } from 'lucide-react';
 import { AttendanceDailyModal } from './AttendanceDailyModal';
 import { AttendanceMonthlyModal } from './AttendanceMonthlyModal';
 import { OfficeQrCodeModal } from './OfficeQrCodeModal';
 import { ManualAttendanceModal } from './ManualAttendanceModal';
+import { StaffDayOffModal } from './StaffDayOffModal';
 
 interface AttendanceAdminPageProps {
   token: string;
@@ -46,6 +48,7 @@ export const AttendanceAdminPage: React.FC<AttendanceAdminPageProps> = ({
   const [selectedUserForMonthlyModal, setSelectedUserForMonthlyModal] = useState<string | null>(null);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [isDayOffModalOpen, setIsDayOffModalOpen] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -136,6 +139,17 @@ export const AttendanceAdminPage: React.FC<AttendanceAdminPageProps> = ({
               ))}
             </select>
           </div>
+
+          {/* Staff Weekly Day-Off Management Modal Trigger */}
+          <button
+            type="button"
+            onClick={() => setIsDayOffModalOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
+            title="Manage individual weekly day-off for CRO and MK staff"
+          >
+            <CalendarOff className="w-4 h-4 text-amber-400" />
+            <span>Staff Day-Off</span>
+          </button>
 
           {/* Real HR Action: Manual Attendance / Leave Entry Modal Trigger */}
           <button
@@ -231,7 +245,7 @@ export const AttendanceAdminPage: React.FC<AttendanceAdminPageProps> = ({
             {todayStats?.absentTotal ?? 0}
           </p>
           <p className="text-[11px] text-rose-700 mt-1 font-medium">
-            {todayStats?.isFriday ? 'Friday (Holiday)' : 'Pending attendance scan'}
+            Pending attendance scan
           </p>
         </div>
 
@@ -249,7 +263,7 @@ export const AttendanceAdminPage: React.FC<AttendanceAdminPageProps> = ({
             {todayStats?.dayOffTotal ?? 0}
           </p>
           <p className="text-[11px] text-slate-500 mt-1">
-            {todayStats?.isFriday ? 'Friday Weekly Holiday' : 'Approved Leave / Off'}
+            Staff on Scheduled Weekly Day-Off
           </p>
         </div>
       </div>
@@ -450,6 +464,14 @@ export const AttendanceAdminPage: React.FC<AttendanceAdminPageProps> = ({
         isOpen={isManualModalOpen}
         onClose={() => setIsManualModalOpen(false)}
         staffList={staffList}
+        token={token}
+        onSuccess={loadData}
+      />
+
+      {/* STAFF WEEKLY DAY-OFF MANAGEMENT MODAL */}
+      <StaffDayOffModal
+        isOpen={isDayOffModalOpen}
+        onClose={() => setIsDayOffModalOpen(false)}
         token={token}
         onSuccess={loadData}
       />

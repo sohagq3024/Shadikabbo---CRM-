@@ -22,8 +22,8 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
   const [status, setStatus] = useState<'present' | 'day_off' | 'absent'>('present');
-  const [inTime, setInTime] = useState('09:30 AM');
-  const [outTime, setOutTime] = useState('06:30 PM');
+  const [inTime, setInTime] = useState('10:00 AM');
+  const [outTime, setOutTime] = useState('06:00 PM');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -203,13 +203,13 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
                 <div className="grid grid-cols-2 gap-3 p-3 bg-white rounded-xl border border-slate-200">
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                      In-Time (e.g. 09:30 AM)
+                      In-Time (e.g. 10:00 AM)
                     </label>
                     <input
                       type="text"
                       value={inTime}
                       onChange={(e) => setInTime(e.target.value)}
-                      placeholder="09:30 AM"
+                      placeholder="10:00 AM"
                       className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-800"
                       required
                     />
@@ -217,13 +217,13 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
 
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                      Out-Time (e.g. 06:30 PM)
+                      Out-Time (e.g. 06:00 PM)
                     </label>
                     <input
                       type="text"
                       value={outTime}
                       onChange={(e) => setOutTime(e.target.value)}
-                      placeholder="06:30 PM"
+                      placeholder="06:00 PM"
                       className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-800"
                       required
                     />

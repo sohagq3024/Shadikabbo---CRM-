@@ -109,12 +109,12 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 flex items-center justify-center p-3 md:p-6 transition-opacity duration-150">
-      <div className="relative w-full max-w-6xl xl:max-w-7xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-4 sm:my-6">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 flex items-center justify-center p-2 sm:p-4 md:p-6 transition-opacity duration-150">
+      <div className="relative w-full max-w-6xl xl:max-w-7xl bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-2 sm:my-6">
         
         {/* Header with Title and Edit Icon */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between px-3.5 py-3 sm:px-6 sm:py-4 border-b border-slate-100 bg-slate-50 gap-2">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <button
               type="button"
               onClick={() => {
@@ -127,9 +127,9 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
                   ? 'Click to view photo in full screen & download'
                   : traffic.name
               }
-              className="relative group/avatar cursor-pointer focus:outline-none"
+              className="relative group/avatar cursor-pointer focus:outline-none shrink-0 touch-manipulation"
             >
-              <div className="w-11 h-11 rounded-2xl overflow-hidden border border-slate-200 bg-[#181E54] text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs group-hover/avatar:ring-2 group-hover/avatar:ring-[#181E54]/30 transition-all">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl overflow-hidden border border-slate-200 bg-[#181E54] text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs group-hover/avatar:ring-2 group-hover/avatar:ring-[#181E54]/30 transition-all">
                 {traffic.images && traffic.images.length > 0 ? (
                   <img
                     src={traffic.images[0]}
@@ -146,19 +146,25 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
                 </span>
               )}
             </button>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-[#181E54]">{currentTraffic.name}</h2>
-                <span className="text-[11px] font-mono px-2 py-0.5 bg-slate-200 text-slate-700 rounded-md">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <h2 className="text-base sm:text-lg font-bold text-[#181E54] truncate">{currentTraffic.name}</h2>
+                <span className="text-[10px] sm:text-[11px] font-mono px-2 py-0.5 bg-slate-200 text-slate-700 rounded-md">
                   {currentTraffic.id}
                 </span>
 
                 <span
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border shadow-2xs ${statusMeta.bg} ${statusMeta.text} ${statusMeta.border}`}
+                  className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-bold border shadow-2xs ${statusMeta.bg} ${statusMeta.text} ${statusMeta.border}`}
                 >
-                  <StatusIcon className="w-3.5 h-3.5 shrink-0" />
+                  <StatusIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
                   <span>{statusMeta.label}</span>
                 </span>
+
+                {currentTraffic.matchmakingLevel && (
+                  <span className="px-2 sm:px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    Level: {currentTraffic.matchmakingLevel}
+                  </span>
+                )}
 
                 {/* Quality Category Selector in Header */}
                 {token && (
@@ -176,7 +182,7 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
                   />
                 )}
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-[11px] sm:text-xs text-slate-500 truncate mt-0.5">
                 Created: {currentTraffic.createdAt} · Created By: <span className="font-semibold text-[#181E54]">{currentTraffic.createdBy || 'Sohag'} ({currentTraffic.creatorRole || 'Super Admin'})</span>
               </p>
             </div>

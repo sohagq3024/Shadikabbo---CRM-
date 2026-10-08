@@ -20,11 +20,53 @@ export interface AttendanceRecord {
 }
 
 export const OFFICE_QR_SECRET = 'SHADIKABBO_OFFICE_ATTENDANCE_QR_2026';
-export const STANDARD_START_HOUR = 9;
-export const STANDARD_START_MINUTE = 30; // 09:30 AM
-export const GRACE_MINUTE = 15; // up to 09:45 AM not penalized; beyond that counted from 09:30
+export const STANDARD_START_HOUR = 10;
+export const STANDARD_START_MINUTE = 0; // 10:00 AM
+export const GRACE_MINUTE = 15; // up to 10:15 AM not penalized; beyond that counted from 10:00 AM
 export const STANDARD_END_HOUR = 18;
-export const STANDARD_END_MINUTE = 30; // 06:30 PM
+export const STANDARD_END_MINUTE = 0; // 06:00 PM (18:00)
+
+export const DAY_NAMES = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+] as const;
+
+export type DayName = (typeof DAY_NAMES)[number];
+
+/**
+ * Returns list of scheduled weekly off day names for this staff member (e.g. ['Friday'], ['Saturday', 'Sunday']).
+ * Default fallback is ['Friday'] if none configured.
+ */
+export function getStaffDayOffList(user: any): string[] {
+  if (Array.isArray(user?.weeklyOffDays) && user.weeklyOffDays.length > 0) {
+    return user.weeklyOffDays.map((d: any) => String(d).trim());
+  }
+  if (typeof user?.weeklyOffDay === 'string' && user.weeklyOffDay.trim()) {
+    return [user.weeklyOffDay.trim()];
+  }
+  return ['Friday']; // Standard Bangladesh business default
+}
+
+/**
+ * Returns true if date corresponds to user's assigned weekly day-off
+ */
+export function isStaffDayOff(user: any, date: Date | string): boolean {
+  const d = typeof date === 'string' ? new Date(date + 'T12:00:00') : date;
+  const dayIndex = d.getDay(); // 0 = Sunday, 1 = Monday, ..., 5 = Friday, 6 = Saturday
+  const currentDayName = DAY_NAMES[dayIndex];
+
+  const offList = getStaffDayOffList(user);
+  return offList.some((day) => {
+    if (typeof day === 'number') return day === dayIndex;
+    const str = String(day).trim();
+    return str.toLowerCase() === currentDayName.toLowerCase() || str === String(dayIndex);
+  });
+}
 
 // Format 12-hour time
 export function formatTime12(date: Date): string {

@@ -13,6 +13,7 @@ import {
   AgencySettings,
 } from './src/constants/defaultFieldSeedings';
 import { setupAttendanceRoutes } from './src/server/attendanceRoutes';
+import { setupDailyReportRoutes } from './src/server/dailyReportRoutes';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -64,6 +65,8 @@ interface DatabaseSchema {
   nextLeadSerial: number;
   customFields?: CrmFieldSeedings;
   agencySettings?: AgencySettings;
+  matchmakingLevels?: string[];
+  [key: string]: any;
 }
 
 function computeLeadCompleteness(data: any): { percentage: number; stars: number } {
@@ -2449,6 +2452,116 @@ app.post('/api/matchmaking/:id/service', authMiddleware, (req, res) => {
   res.json({ success: true, service: serviceRecord, traffic });
 });
 
+// Update Candidate Matchmaking Level (MK & Super Admin)
+app.put('/api/matchmaking/:id/level', authMiddleware, (req, res) => {
+  const actor = (req as any).user;
+  const { id } = req.params;
+  const { level } = req.body;
+
+  const db = loadDB();
+  const traffic = (db.traffics || []).find((t: any) => t.id === id);
+  if (!traffic) {
+    return res.status(404).json({ error: 'Candidate profile not found' });
+  }
+
+  const cleanLevel = level ? String(level).trim() : 'Level 1';
+  traffic.matchmakingLevel = cleanLevel;
+  traffic.levelUpdatedAt = Date.now();
+  traffic.levelUpdatedBy = {
+    id: actor.id,
+    name: actor.name,
+    role: actor.role,
+  };
+
+  // Also auto-add to global matchmaking levels list if not present
+  if (!Array.isArray(db.matchmakingLevels)) {
+    db.matchmakingLevels = ['Level 1', 'Level 2', 'Level 3', 'VIP', 'Urgent'];
+  }
+  if (cleanLevel && !db.matchmakingLevels.includes(cleanLevel)) {
+    db.matchmakingLevels.push(cleanLevel);
+  }
+
+  saveDB(db);
+  res.json({ success: true, level: cleanLevel, traffic, levels: db.matchmakingLevels });
+});
+
+// Get configured matchmaking levels
+app.get('/api/matchmaking/levels', authMiddleware, (req, res) => {
+  const db = loadDB();
+  if (!Array.isArray(db.matchmakingLevels) || db.matchmakingLevels.length === 0) {
+    db.matchmakingLevels = ['Level 1', 'Level 2', 'Level 3', 'VIP', 'Urgent'];
+    saveDB(db);
+  }
+  res.json({ success: true, levels: db.matchmakingLevels });
+});
+
+// Add or update configured matchmaking levels (manual input by MK users)
+app.post('/api/matchmaking/levels', authMiddleware, (req, res) => {
+  const { level, levels } = req.body;
+  const db = loadDB();
+  if (!Array.isArray(db.matchmakingLevels)) {
+    db.matchmakingLevels = ['Level 1', 'Level 2', 'Level 3', 'VIP', 'Urgent'];
+  }
+
+  if (Array.isArray(levels)) {
+    db.matchmakingLevels = Array.from(new Set(levels.map((l: string) => String(l).trim()).filter(Boolean)));
+  } else if (level && typeof level === 'string') {
+    const trimmed = level.trim();
+    if (trimmed && !db.matchmakingLevels.includes(trimmed)) {
+      db.matchmakingLevels.push(trimmed);
+    }
+  }
+
+  saveDB(db);
+  res.json({ success: true, levels: db.matchmakingLevels });
+});
+
+// Delete a custom matchmaking level option
+app.delete('/api/matchmaking/levels/:levelName', authMiddleware, (req, res) => {
+  const levelName = decodeURIComponent(req.params.levelName);
+  const db = loadDB();
+  if (Array.isArray(db.matchmakingLevels)) {
+    db.matchmakingLevels = db.matchmakingLevels.filter((l: string) => l !== levelName);
+    saveDB(db);
+  }
+  res.json({ success: true, levels: db.matchmakingLevels || [] });
+});
+
+// Rename an existing level option and cascade to candidate profiles that have this level
+app.put('/api/matchmaking/levels/rename', authMiddleware, (req, res) => {
+  const { oldName, newName } = req.body;
+  const db = loadDB();
+  const cleanOld = oldName ? String(oldName).trim() : '';
+  const cleanNew = newName ? String(newName).trim() : '';
+
+  if (!cleanOld || !cleanNew) {
+    return res.status(400).json({ error: 'Both oldName and newName are required' });
+  }
+
+  if (!Array.isArray(db.matchmakingLevels)) {
+    db.matchmakingLevels = ['Level 1', 'Level 2', 'Level 3', 'VIP', 'Urgent'];
+  }
+
+  // Rename in level options list
+  const idx = db.matchmakingLevels.indexOf(cleanOld);
+  if (idx !== -1) {
+    db.matchmakingLevels[idx] = cleanNew;
+  } else if (!db.matchmakingLevels.includes(cleanNew)) {
+    db.matchmakingLevels.push(cleanNew);
+  }
+
+  // Cascade to candidate profiles with this level
+  (db.traffics || []).forEach((t: any) => {
+    if (t.matchmakingLevel === cleanOld) {
+      t.matchmakingLevel = cleanNew;
+      t.levelUpdatedAt = Date.now();
+    }
+  });
+
+  saveDB(db);
+  res.json({ success: true, levels: db.matchmakingLevels, oldName: cleanOld, newName: cleanNew });
+});
+
 // Get matchmaking stats & overdue counts for MK / Super Admin
 app.get('/api/matchmaking/stats', authMiddleware, (req, res) => {
   const actor = (req as any).user;
@@ -2889,6 +3002,9 @@ app.put('/api/settings/agency', authMiddleware, (req, res) => {
 
 // Setup Attendance Routes (PWA Attendance Scanner & Admin Dashboard)
 setupAttendanceRoutes(app, loadDB, saveDB, authMiddleware);
+
+// Setup Daily Report Routes (Auto metrics, CRO/MK submissions, Admin review)
+setupDailyReportRoutes(app, loadDB, saveDB, authMiddleware);
 
 // --- START SERVER WITH VITE MIDDLEWARE ---
 async function startServer() {

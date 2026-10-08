@@ -49,3 +49,80 @@
     background: #ffffff !important;
   }
 }
+
+/* ==========================================================================
+   UNIVERSAL TACTILE MICRO-INTERACTIONS & SMOOTH RIPPLE ANIMATION
+   ========================================================================== */
+
+/* Keyframe for expanding, dissipating radial ripple */
+@keyframes app-ripple-expand {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0.38;
+  }
+  50% {
+    opacity: 0.22;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.4);
+    opacity: 0;
+  }
+}
+
+.app-ripple-circle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(24, 30, 84, 0.28) 0%, rgba(24, 30, 84, 0.12) 65%, rgba(24, 30, 84, 0) 100%);
+  animation: app-ripple-expand 0.5s cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
+  z-index: 100;
+}
+
+/* Light ripple for dark buttons */
+.app-ripple-light {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.18) 65%, rgba(255, 255, 255, 0) 100%) !important;
+}
+
+/* Tactile scale micro-interaction on active tap/press */
+button:not(:disabled):not([data-no-ripple]),
+[role="button"]:not([aria-disabled="true"]):not([data-no-ripple]),
+.interactive-tactile,
+.tactile-press {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.15s ease, filter 0.12s ease;
+  will-change: transform;
+}
+
+button:not(:disabled):not([data-no-ripple]):active,
+[role="button"]:not([aria-disabled="true"]):not([data-no-ripple]):active,
+.interactive-tactile:active,
+.tactile-press:active {
+  transform: scale(0.972);
+}
+
+/* Interactive list items, table rows, and clickable cards tap feedback */
+table tbody tr.cursor-pointer:active,
+ul li.cursor-pointer:active,
+.list-item-tactile:active {
+  background-color: rgba(24, 30, 84, 0.04) !important;
+  transform: scale(0.992);
+  transition: transform 0.1s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.1s ease;
+}
+
+/* Prevent layout jank on devices requesting reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  button,
+  [role="button"],
+  .interactive-tactile,
+  .tactile-press,
+  table tbody tr.cursor-pointer,
+  ul li.cursor-pointer {
+    transition: none !important;
+    transform: none !important;
+  }
+  .app-ripple-circle {
+    display: none !important;
+  }
+}
+

@@ -41,15 +41,16 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
         onClick={handleButtonClick}
         disabled={isInstalling}
         title="Install Shadikabbo App to your phone home screen"
-        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer shadow-sm active:scale-95 ${
+        className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl font-bold text-[10px] sm:text-xs transition-all cursor-pointer shadow-xs active:scale-95 shrink-0 ${
           variant === 'header'
             ? 'bg-gradient-to-r from-[#D81124] to-[#B50E1D] text-white hover:shadow-md hover:from-[#c20e1f] hover:to-[#9c0a17] border border-white/20'
             : 'bg-[#181E54] text-white hover:bg-[#121742]'
         } ${className}`}
       >
-        <Smartphone className="w-3.5 h-3.5 text-white animate-pulse" />
-        <span className="whitespace-nowrap">Add to Home Screen</span>
-        <Download className="w-3 h-3 text-white/80 hidden sm:inline" />
+        <Smartphone className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white animate-pulse shrink-0" />
+        <span className="hidden sm:inline whitespace-nowrap">Add to Home Screen</span>
+        <span className="sm:hidden whitespace-nowrap font-bold">Install</span>
+        <Download className="w-3 h-3 text-white/80 hidden md:inline shrink-0" />
       </button>
 
       {/* Guided Instruction Modal for iPhone / Android fallback */}

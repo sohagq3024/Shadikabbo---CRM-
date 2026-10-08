@@ -169,7 +169,7 @@ export const AttendanceMonthlyModal: React.FC<AttendanceMonthlyModalProps> = ({
                 </div>
 
                 <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-center">
-                  <p className="text-[10px] font-semibold text-amber-700 uppercase">Day Off (Fri)</p>
+                  <p className="text-[10px] font-semibold text-amber-700 uppercase">Day Off</p>
                   <p className="text-lg font-bold text-amber-900 mt-0.5">{data.stats.dayOffCount}</p>
                 </div>
 
@@ -201,7 +201,7 @@ export const AttendanceMonthlyModal: React.FC<AttendanceMonthlyModalProps> = ({
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-700">
                       {data.dailyLogs.map((log: any) => {
-                        const isDayOff = log.status === 'day_off' || log.isFriday;
+                        const isDayOff = log.status === 'day_off' || log.isDayOff;
                         const isAbsent = log.status === 'absent';
                         const isPresent = log.status === 'present';
                         const isFuture = log.status === 'future';
@@ -222,7 +222,7 @@ export const AttendanceMonthlyModal: React.FC<AttendanceMonthlyModalProps> = ({
                               <span className="font-bold text-slate-800">{log.date}</span>
                               <span
                                 className={`ml-2 text-[10px] font-sans font-semibold px-1.5 py-0.2 rounded ${
-                                  log.isFriday
+                                  log.isDayOff
                                     ? 'bg-amber-100 text-amber-800'
                                     : 'bg-slate-100 text-slate-600'
                                 }`}
@@ -247,7 +247,7 @@ export const AttendanceMonthlyModal: React.FC<AttendanceMonthlyModalProps> = ({
                               )}
                               {isDayOff && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-300">
-                                  Day Off (Fri)
+                                  Day Off ({log.dayOffReason || log.dayName})
                                 </span>
                               )}
                               {isFuture && (
@@ -328,7 +328,7 @@ export const AttendanceMonthlyModal: React.FC<AttendanceMonthlyModalProps> = ({
         {/* Footer */}
         <div className="pt-4 border-t border-slate-100 flex items-center justify-between shrink-0 flex-wrap gap-2">
           <div className="text-xs text-slate-500">
-            Official Work Hours: <strong>09:30 AM to 06:30 PM</strong> · Weekly Off: <strong>Friday</strong>
+            Official Work Hours: <strong>10:00 AM to 06:00 PM</strong> · Assigned Weekly Off: <strong>{data.userWeeklyOffDays?.join(', ') || 'Friday'}</strong>
           </div>
           <button
             type="button"
