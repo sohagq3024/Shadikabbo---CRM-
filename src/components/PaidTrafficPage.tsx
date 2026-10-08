@@ -12,6 +12,7 @@ import { useCrmFields } from '../context/CrmFieldsContext';
 
 interface PaidTrafficPageProps {
   token: string;
+  user?: any;
 }
 
 interface PaidTrafficTableRowProps {
@@ -146,7 +147,8 @@ const PaidTrafficTableRow = React.memo<PaidTrafficTableRowProps>(
   }
 );
 
-export const PaidTrafficPage: React.FC<PaidTrafficPageProps> = ({ token }) => {
+export const PaidTrafficPage: React.FC<PaidTrafficPageProps> = ({ token, user }) => {
+  const isSuperAdmin = !user || user.role === 'Super Admin';
   const { fields } = useCrmFields();
   const [paidTraffics, setPaidTraffics] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -485,19 +487,23 @@ export const PaidTrafficPage: React.FC<PaidTrafficPageProps> = ({ token }) => {
               setMenuTriggerRect(null);
             },
           },
-          {
-            label: 'Change Assign',
-            sublabel: 'Reassign client to another MK account',
-            icon: <UserCheck className="w-4 h-4 text-blue-600" />,
-            onClick: () => handleChangeAssign(activeMenuRow),
-          },
-          {
-            label: 'Remove',
-            sublabel: 'Move client to Trash bin',
-            icon: <Trash2 className="w-4 h-4 text-[#D81124]" />,
-            variant: 'danger',
-            onClick: () => handleRemoveItem(activeMenuRow.id),
-          },
+          ...(isSuperAdmin
+            ? [
+                {
+                  label: 'Change Assign',
+                  sublabel: 'Reassign client to another MK account',
+                  icon: <UserCheck className="w-4 h-4 text-blue-600" />,
+                  onClick: () => handleChangeAssign(activeMenuRow),
+                },
+                {
+                  label: 'Remove',
+                  sublabel: 'Move client to Trash bin',
+                  icon: <Trash2 className="w-4 h-4 text-[#D81124]" />,
+                  variant: 'danger' as const,
+                  onClick: () => handleRemoveItem(activeMenuRow.id),
+                },
+              ]
+            : []),
         ]}
       />
 
@@ -506,11 +512,12 @@ export const PaidTrafficPage: React.FC<PaidTrafficPageProps> = ({ token }) => {
         isOpen={!!viewingProfile}
         onClose={() => setViewingProfile(null)}
         traffic={viewingProfile}
+        canEdit={isSuperAdmin}
         onEdit={(trafficToEdit) => setEditingTraffic(trafficToEdit)}
       />
 
-      {/* Edit Traffic Modal */}
-      {editingTraffic && (
+      {/* Edit Traffic Modal (Super Admin only) */}
+      {isSuperAdmin && editingTraffic && (
         <TrafficFormModal
           isOpen={!!editingTraffic}
           onClose={() => setEditingTraffic(null)}

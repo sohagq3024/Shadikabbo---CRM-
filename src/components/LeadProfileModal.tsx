@@ -36,6 +36,7 @@ export interface LeadProfileModalProps {
   token?: string;
   onStatusUpdated?: (lead: any) => void;
   initialTab?: 'overview' | 'activity';
+  canEdit?: boolean;
 }
 
 export const LeadProfileModal: React.FC<LeadProfileModalProps> = ({
@@ -47,6 +48,7 @@ export const LeadProfileModal: React.FC<LeadProfileModalProps> = ({
   token = '',
   onStatusUpdated,
   initialTab = 'overview',
+  canEdit = true,
 }) => {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<'overview' | 'activity'>(initialTab);
@@ -475,17 +477,19 @@ export const LeadProfileModal: React.FC<LeadProfileModalProps> = ({
           </button>
 
           <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                onEdit(currentLead);
-              }}
-              className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
-            >
-              <Edit className="w-3.5 h-3.5 text-[#181E54]" />
-              <span>Edit Lead</span>
-            </button>
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onEdit(currentLead);
+                }}
+                className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              >
+                <Edit className="w-3.5 h-3.5 text-[#181E54]" />
+                <span>Edit Lead</span>
+              </button>
+            )}
 
             <button
               type="button"

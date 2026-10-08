@@ -26,6 +26,7 @@ import { CategoryBadgeSelector, QualityCategory } from './CategoryBadgeSelector'
 
 interface LeadPageProps {
   token: string;
+  user?: any;
 }
 
 interface LeadTableRowProps {
@@ -256,7 +257,8 @@ const LeadTableRow = React.memo<LeadTableRowProps>(
   }
 );
 
-export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
+export const LeadPage: React.FC<LeadPageProps> = ({ token, user }) => {
+  const isSuperAdmin = !user || user.role === 'Super Admin';
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -691,7 +693,7 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
         items={[
           {
             label: 'View Profile',
-            sublabel: 'View bio & edit details',
+            sublabel: 'View bio & details',
             icon: <Eye className="w-4 h-4 text-[#181E54]" />,
             onClick: () => handleViewLead(activeMenuRow),
           },
@@ -707,13 +709,17 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
             icon: <Sparkles className="w-4 h-4 text-amber-600" />,
             onClick: () => handleConvertLead(activeMenuRow),
           },
-          {
-            label: 'Move to Trash',
-            sublabel: 'Move lead to Trash bin',
-            icon: <Trash2 className="w-4 h-4 text-[#D81124]" />,
-            variant: 'danger',
-            onClick: () => handleRemoveLead(activeMenuRow),
-          },
+          ...(isSuperAdmin
+            ? [
+                {
+                  label: 'Move to Trash',
+                  sublabel: 'Move lead to Trash bin',
+                  icon: <Trash2 className="w-4 h-4 text-[#D81124]" />,
+                  variant: 'danger' as const,
+                  onClick: () => handleRemoveLead(activeMenuRow),
+                },
+              ]
+            : []),
         ]}
       />
 
@@ -725,8 +731,8 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
         token={token}
       />
 
-      {/* Edit Lead Modal */}
-      {editingLead && (
+      {/* Edit Lead Modal (Super Admin only) */}
+      {isSuperAdmin && editingLead && (
         <AddLeadModal
           isOpen={!!editingLead}
           onClose={() => setEditingLead(null)}
@@ -743,6 +749,7 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token }) => {
         lead={viewingLead}
         token={token}
         initialTab={profileInitialTab}
+        canEdit={isSuperAdmin}
         onStatusUpdated={handleLeadUpdated}
         onEdit={(leadToEdit) => setEditingLead(leadToEdit)}
         onConvert={(leadToConvert) => setConvertingLead(leadToConvert)}

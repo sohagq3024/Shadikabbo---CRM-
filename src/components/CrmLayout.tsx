@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShadikabboLogo } from './ShadikabboLogo';
 import { PWAInstallButton } from './PWAInstallButton';
 import {
@@ -17,6 +17,7 @@ import {
   X,
   User,
   Camera,
+  HeartHandshake,
 } from 'lucide-react';
 
 export type SidebarPage =
@@ -25,6 +26,7 @@ export type SidebarPage =
   | 'Traffic'
   | 'Paid Traffic'
   | 'Payment'
+  | 'Matchmaking'
   | 'Account'
   | 'Tracking'
   | 'Attendance'
@@ -49,19 +51,38 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
   children,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
 
-  // EXACTLY these 10 sidebar navigation items + Logout as 11th
+  useEffect(() => {
+    setAvatarError(false);
+  }, [user?.profilePicture]);
+
+  const role = user?.role || 'Super Admin';
+
+  // Role-based sidebar navigation items:
+  // - CRO: Dashboard, Lead, Traffic, Paid Traffic, Payment, Account, Attendance
+  // - MK: Dashboard, Lead, Traffic, Paid Traffic, Payment, Matchmaking, Account, Attendance
+  // - Super Admin: Dashboard, Lead, Traffic, Paid Traffic, Payment, Matchmaking, Account, Tracking, Attendance, Settings, Trush bin
   const navItems: { label: SidebarPage; icon: React.ReactNode }[] = [
     { label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
     { label: 'Lead', icon: <Users2 className="w-4 h-4" /> },
     { label: 'Traffic', icon: <GitFork className="w-4 h-4" /> },
     { label: 'Paid Traffic', icon: <CheckCircle className="w-4 h-4" /> },
     { label: 'Payment', icon: <CreditCard className="w-4 h-4" /> },
+    ...(role === 'MK' || role === 'Super Admin'
+      ? [{ label: 'Matchmaking' as SidebarPage, icon: <HeartHandshake className="w-4 h-4" /> }]
+      : []),
     { label: 'Account', icon: <UserCog className="w-4 h-4" /> },
-    { label: 'Tracking', icon: <MapPin className="w-4 h-4" /> },
+    ...(role === 'Super Admin'
+      ? [{ label: 'Tracking' as SidebarPage, icon: <MapPin className="w-4 h-4" /> }]
+      : []),
     { label: 'Attendance', icon: <CalendarCheck className="w-4 h-4" /> },
-    { label: 'Settings', icon: <Settings className="w-4 h-4" /> },
-    { label: 'Trush bin', icon: <Trash2 className="w-4 h-4" /> },
+    ...(role === 'Super Admin'
+      ? [
+          { label: 'Settings' as SidebarPage, icon: <Settings className="w-4 h-4" /> },
+          { label: 'Trush bin' as SidebarPage, icon: <Trash2 className="w-4 h-4" /> },
+        ]
+      : []),
   ];
 
   const handleNavClick = (page: SidebarPage) => {
@@ -111,19 +132,36 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
             </button>
           )}
 
-          <div className="text-right hidden sm:block">
-            <p className="text-xs font-bold text-[#181E54] leading-tight">
-              {user?.name || 'Sohag'}
-            </p>
-            <p className="text-[11px] font-semibold text-[#D81124] leading-tight">
-              {user?.role || 'Super Admin'}
-            </p>
-          </div>
+          {/* TOP RIGHT PROFILE INFO & AVATAR (Interactive & displays real existing profile picture) */}
+          <button
+            type="button"
+            onClick={() => onSelectPage('Account')}
+            className="flex items-center gap-2 sm:gap-2.5 p-1 -mr-1 rounded-xl hover:bg-slate-100/90 transition-all cursor-pointer group select-none text-left focus:outline-none"
+            title="View My Profile / Account"
+          >
+            <div className="text-right hidden sm:block">
+              <p className="text-xs font-bold text-[#181E54] group-hover:text-[#D81124] transition-colors leading-tight truncate max-w-[150px]">
+                {user?.name || 'User'}
+              </p>
+              <p className="text-[11px] font-semibold text-[#D81124] leading-tight">
+                {user?.role || 'Super Admin'}
+              </p>
+            </div>
 
-          {/* Proper neutral profile placeholder icon (neutral silhouette, not fake human photo) */}
-          <div className="w-9 h-9 rounded-full bg-[#181E54] text-white flex items-center justify-center shadow-xs border-2 border-slate-100 ring-2 ring-[#D81124]/30">
-            <User className="w-5 h-5" />
-          </div>
+            {/* Profile Avatar: Shows uploaded/existing profile picture, with clean fallback */}
+            <div className="w-9 h-9 rounded-full bg-[#181E54] text-white flex items-center justify-center shadow-xs border-2 border-white ring-2 ring-[#D81124]/40 overflow-hidden shrink-0 group-hover:ring-[#D81124]/70 transition-all">
+              {user?.profilePicture && !avatarError ? (
+                <img
+                  src={user.profilePicture}
+                  alt={user?.name || 'User Profile'}
+                  className="w-full h-full object-cover"
+                  onError={() => setAvatarError(true)}
+                />
+              ) : (
+                <User className="w-5 h-5 text-white/90" />
+              )}
+            </div>
+          </button>
         </div>
       </header>
 

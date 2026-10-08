@@ -14,6 +14,7 @@ import {
   QrCode,
   Zap,
   ArrowRight,
+  ArrowLeft,
   ShieldCheck,
   User,
   Wifi,
@@ -83,6 +84,21 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationFrameId = useRef<number | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const lastScanTimestamp = useRef<number>(0);
+  const barcodeDetectorRef = useRef<any>(null);
+
+  // Initialize native BarcodeDetector once if available in the browser (Zero CPU / hardware-accelerated)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
+      try {
+        barcodeDetectorRef.current = new (window as any).BarcodeDetector({
+          formats: ['qr_code'],
+        });
+      } catch (err) {
+        barcodeDetectorRef.current = null;
+      }
+    }
+  }, []);
 
   // Pleasant audio confirmation chime via Web Audio API
   const playBeep = () => {
@@ -212,38 +228,91 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
       animationFrameId.current = null;
     }
     if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current.getTracks().forEach((track) => {
+        try {
+          track.stop();
+          track.enabled = false;
+        } catch (e) {
+          // ignore
+        }
+      });
       mediaStreamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
     }
     setCameraActive(false);
   };
 
-  // Scanning loop analyzing video frames with jsQR
+  // Safe handler to stop camera and return immediately to CRM
+  const handleBack = () => {
+    stopCamera();
+    if (onSwitchToCrm) {
+      onSwitchToCrm();
+    }
+  };
+
+  // Highly optimized scanning loop analyzing video frames
+  // Throttled to ~10-12 checks/sec (every 90ms) so CPU is virtually 0%, leaving UI 100% fluid & responsive
   const startScanningLoop = () => {
-    const scanFrame = () => {
-      if (!videoRef.current || !canvasRef.current || isProcessing) {
+    let active = true;
+
+    const scanFrame = async () => {
+      if (!active) return;
+
+      const video = videoRef.current;
+      if (!video || isProcessing) {
         animationFrameId.current = requestAnimationFrame(scanFrame);
         return;
       }
 
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      const now = performance.now();
+      // Throttle scanning checks to every 90ms
+      if (now - lastScanTimestamp.current >= 90 && video.readyState >= 2 && video.videoWidth > 0) {
+        lastScanTimestamp.current = now;
 
-      if (video.readyState === video.HAVE_ENOUGH_DATA && ctx) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // Path 1: Native hardware-accelerated BarcodeDetector (Zero CPU, GPU accelerated)
+        if (barcodeDetectorRef.current) {
+          try {
+            const barcodes = await barcodeDetectorRef.current.detect(video);
+            if (active && barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+              active = false;
+              handleQrDetected(barcodes[0].rawValue);
+              return;
+            }
+          } catch (e) {
+            // Fallback to jsQR path below if BarcodeDetector errors on this frame
+          }
+        }
 
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height, {
-          inversionAttempts: 'dontInvert',
-        });
+        // Path 2: Ultra-optimized downscaled jsQR fallback
+        const canvas = canvasRef.current;
+        if (canvas) {
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          if (ctx) {
+            // Downscale to max 480px width for fast decoding and tiny memory footprint
+            const maxDim = 480;
+            const scale = Math.min(1, maxDim / Math.max(video.videoWidth, video.videoHeight));
+            const targetWidth = Math.round(video.videoWidth * scale);
+            const targetHeight = Math.round(video.videoHeight * scale);
 
-        if (code && code.data) {
-          // Detected a QR code!
-          handleQrDetected(code.data);
-          return;
+            if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+              canvas.width = targetWidth;
+              canvas.height = targetHeight;
+            }
+
+            ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
+            const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
+            const code = jsQR(imageData.data, targetWidth, targetHeight, {
+              inversionAttempts: 'dontInvert',
+            });
+
+            if (active && code && code.data) {
+              active = false;
+              handleQrDetected(code.data);
+              return;
+            }
+          }
         }
       }
 
@@ -436,22 +505,68 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
     return () => stopCamera();
   }, [facingMode]);
 
+  // Support mobile hardware back button, swipe back, and Escape key navigation
+  useEffect(() => {
+    try {
+      window.history.pushState({ scannerOpen: true }, '');
+    } catch (e) {
+      // ignore
+    }
+
+    const handlePopState = () => {
+      stopCamera();
+      if (onSwitchToCrm) {
+        onSwitchToCrm();
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        stopCamera();
+        if (onSwitchToCrm) {
+          onSwitchToCrm();
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onSwitchToCrm]);
+
   return (
     <div className="min-h-screen bg-slate-900 text-white flex flex-col justify-between selection:bg-[#D81124]">
       {/* Hidden canvas for jsQR analysis */}
       <canvas ref={canvasRef} className="hidden" />
 
       {/* TOP HEADER */}
-      <header className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 p-3 sm:p-4 sticky top-0 z-30 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <header className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 p-2.5 sm:p-4 sticky top-0 z-30 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Prominent Back to CRM / Attendance Button (TOP LEFT) */}
+          {onSwitchToCrm && (
+            <button
+              type="button"
+              onClick={handleBack}
+              className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold text-xs border border-slate-700 shadow-sm transition-all cursor-pointer"
+              title="Return to Attendance & CRM Web App"
+            >
+              <ArrowLeft className="w-4 h-4 text-[#D81124]" />
+              <span className="font-bold">Back to CRM</span>
+            </button>
+          )}
+
           <ShadikabboLogo size="sm" />
-          <span className="hidden sm:inline-block h-4 w-px bg-slate-700" />
-          <span className="text-xs font-bold text-slate-300 tracking-wide uppercase hidden sm:inline">
+          <span className="hidden md:inline-block h-4 w-px bg-slate-700" />
+          <span className="text-xs font-bold text-slate-300 tracking-wide uppercase hidden md:inline">
             Daily Attendance
           </span>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           {/* Online / Offline Status Badge */}
           <div
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all ${
@@ -469,7 +584,7 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
             ) : (
               <>
                 <WifiOff className="w-3.5 h-3.5 text-amber-400" />
-                <span>Offline Mode</span>
+                <span>Offline</span>
               </>
             )}
           </div>
@@ -478,8 +593,16 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
 
           {/* User badge */}
           <div className="flex items-center gap-2 bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-slate-700">
-            <div className="w-6 h-6 rounded-full bg-[#D81124] text-white flex items-center justify-center font-bold text-[10px]">
-              {user.role}
+            <div className="w-6 h-6 rounded-full bg-[#D81124] text-white flex items-center justify-center font-bold text-[10px] overflow-hidden shrink-0">
+              {user?.profilePicture ? (
+                <img
+                  src={user.profilePicture}
+                  alt={user.name || 'User'}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                user.role
+              )}
             </div>
             <div className="text-left hidden xs:block">
               <p className="text-xs font-bold text-white leading-none truncate max-w-[100px]">
@@ -546,13 +669,29 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
 
       {/* MAIN SCANNER AREA */}
       <main className="flex-1 flex flex-col items-center justify-center p-3 sm:p-4 max-w-lg w-full mx-auto relative">
-        {/* Today Status Pill / Live Clock */}
-        <div className="w-full mb-3 flex items-center justify-between bg-slate-800/80 px-4 py-2.5 rounded-2xl border border-slate-700/80 text-xs">
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-emerald-400" />
-            <span className="font-mono font-bold text-white text-sm">{currentTime}</span>
-          </div>
+        {/* Navigation & Live Clock Row */}
+        <div className="w-full mb-3 flex items-center justify-between gap-2">
+          {onSwitchToCrm && (
+            <button
+              type="button"
+              onClick={handleBack}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 active:scale-95 text-slate-200 hover:text-white text-xs font-semibold border border-slate-700 transition-all cursor-pointer shadow-sm"
+              title="Return to Attendance & CRM"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-[#D81124]" />
+              <span>Back to Attendance</span>
+            </button>
+          )}
 
+          <div className="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700/80 text-xs ml-auto">
+            <Clock className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="font-mono font-bold text-white text-xs">{currentTime}</span>
+          </div>
+        </div>
+
+        {/* Today Status Pill */}
+        <div className="w-full mb-3 flex items-center justify-between bg-slate-800/80 px-4 py-2 rounded-2xl border border-slate-700/80 text-xs">
+          <span className="text-slate-400 font-medium text-[11px]">Today's Status:</span>
           <div>
             {todayStatus?.hasCheckedOut ? (
               <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/40 flex items-center gap-1">
@@ -788,11 +927,11 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
         {onSwitchToCrm && (
           <button
             type="button"
-            onClick={onSwitchToCrm}
-            className="text-xs text-slate-300 hover:text-white underline font-semibold flex items-center gap-1 cursor-pointer"
+            onClick={handleBack}
+            className="text-xs text-slate-300 hover:text-white underline font-semibold flex items-center gap-1.5 cursor-pointer"
           >
-            <span>Switch to CRM Database</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <ArrowLeft className="w-3.5 h-3.5 text-[#D81124]" />
+            <span>Back to Attendance / CRM</span>
           </button>
         )}
       </footer>

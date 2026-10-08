@@ -32,6 +32,7 @@ export type { AddTrafficModalProps };
 
 interface TrafficPageProps {
   token: string;
+  user?: any;
 }
 
 interface TrafficTableRowProps {
@@ -214,7 +215,8 @@ const TrafficTableRow = React.memo<TrafficTableRowProps>(
   }
 );
 
-export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
+export const TrafficPage: React.FC<TrafficPageProps> = ({ token, user }) => {
+  const isSuperAdmin = !user || user.role === 'Super Admin';
   const { fields } = useCrmFields();
   const [traffics, setTraffics] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -722,34 +724,42 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
             icon: <Clock className="w-4 h-4 text-amber-600" />,
             onClick: () => handleOpenActivityLog(activeMenuRow),
           },
-          {
-            label: 'Edit & Payment Info',
-            sublabel: 'Complete or update candidate payment details',
-            icon: <CreditCard className="w-4 h-4 text-emerald-600" />,
-            onClick: () => {
-              setEditingStep(3);
-              setEditingTraffic(activeMenuRow);
-            },
-          },
+          ...(isSuperAdmin
+            ? [
+                {
+                  label: 'Edit & Payment Info',
+                  sublabel: 'Complete or update candidate payment details',
+                  icon: <CreditCard className="w-4 h-4 text-emerald-600" />,
+                  onClick: () => {
+                    setEditingStep(3);
+                    setEditingTraffic(activeMenuRow);
+                  },
+                },
+              ]
+            : []),
           ...(activeMenuRow && activeMenuRow.paymentStatus !== 'accepted' && Number(activeMenuRow.paidAmount) > 0 ? [{
             label: 'Send Payment Request',
             sublabel: 'Send payment ticket to Payment section',
             icon: <Send className="w-4 h-4 text-emerald-600" />,
             onClick: () => handleSendPaymentRequest(activeMenuRow),
           }] : []),
-          {
-            label: 'Transfer',
-            sublabel: 'Reassign traffic to another CRO account',
-            icon: <ArrowRightLeft className="w-4 h-4 text-blue-600" />,
-            onClick: () => handleTransferTraffic(activeMenuRow),
-          },
-          {
-            label: 'Remove',
-            sublabel: 'Move candidate to Trash bin',
-            icon: <Trash2 className="w-4 h-4 text-[#D81124]" />,
-            variant: 'danger',
-            onClick: () => handleRemoveTraffic(activeMenuRow),
-          },
+          ...(isSuperAdmin
+            ? [
+                {
+                  label: 'Transfer',
+                  sublabel: 'Reassign traffic to another CRO account',
+                  icon: <ArrowRightLeft className="w-4 h-4 text-blue-600" />,
+                  onClick: () => handleTransferTraffic(activeMenuRow),
+                },
+                {
+                  label: 'Remove',
+                  sublabel: 'Move candidate to Trash bin',
+                  icon: <Trash2 className="w-4 h-4 text-[#D81124]" />,
+                  variant: 'danger' as const,
+                  onClick: () => handleRemoveTraffic(activeMenuRow),
+                },
+              ]
+            : []),
         ]}
       />
 
@@ -807,6 +817,7 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token }) => {
         isOpen={!!viewingTraffic}
         onClose={() => setViewingTraffic(null)}
         traffic={viewingTraffic}
+        canEdit={isSuperAdmin}
         onEdit={(trafficToEdit, step) => {
           setEditingStep(step || 3);
           setEditingTraffic(trafficToEdit);

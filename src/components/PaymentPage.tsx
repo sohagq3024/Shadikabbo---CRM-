@@ -7,6 +7,7 @@ import { ImageLightboxModal } from './ImageLightboxModal';
 
 interface PaymentPageProps {
   token: string;
+  user?: any;
 }
 
 interface PaymentTableRowProps {
@@ -122,7 +123,8 @@ const PaymentTableRow = React.memo<PaymentTableRowProps>(({ row, index, onDownlo
   );
 });
 
-export const PaymentPage: React.FC<PaymentPageProps> = ({ token }) => {
+export const PaymentPage: React.FC<PaymentPageProps> = ({ token, user }) => {
+  const isSuperAdmin = user?.role === 'Super Admin';
   const [payments, setPayments] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -143,22 +145,31 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({ token }) => {
   const [lightboxPayment, setLightboxPayment] = useState<any | null>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // Load Payments & Requests
+  // Load Payments & Requests (Only Super Admin loads pending approval queue)
   const loadData = async () => {
     setLoading(true);
     try {
-      const [resPayments, resRequests] = await Promise.all([
+      const promises: Promise<Response>[] = [
         fetch('/api/payments', { headers: { Authorization: `Bearer ${token}` } }),
-        fetch('/api/payments/requests', { headers: { Authorization: `Bearer ${token}` } }),
-      ]);
+      ];
+
+      if (isSuperAdmin) {
+        promises.push(
+          fetch('/api/payments/requests', { headers: { Authorization: `Bearer ${token}` } })
+        );
+      }
+
+      const [resPayments, resRequests] = await Promise.all(promises);
 
       if (resPayments.ok) {
         const pData = await resPayments.json();
         setPayments(pData);
       }
-      if (resRequests.ok) {
+      if (resRequests && resRequests.ok) {
         const rData = await resRequests.json();
         setRequests(rData);
+      } else {
+        setRequests([]);
       }
     } catch (err: any) {
       setError(err.message || 'Error loading payment records');
@@ -169,7 +180,7 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({ token }) => {
 
   useEffect(() => {
     loadData();
-  }, [token]);
+  }, [token, isSuperAdmin]);
 
   // Handle Accept
   const handleAcceptRequest = async (requestId: string) => {
@@ -271,20 +282,23 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({ token }) => {
           </p>
         </div>
 
-        {/* TOP RIGHT: Button for Payment Requests */}
-        <button
-          type="button"
-          onClick={() => setIsRequestsModalOpen(true)}
-          className="relative inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#181E54] hover:bg-[#121642] text-white text-xs font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer shrink-0"
-        >
-          <Bell className="w-4 h-4 text-[#D81124]" />
-          <span>Payment Requests</span>
-          {requests.length > 0 && (
-            <span className="px-2 py-0.5 text-[10px] font-extrabold bg-[#D81124] text-white rounded-full">
-              {requests.length}
-            </span>
-          )}
-        </button>
+        {/* TOP RIGHT: Button for Payment Requests - Strictly visible only to Super Admin */}
+        {isSuperAdmin && (
+          <button
+            type="button"
+            onClick={() => setIsRequestsModalOpen(true)}
+            className="relative inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#181E54] hover:bg-[#121642] text-white text-xs font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer shrink-0"
+            title="Review pending candidate payment requests from staff"
+          >
+            <Bell className="w-4 h-4 text-[#D81124]" />
+            <span>Payment Requests</span>
+            {requests.length > 0 && (
+              <span className="px-2 py-0.5 text-[10px] font-extrabold bg-[#D81124] text-white rounded-full">
+                {requests.length}
+              </span>
+            )}
+          </button>
+        )}
       </div>
 
       {/* FILTERS & SEARCH:
@@ -414,7 +428,9 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({ token }) => {
                   <td colSpan={8} className="py-12 text-center text-slate-400">
                     <p className="font-semibold text-slate-600 mb-1">No accepted payments yet</p>
                     <p className="text-[11px] text-slate-400">
-                      When a Traffic is added, accept its request in &ldquo;Payment Requests&rdquo; to record payments.
+                      {isSuperAdmin
+                        ? 'When a Traffic is added, accept its request in “Payment Requests” to record payments.'
+                        : 'Verified payment records and invoices will appear here once approved by Super Admin.'}
                     </p>
                   </td>
                 </tr>
@@ -434,15 +450,18 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({ token }) => {
         </div>
       </div>
 
-      {/* Payment Requests Modal */}
-      <PaymentRequestsModal
-        isOpen={isRequestsModalOpen}
-        onClose={() => setIsRequestsModalOpen(false)}
-        requests={requests}
-        onAccept={handleAcceptRequest}
-        onReject={handleRejectRequest}
-        onRefresh={loadData}
-      />
+      {/* Payment Requests Modal (Accessible only to Super Admin) */}
+      {isSuperAdmin && (
+        <PaymentRequestsModal
+          isOpen={isRequestsModalOpen}
+          onClose={() => setIsRequestsModalOpen(false)}
+          requests={requests}
+          canApprove={isSuperAdmin}
+          onAccept={handleAcceptRequest}
+          onReject={handleRejectRequest}
+          onRefresh={loadData}
+        />
+      )}
 
       {/* Invoice Modal for specific invoice view & download */}
       <ErrorBoundary>

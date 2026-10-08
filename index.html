@@ -19,6 +19,100 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script>
+      // Prevent Vite HMR WebSocket errors in sandbox/preview environment
+      (function () {
+        const NativeWebSocket = window.WebSocket;
+        if (NativeWebSocket) {
+          function MockWebSocket(url, protocols) {
+            const isViteHmr =
+              (typeof protocols === 'string' && protocols === 'vite-hmr') ||
+              (Array.isArray(protocols) && protocols.includes('vite-hmr')) ||
+              (typeof url === 'string' && (url.includes('vite') || url.includes('token=')));
+
+            if (isViteHmr) {
+              const listeners = {};
+              const fakeWs = {
+                readyState: 1, // OPEN
+                CONNECTING: 0,
+                OPEN: 1,
+                CLOSING: 2,
+                CLOSED: 3,
+                url: String(url),
+                protocol: 'vite-hmr',
+                bufferedAmount: 0,
+                extensions: '',
+                binaryType: 'blob',
+                onopen: null,
+                onmessage: null,
+                onerror: null,
+                onclose: null,
+                send: function () {},
+                close: function () {
+                  fakeWs.readyState = 3;
+                },
+                addEventListener: function (type, listener) {
+                  if (!listeners[type]) listeners[type] = [];
+                  listeners[type].push(listener);
+                  if (type === 'open') {
+                    setTimeout(function () {
+                      try { listener.call(fakeWs, new Event('open')); } catch (e) {}
+                    }, 0);
+                  }
+                },
+                removeEventListener: function (type, listener) {
+                  if (listeners[type]) {
+                    listeners[type] = listeners[type].filter(function (l) { return l !== listener; });
+                  }
+                },
+                dispatchEvent: function (event) {
+                  const list = listeners[event.type] || [];
+                  list.forEach(function (l) {
+                    try { l.call(fakeWs, event); } catch (e) {}
+                  });
+                  return true;
+                }
+              };
+              Object.setPrototypeOf(fakeWs, NativeWebSocket.prototype);
+              return fakeWs;
+            }
+
+            return new NativeWebSocket(url, protocols);
+          }
+
+          MockWebSocket.prototype = NativeWebSocket.prototype;
+          MockWebSocket.CONNECTING = 0;
+          MockWebSocket.OPEN = 1;
+          MockWebSocket.CLOSING = 2;
+          MockWebSocket.CLOSED = 3;
+          window.WebSocket = MockWebSocket;
+        }
+
+        const origError = console.error;
+        console.error = function (...args) {
+          const msg = args.map(function (a) {
+            return a instanceof Error ? (a.message + ' ' + (a.stack || '')) : String(a);
+          }).join(' ');
+          if (msg.includes('WebSocket') || msg.includes('closed without opened') || msg.includes('@vite/client')) {
+            return;
+          }
+          origError.apply(console, args);
+        };
+      })();
+
+      window.addEventListener('error', function (e) {
+        if (e && (e.message?.includes('WebSocket') || e.error?.message?.includes('WebSocket') || e.filename?.includes('@vite/client') || e.error?.stack?.includes('@vite/client'))) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+        }
+      }, true);
+      window.addEventListener('unhandledrejection', function (e) {
+        if (e && (e.reason?.message?.includes('WebSocket') || e.reason?.stack?.includes('@vite/client'))) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+        }
+      }, true);
+    </script>
   </head>
   <body class="bg-slate-50 text-slate-900 antialiased font-sans">
     <div id="root"></div>

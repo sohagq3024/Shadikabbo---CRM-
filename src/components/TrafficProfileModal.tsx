@@ -29,11 +29,12 @@ interface TrafficProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   traffic: any;
-  onEdit: (traffic: any, initialStep?: 1 | 2 | 3) => void;
+  onEdit?: (traffic: any, initialStep?: 1 | 2 | 3) => void;
   token?: string;
   onPaymentRequestSuccess?: () => void;
   initialTab?: 'overview' | 'activity';
   onStatusUpdated?: (traffic: any) => void;
+  canEdit?: boolean;
 }
 
 export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
@@ -45,6 +46,7 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
   onPaymentRequestSuccess,
   initialTab = 'overview',
   onStatusUpdated,
+  canEdit = true,
 }) => {
   const [currentTraffic, setCurrentTraffic] = useState<any>(traffic);
   const [activeTab, setActiveTab] = useState<'overview' | 'activity'>(initialTab);
@@ -181,19 +183,21 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Edit Icon required */}
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                onEdit(currentTraffic);
-              }}
-              title="Edit Profile"
-              className="p-2 text-slate-600 hover:text-white hover:bg-[#181E54] border border-slate-200 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
-            >
-              <Edit3 className="w-4 h-4 text-[#D81124]" />
-              <span className="hidden sm:inline">Edit</span>
-            </button>
+            {/* Edit Icon required (Super Admin only) */}
+            {canEdit && onEdit && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onEdit(currentTraffic);
+                }}
+                title="Edit Profile"
+                className="p-2 text-slate-600 hover:text-white hover:bg-[#181E54] border border-slate-200 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+              >
+                <Edit3 className="w-4 h-4 text-[#D81124]" />
+                <span className="hidden sm:inline">Edit</span>
+              </button>
+            )}
 
             <button
               type="button"
@@ -537,17 +541,19 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
                   )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose();
-                      onEdit(traffic, 3);
-                    }}
-                    className="px-3.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
-                  >
-                    <Edit3 className="w-3.5 h-3.5 text-[#D81124]" />
-                    <span>Edit Payment Info</span>
-                  </button>
+                  {canEdit && onEdit && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onEdit(traffic, 3);
+                      }}
+                      className="px-3.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 text-[#D81124]" />
+                      <span>Edit Payment Info</span>
+                    </button>
+                  )}
 
                   {Number(traffic.paidAmount || 0) > 0 && token && (
                     <button

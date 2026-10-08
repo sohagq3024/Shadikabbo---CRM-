@@ -9,7 +9,11 @@ import { TrashBinPage } from './components/TrashBinPage';
 import { SettingsPage } from './components/SettingsPage';
 import { EmptyPage } from './components/EmptyPage';
 import { AttendanceAdminPage } from './components/AttendanceAdminPage';
+import { StaffAttendancePage } from './components/StaffAttendancePage';
 import { StaffScannerView } from './components/StaffScannerView';
+import { AccountPage } from './components/AccountPage';
+import { MatchmakingPage } from './components/MatchmakingPage';
+import { DashboardPage } from './components/DashboardPage';
 import { CrmFieldsProvider } from './context/CrmFieldsContext';
 
 export default function App() {
@@ -22,11 +26,11 @@ export default function App() {
     return cached ? JSON.parse(cached) : null;
   });
 
-  const [activePage, setActivePage] = useState<SidebarPage>('Attendance');
+  const [activePage, setActivePage] = useState<SidebarPage>('Dashboard');
   const [isInitializing, setIsInitializing] = useState(true);
 
-  // Staff view mode: by default, MK and CRO staff directly see the Daily Attendance Scanner
-  const [staffViewMode, setStaffViewMode] = useState<'scanner' | 'crm'>('scanner');
+  // Staff view mode: by default, all accounts directly open the CRM web app
+  const [staffViewMode, setStaffViewMode] = useState<'scanner' | 'crm'>('crm');
   // Admin scanner view toggle
   const [showAdminScanner, setShowAdminScanner] = useState(false);
 
@@ -82,9 +86,19 @@ export default function App() {
     sessionStorage.setItem('shadikabbo_token', sessionToken);
     sessionStorage.setItem('shadikabbo_user', JSON.stringify(authenticatedUser));
     
-    // For staff MK and CRO, direct them to scanner on login
-    setStaffViewMode('scanner');
-    setActivePage(authenticatedUser?.role === 'Super Admin' ? 'Attendance' : 'Traffic');
+    // Direct all users (CRO, MK, Super Admin) directly to CRM web app on login
+    setStaffViewMode('crm');
+    setActivePage('Dashboard');
+  };
+
+  const handleUpdateCurrentUser = (updatedUser: any) => {
+    setUser(updatedUser);
+    if (localStorage.getItem('shadikabbo_token')) {
+      localStorage.setItem('shadikabbo_user', JSON.stringify(updatedUser));
+    }
+    if (sessionStorage.getItem('shadikabbo_token')) {
+      sessionStorage.setItem('shadikabbo_user', JSON.stringify(updatedUser));
+    }
   };
 
   const handleLogout = async () => {
@@ -157,25 +171,49 @@ export default function App() {
         onLogout={handleLogout}
         onOpenScanner={isStaff ? () => setStaffViewMode('scanner') : undefined}
       >
-        {/* Requirement 3, 4, 5: Attendance section for Admin */}
+        {/* Attendance section (Admin full view vs Staff personal view) */}
         {activePage === 'Attendance' && (
-          <AttendanceAdminPage
+          user.role === 'Super Admin' ? (
+            <AttendanceAdminPage
+              token={token}
+              onOpenScanner={() => setShowAdminScanner(true)}
+            />
+          ) : (
+            <StaffAttendancePage
+              user={user}
+              token={token}
+              onOpenScanner={() => setStaffViewMode('scanner')}
+            />
+          )
+        )}
+
+        {/* Dashboard Overview */}
+        {activePage === 'Dashboard' && (
+          <DashboardPage
+            user={user}
             token={token}
-            onOpenScanner={() => setShowAdminScanner(true)}
+            onSelectPage={(page) => setActivePage(page)}
+            onOpenScanner={isStaff ? () => setStaffViewMode('scanner') : () => setShowAdminScanner(true)}
           />
         )}
-        {activePage === 'Dashboard' && <EmptyPage title="Dashboard" />}
 
         {/* Existing Matrimonial CRM Pages */}
-        {activePage === 'Traffic' && <TrafficPage token={token} />}
-        {activePage === 'Paid Traffic' && <PaidTrafficPage token={token} />}
-        {activePage === 'Payment' && <PaymentPage token={token} />}
-        {activePage === 'Lead' && <LeadPage token={token} />}
+        {activePage === 'Traffic' && <TrafficPage token={token} user={user} />}
+        {activePage === 'Paid Traffic' && <PaidTrafficPage token={token} user={user} />}
+        {activePage === 'Payment' && <PaymentPage token={token} user={user} />}
+        {activePage === 'Lead' && <LeadPage token={token} user={user} />}
+        {activePage === 'Matchmaking' && <MatchmakingPage user={user} token={token} />}
+        {activePage === 'Account' && (
+          <AccountPage
+            user={user}
+            token={token}
+            onUpdateCurrentUser={handleUpdateCurrentUser}
+          />
+        )}
+
+        {/* Super Admin specific sections */}
         {activePage === 'Trush bin' && <TrashBinPage token={token} />}
         {activePage === 'Settings' && <SettingsPage token={token} />}
-        
-        {/* Unfinished sections */}
-        {activePage === 'Account' && <EmptyPage title="Account" />}
         {activePage === 'Tracking' && <EmptyPage title="Tracking" />}
       </CrmLayout>
     </CrmFieldsProvider>

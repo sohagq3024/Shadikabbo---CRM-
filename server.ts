@@ -1,3 +1,5 @@
+process.env.DISABLE_HMR = 'true';
+
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
@@ -981,6 +983,7 @@ app.post('/api/leads', authMiddleware, (req, res) => {
     pdf: data.pdf || null,
     createdBy: creatorName,
     creatorRole: creatorRole,
+    creatorId: creator?.id || '',
     status: initialStatus,
     clientCategory: data.clientCategory || 'Normal',
     completeness: percentage,
@@ -1013,6 +1016,11 @@ app.post('/api/leads', authMiddleware, (req, res) => {
 
 // 3. Update an existing lead
 app.put('/api/leads/:id', authMiddleware, (req, res) => {
+  const actor = (req as any).user;
+  if (actor.role === 'CRO' || actor.role === 'MK') {
+    return res.status(403).json({ error: 'Permission denied: CRO and MK accounts are not permitted to edit leads.' });
+  }
+
   const { id } = req.params;
   const updates = req.body;
   const db = loadDB();
@@ -1076,6 +1084,11 @@ app.put('/api/leads/:id', authMiddleware, (req, res) => {
 
 // 4. Move lead to trash (Trush bin)
 app.put('/api/leads/:id/remove', authMiddleware, (req, res) => {
+  const actor = (req as any).user;
+  if (actor.role === 'CRO' || actor.role === 'MK') {
+    return res.status(403).json({ error: 'Permission denied: CRO and MK accounts are not permitted to delete leads.' });
+  }
+
   const { id } = req.params;
   const db = loadDB();
 
@@ -1088,7 +1101,6 @@ app.put('/api/leads/:id/remove', authMiddleware, (req, res) => {
   const now = new Date();
   const deletedTimestamp = Date.now();
   const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  const actor = (req as any).user;
 
   lead.status = 'trash';
   lead.deletedAt = deletedTimestamp;
@@ -1126,6 +1138,11 @@ app.put('/api/leads/:id/remove', authMiddleware, (req, res) => {
 
 // Alias for DELETE /api/leads/:id to move to trash
 app.delete('/api/leads/:id', authMiddleware, (req, res) => {
+  const actor = (req as any).user;
+  if (actor.role === 'CRO' || actor.role === 'MK') {
+    return res.status(403).json({ error: 'Permission denied: CRO and MK accounts are not permitted to delete leads.' });
+  }
+
   const { id } = req.params;
   const db = loadDB();
 
@@ -1138,7 +1155,6 @@ app.delete('/api/leads/:id', authMiddleware, (req, res) => {
   const now = new Date();
   const deletedTimestamp = Date.now();
   const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  const actor = (req as any).user;
 
   lead.status = 'trash';
   lead.deletedAt = deletedTimestamp;
@@ -1393,9 +1409,27 @@ app.post('/api/leads/:id/convert-traffic', authMiddleware, (req, res) => {
 // --- TRAFFIC API ---
 app.get('/api/traffic', authMiddleware, (req, res) => {
   const db = loadDB();
+  const actor = (req as any).user;
   // Filter out records marked as trash AND records that have been accepted/moved to Paid Traffic
-  const activeTraffics = (db.traffics || [])
-    .filter(t => t.status !== 'trash' && t.paymentStatus !== 'accepted')
+  let activeTraffics = (db.traffics || [])
+    .filter(t => t.status !== 'trash' && t.paymentStatus !== 'accepted');
+
+  if (actor.role === 'CRO') {
+    activeTraffics = activeTraffics.filter(t => {
+      if (t.creatorId) return t.creatorId === actor.id;
+      return t.createdBy === actor.name;
+    });
+  } else if (actor.role === 'MK') {
+    activeTraffics = activeTraffics.filter(t => {
+      const isCreator = (t.creatorId && t.creatorId === actor.id) || t.createdBy === actor.name;
+      const isAssigned = (t.assignedTo?.id && t.assignedTo?.id === actor.id) ||
+                         (t.assignedTo?.name && t.assignedTo?.name === actor.name) ||
+                         t.assignBy === actor.name;
+      return isCreator || isAssigned;
+    });
+  }
+
+  const result = activeTraffics
     // Sequential order (1, 2, 3...) with newest at the bottom as requested
     .sort((a, b) => a.serialNumber - b.serialNumber)
     .map(t => ({
@@ -1407,7 +1441,7 @@ app.get('/api/traffic', authMiddleware, (req, res) => {
       creatorRole: t.creatorRole || 'Super Admin',
     }));
 
-  res.json(activeTraffics);
+  res.json(result);
 });
 
 app.post('/api/traffic', authMiddleware, (req, res) => {
@@ -1467,6 +1501,7 @@ app.post('/api/traffic', authMiddleware, (req, res) => {
     // Exact CRM Account Person who added this traffic
     createdBy: creatorName,
     creatorRole: creatorRole,
+    creatorId: creator?.id || '',
     // Assigned MK Account
     assignBy: data.assignBy || '',
     profession: data.profession || '',
@@ -1559,6 +1594,11 @@ app.post('/api/traffic', authMiddleware, (req, res) => {
 
 // Update traffic profile
 app.put('/api/traffic/:id', authMiddleware, (req, res) => {
+  const actor = (req as any).user;
+  if (actor.role === 'CRO' || actor.role === 'MK') {
+    return res.status(403).json({ error: 'Permission denied: CRO and MK accounts are not permitted to edit traffic.' });
+  }
+
   const { id } = req.params;
   const updates = req.body;
   const db = loadDB();
@@ -1575,7 +1615,6 @@ app.put('/api/traffic/:id', authMiddleware, (req, res) => {
   const dueAmount = Math.max(0, price - discount - paidAmount);
   const afterMarriageFee = updates.afterMarriageFee !== undefined ? Number(updates.afterMarriageFee) : (existing.afterMarriageFee || 0);
 
-  const actor = (req as any).user;
   const actorName = actor?.name || updates.createdByName || existing.createdBy || 'Sohag';
   const actorRole = actor?.role || updates.createdByRole || existing.creatorRole || 'Super Admin';
   const actorPhone = actor?.phone || '';
@@ -1665,6 +1704,11 @@ app.put('/api/traffic/:id', authMiddleware, (req, res) => {
 
 // Transfer traffic to selected CRO or MK account
 app.put('/api/traffic/:id/transfer', authMiddleware, (req, res) => {
+  const actor = (req as any).user;
+  if (actor.role === 'CRO' || actor.role === 'MK') {
+    return res.status(403).json({ error: 'Permission denied: CRO and MK accounts are not permitted to transfer traffic.' });
+  }
+
   const { id } = req.params;
   const { targetAccountId, targetAccountName, targetRole } = req.body;
   if (!targetAccountName || !targetRole) {
@@ -1689,7 +1733,6 @@ app.put('/api/traffic/:id/transfer', authMiddleware, (req, res) => {
   }
   const now = new Date();
   const formattedDateTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  const actor = (req as any).user;
   traffic.activityLog.unshift({
     id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     leadId: traffic.id,
@@ -1713,6 +1756,11 @@ app.put('/api/traffic/:id/transfer', authMiddleware, (req, res) => {
 
 // Remove traffic (move to Trush bin)
 app.put('/api/traffic/:id/remove', authMiddleware, (req, res) => {
+  const actor = (req as any).user;
+  if (actor.role === 'CRO' || actor.role === 'MK') {
+    return res.status(403).json({ error: 'Permission denied: CRO and MK accounts are not permitted to delete traffic.' });
+  }
+
   const { id } = req.params;
   const db = loadDB();
 
@@ -1721,7 +1769,6 @@ app.put('/api/traffic/:id/remove', authMiddleware, (req, res) => {
     return res.status(404).json({ error: 'Traffic record not found' });
   }
 
-  const actor = (req as any).user;
   const now = new Date();
   const formattedDateTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
@@ -1897,9 +1944,15 @@ app.post('/api/traffic/:id/activities', authMiddleware, (req, res) => {
 // --- PAYMENT API ---
 app.get('/api/payments/requests', authMiddleware, (req, res) => {
   const db = loadDB();
-  const pending = (db.paymentRequests || [])
-    .filter(pr => pr.status === 'pending')
-    .map(pr => {
+  const actor = (req as any).user;
+  if (actor?.role !== 'Super Admin') {
+    return res.status(403).json({ error: 'Permission denied: Only Super Admin can view payment requests.' });
+  }
+
+  let pending = (db.paymentRequests || [])
+    .filter(pr => pr.status === 'pending');
+
+  const result = pending.map(pr => {
       const matched = (db.traffics || []).find(
         t => t.id === pr.trafficId || (t.phone && pr.phone && t.phone === pr.phone) || (t.name && pr.trafficName && t.name === pr.trafficName)
       );
@@ -1936,7 +1989,7 @@ app.get('/api/payments/requests', authMiddleware, (req, res) => {
         timestamp: pr.timestamp || (matched?.createdTimestamp || Date.now()),
       };
     });
-  res.json(pending);
+  res.json(result);
 });
 
 // Endpoint to submit a new Payment Request manually
@@ -2066,9 +2119,13 @@ app.post('/api/payments/requests', authMiddleware, (req, res) => {
 });
 
 app.post('/api/payments/requests/:id/accept', authMiddleware, (req, res) => {
+  const approver = (req as any).user;
+  if (approver.role !== 'Super Admin') {
+    return res.status(403).json({ error: 'Permission denied: Only Super Admin can accept payment requests.' });
+  }
+
   const { id } = req.params;
   const db = loadDB();
-  const approver = (req as any).user;
 
   const reqIndex = db.paymentRequests.findIndex(pr => pr.id === id);
   if (reqIndex === -1) {
@@ -2170,9 +2227,13 @@ app.post('/api/payments/requests/:id/accept', authMiddleware, (req, res) => {
 });
 
 app.post('/api/payments/requests/:id/reject', authMiddleware, (req, res) => {
+  const rejector = (req as any).user;
+  if (rejector.role !== 'Super Admin') {
+    return res.status(403).json({ error: 'Permission denied: Only Super Admin can reject payment requests.' });
+  }
+
   const { id } = req.params;
   const db = loadDB();
-  const rejector = (req as any).user;
 
   const reqIndex = db.paymentRequests.findIndex(pr => pr.id === id);
   if (reqIndex === -1) {
@@ -2197,7 +2258,24 @@ app.post('/api/payments/requests/:id/reject', authMiddleware, (req, res) => {
 // Get accepted payments enriched with candidate profile photos & details
 app.get('/api/payments', authMiddleware, (req, res) => {
   const db = loadDB();
-  const enrichedPayments = (db.payments || []).map((p, idx) => {
+  const actor = (req as any).user;
+  let list = db.payments || [];
+
+  if (actor.role === 'CRO' || actor.role === 'MK') {
+    list = list.filter(p => {
+      const matched = (db.traffics || []).find(
+        t => (p.trafficId && t.id === p.trafficId) ||
+             (t.phone && p.phone && t.phone === p.phone) ||
+             (t.name && p.name && t.name === p.name)
+      );
+      const isCreator = p.createdBy === actor.name || p.creatorId === actor.id ||
+                        matched?.createdBy === actor.name || matched?.creatorId === actor.id;
+      const isAssigned = matched?.assignBy === actor.name || matched?.assignedTo?.name === actor.name || matched?.assignedTo?.id === actor.id;
+      return isCreator || isAssigned;
+    });
+  }
+
+  const enrichedPayments = list.map((p, idx) => {
     const matched = (db.traffics || []).find(
       t => (p.trafficId && t.id === p.trafficId) ||
            (t.phone && p.phone && t.phone === p.phone) ||
@@ -2223,19 +2301,41 @@ app.get('/api/payments', authMiddleware, (req, res) => {
 // --- PAID TRAFFIC API ---
 app.get('/api/paid-traffic', authMiddleware, (req, res) => {
   const db = loadDB();
+  const actor = (req as any).user;
   // Only traffic records where payment is accepted and status is not trash
-  const paid = (db.traffics || [])
-    .filter(t => t.status !== 'trash' && t.paymentStatus === 'accepted')
-    .map(t => ({
-      ...t,
-      createdBy: t.createdBy || 'Sohag',
-      creatorRole: t.creatorRole || 'Super Admin',
-    }));
-  res.json(paid);
+  let paid = (db.traffics || [])
+    .filter(t => t.status !== 'trash' && t.paymentStatus === 'accepted');
+
+  if (actor.role === 'CRO') {
+    paid = paid.filter(t => {
+      if (t.creatorId) return t.creatorId === actor.id;
+      return t.createdBy === actor.name;
+    });
+  } else if (actor.role === 'MK') {
+    paid = paid.filter(t => {
+      const isCreator = (t.creatorId && t.creatorId === actor.id) || t.createdBy === actor.name;
+      const isAssigned = (t.assignedTo?.id && t.assignedTo?.id === actor.id) ||
+                         (t.assignedTo?.name && t.assignedTo?.name === actor.name) ||
+                         t.assignBy === actor.name;
+      return isCreator || isAssigned;
+    });
+  }
+
+  const result = paid.map(t => ({
+    ...t,
+    createdBy: t.createdBy || 'Sohag',
+    creatorRole: t.creatorRole || 'Super Admin',
+  }));
+  res.json(result);
 });
 
 // Change assign for paid traffic
 app.put('/api/paid-traffic/:id/change-assign', authMiddleware, (req, res) => {
+  const actor = (req as any).user;
+  if (actor.role === 'CRO' || actor.role === 'MK') {
+    return res.status(403).json({ error: 'Permission denied: CRO and MK accounts are not permitted to change assigned account.' });
+  }
+
   const { id } = req.params;
   const { assignedName, role } = req.body;
   if (!assignedName || !role) {
@@ -2261,6 +2361,11 @@ app.put('/api/paid-traffic/:id/change-assign', authMiddleware, (req, res) => {
 
 // Remove from Paid Traffic (moves to Trush bin)
 app.put('/api/paid-traffic/:id/remove', authMiddleware, (req, res) => {
+  const actor = (req as any).user;
+  if (actor.role === 'CRO' || actor.role === 'MK') {
+    return res.status(403).json({ error: 'Permission denied: CRO and MK accounts are not permitted to delete paid traffic.' });
+  }
+
   const { id } = req.params;
   const db = loadDB();
   const traffic = db.traffics.find(t => t.id === id);
@@ -2268,7 +2373,6 @@ app.put('/api/paid-traffic/:id/remove', authMiddleware, (req, res) => {
     return res.status(404).json({ error: 'Traffic record not found' });
   }
 
-  const actor = (req as any).user;
   traffic.status = 'trash';
   traffic.deletedAt = Date.now();
   traffic.trashCategory = 'Paid Traffic';
@@ -2651,7 +2755,10 @@ async function startServer() {
     });
   } else {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: false,
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);

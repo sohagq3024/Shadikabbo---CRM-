@@ -33,6 +33,7 @@ export interface PaymentRequestsModalProps {
   onAccept: (id: string) => Promise<boolean | void>;
   onReject: (id: string) => Promise<boolean | void>;
   onRefresh?: () => void;
+  canApprove?: boolean;
 }
 
 export const PaymentRequestsModal: React.FC<PaymentRequestsModalProps> = ({
@@ -42,6 +43,7 @@ export const PaymentRequestsModal: React.FC<PaymentRequestsModalProps> = ({
   onAccept,
   onReject,
   onRefresh,
+  canApprove = true,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<'ALL' | 'Super Admin' | 'MK' | 'CRO'>('ALL');
@@ -609,39 +611,45 @@ export const PaymentRequestsModal: React.FC<PaymentRequestsModalProps> = ({
 
                           {/* 9. Action Buttons */}
                           <td className="py-3 px-3.5 align-middle text-center">
-                            <div className="flex items-center justify-center gap-1.5">
-                              {/* Reject Button */}
-                              <button
-                                type="button"
-                                onClick={() => handleAction(req.id, 'reject')}
-                                disabled={isItemProcessing}
-                                className="px-2.5 py-1.5 text-xs font-semibold text-rose-700 bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-200 rounded-lg transition-colors cursor-pointer flex items-center gap-1 disabled:opacity-50 shadow-2xs"
-                                title="Reject payment request"
-                              >
-                                {isRejecting ? (
-                                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                                ) : (
-                                  <XCircle className="w-3.5 h-3.5 text-rose-500" />
-                                )}
-                                <span>{isRejecting ? 'Rejecting...' : 'Reject'}</span>
-                              </button>
+                            {canApprove ? (
+                              <div className="flex items-center justify-center gap-1.5">
+                                {/* Reject Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleAction(req.id, 'reject')}
+                                  disabled={isItemProcessing}
+                                  className="px-2.5 py-1.5 text-xs font-semibold text-rose-700 bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-200 rounded-lg transition-colors cursor-pointer flex items-center gap-1 disabled:opacity-50 shadow-2xs"
+                                  title="Reject payment request"
+                                >
+                                  {isRejecting ? (
+                                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <XCircle className="w-3.5 h-3.5 text-rose-500" />
+                                  )}
+                                  <span>{isRejecting ? 'Rejecting...' : 'Reject'}</span>
+                                </button>
 
-                              {/* Accept & Move to Paid Button */}
-                              <button
-                                type="button"
-                                onClick={() => handleAction(req.id, 'accept')}
-                                disabled={isItemProcessing}
-                                className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50"
-                                title="Approve payment clearance, issue invoice, and automatically move candidate to Paid Traffic"
-                              >
-                                {isAccepting ? (
-                                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" />
-                                ) : (
-                                  <Check className="w-3.5 h-3.5 text-white stroke-[3]" />
-                                )}
-                                <span>{isAccepting ? 'Approving...' : 'Accept & Move to Paid'}</span>
-                              </button>
-                            </div>
+                                {/* Accept & Move to Paid Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleAction(req.id, 'accept')}
+                                  disabled={isItemProcessing}
+                                  className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                                  title="Approve payment clearance, issue invoice, and automatically move candidate to Paid Traffic"
+                                >
+                                  {isAccepting ? (
+                                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" />
+                                  ) : (
+                                    <Check className="w-3.5 h-3.5 text-white stroke-[3]" />
+                                  )}
+                                  <span>{isAccepting ? 'Approving...' : 'Accept & Move to Paid'}</span>
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                                Pending Approval
+                              </span>
+                            )}
                           </td>
                         </tr>
                       );
@@ -748,24 +756,34 @@ export const PaymentRequestsModal: React.FC<PaymentRequestsModalProps> = ({
                       </div>
 
                       <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
-                        <button
-                          type="button"
-                          onClick={() => handleAction(req.id, 'reject')}
-                          disabled={isItemProcessing}
-                          className="flex-1 py-2 text-xs font-semibold text-slate-700 border border-slate-200 hover:bg-red-50 hover:text-red-700 rounded-lg cursor-pointer flex items-center justify-center gap-1"
-                        >
-                          <XCircle className="w-3.5 h-3.5 text-rose-500" />
-                          <span>Reject</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleAction(req.id, 'accept')}
-                          disabled={isItemProcessing}
-                          className="flex-1 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
-                        >
-                          <Check className="w-3.5 h-3.5 text-white stroke-[3]" />
-                          <span>Accept &amp; Move to Paid</span>
-                        </button>
+                        {canApprove ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleAction(req.id, 'reject')}
+                              disabled={isItemProcessing}
+                              className="flex-1 py-2 text-xs font-semibold text-slate-700 border border-slate-200 hover:bg-red-50 hover:text-red-700 rounded-lg cursor-pointer flex items-center justify-center gap-1 disabled:opacity-50"
+                            >
+                              <XCircle className="w-3.5 h-3.5 text-rose-500" />
+                              <span>Reject</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAction(req.id, 'accept')}
+                              disabled={isItemProcessing}
+                              className="flex-1 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                            >
+                              <Check className="w-3.5 h-3.5 text-white stroke-[3]" />
+                              <span>Accept &amp; Move to Paid</span>
+                            </button>
+                          </>
+                        ) : (
+                          <div className="w-full text-center py-1">
+                            <span className="inline-flex px-3 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">
+                              Pending Approval by Super Admin
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
