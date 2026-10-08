@@ -78,7 +78,7 @@ export const LeadProfileModal: React.FC<LeadProfileModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 md:p-6 transition-opacity duration-150">
-      <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-6 flex flex-col max-h-[92vh]">
+      <div className="relative w-full max-w-6xl xl:max-w-7xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-4 sm:my-6 flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/90 shrink-0">
           <div className="flex items-center gap-3">
@@ -212,17 +212,19 @@ export const LeadProfileModal: React.FC<LeadProfileModalProps> = ({
               onStatusUpdated={handleLeadStatusChange}
             />
           ) : (
-            /* Bio-data and Overview View */
-            <>
-              {/* Top Profile Summary Card with Photos */}
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 p-4 bg-slate-50 rounded-2xl border border-slate-200/80">
-                {/* Photo Preview / Gallery */}
-                <div className="relative shrink-0">
+            /* Bio-data and Overview View: Wide Multi-Column Layout */
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+              
+              {/* LEFT COLUMN: Photos, Contact Info & Address */}
+              <div className="lg:col-span-5 xl:col-span-4 space-y-4">
+                
+                {/* Photo Preview / Gallery Card */}
+                <div className="p-4 bg-slate-50/90 rounded-2xl border border-slate-200/80 flex flex-col items-center">
                   <div
                     onClick={() => {
                       if (images.length > 0) setLightboxOpen(true);
                     }}
-                    className={`w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border-2 border-white shadow-md bg-slate-200 flex items-center justify-center relative group ${
+                    className={`w-36 h-36 sm:w-40 sm:h-40 rounded-2xl overflow-hidden border-2 border-white shadow-md bg-slate-200 flex items-center justify-center relative group ${
                       images.length > 0 ? 'cursor-pointer' : ''
                     }`}
                   >
@@ -278,7 +280,7 @@ export const LeadProfileModal: React.FC<LeadProfileModalProps> = ({
                   </div>
 
                   {images.length > 1 && (
-                    <div className="flex items-center justify-center gap-1 mt-2">
+                    <div className="flex items-center justify-center gap-1 mt-2.5">
                       <button
                         type="button"
                         onClick={() =>
@@ -288,8 +290,8 @@ export const LeadProfileModal: React.FC<LeadProfileModalProps> = ({
                       >
                         <ChevronLeft className="w-3 h-3 text-slate-600" />
                       </button>
-                      <span className="text-[10px] text-slate-500 font-mono">
-                        {activeImageIndex + 1}/{images.length}
+                      <span className="text-[10px] text-slate-500 font-mono px-2">
+                        {activeImageIndex + 1} / {images.length}
                       </span>
                       <button
                         type="button"
@@ -304,165 +306,164 @@ export const LeadProfileModal: React.FC<LeadProfileModalProps> = ({
                   )}
                 </div>
 
-                {/* Quick Contact & Personal Details */}
-                <div className="flex-1 space-y-3 w-full">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div>
-                      <h3 className="text-base font-bold text-slate-900">{currentLead.name}</h3>
-                      <span className="text-slate-500 text-xs">{currentLead.profession || 'Profession Not Specified'}</span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {currentLead.category && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#181E54]/10 text-[#181E54] border border-[#181E54]/20 shadow-2xs">
-                          <Layers className="w-3 h-3 text-[#D81124]" />
-                          <span>{currentLead.category}</span>
-                        </span>
-                      )}
-                      {currentLead.gender && (
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                            currentLead.gender.toLowerCase() === 'female'
-                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                              : 'bg-blue-50 text-blue-700 border border-blue-200'
-                          }`}
-                        >
-                          {currentLead.gender}
-                        </span>
-                      )}
+                {/* Contact & Identity Details Card */}
+                <div className="p-4 bg-slate-50/90 rounded-2xl border border-slate-200/80 space-y-2.5">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#D81124] mb-2">Contact &amp; Identity</h3>
+                  <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
+                    <span className="text-slate-400 font-medium">Name</span>
+                    <span className="font-bold text-slate-900">{currentLead.name}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
+                    <span className="text-slate-400 font-medium">Phone</span>
+                    <div className="flex items-center gap-1.5 font-semibold text-slate-900">
+                      <CountryFlag iso={detectCountryIso(currentLead.phone)} className="w-4 h-3 rounded-xs" />
+                      <span>{currentLead.phone}</span>
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                    <div className="flex items-center gap-2 text-slate-700">
-                      <Phone className="w-4 h-4 text-[#D81124] shrink-0" />
-                      <div className="flex items-center gap-1.5 font-mono">
-                        <CountryFlag iso={detectCountryIso(currentLead.phone)} className="w-4 h-3 rounded-xs" />
-                        <span className="font-semibold text-xs">{currentLead.phone}</span>
-                      </div>
+                  {currentLead.email && (
+                    <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
+                      <span className="text-slate-400 font-medium">Email</span>
+                      <span className="font-semibold text-slate-900 truncate max-w-[160px]">{currentLead.email}</span>
                     </div>
+                  )}
+                  {currentLead.dateOfBirth && (
+                    <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
+                      <span className="text-slate-400 font-medium">Date of Birth</span>
+                      <span className="font-semibold text-slate-900">{currentLead.dateOfBirth}</span>
+                    </div>
+                  )}
+                  {currentLead.maritalStatus && (
+                    <div className="flex items-center justify-between py-1">
+                      <span className="text-slate-400 font-medium">Marital Status</span>
+                      <span className="font-semibold text-slate-900">{currentLead.maritalStatus}</span>
+                    </div>
+                  )}
+                </div>
 
-                    {currentLead.email && (
-                      <div className="flex items-center gap-2 text-slate-700">
-                        <Mail className="w-4 h-4 text-[#181E54] shrink-0" />
-                        <span className="truncate">{currentLead.email}</span>
-                      </div>
-                    )}
-
-                    {currentLead.dateOfBirth && (
-                      <div className="flex items-center gap-2 text-slate-700">
-                        <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
-                        <span>DOB: {currentLead.dateOfBirth}</span>
-                      </div>
-                    )}
-
-                    {currentLead.maritalStatus && (
-                      <div className="flex items-center gap-2 text-slate-700">
-                        <Heart className="w-4 h-4 text-rose-500 shrink-0" />
-                        <span>{currentLead.maritalStatus}</span>
-                      </div>
-                    )}
+                {/* Address Details */}
+                <div className="p-4 bg-slate-50/90 rounded-2xl border border-slate-200/80 space-y-2.5">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#D81124] mb-2">Address Details</h3>
+                  <div className="flex items-start gap-2 py-1 border-b border-slate-200/60">
+                    <MapPin className="w-3.5 h-3.5 text-[#181E54] shrink-0 mt-0.5" />
+                    <div>
+                      <span className="text-slate-400 text-[10px] block uppercase font-bold">Present Address</span>
+                      <span className="font-semibold text-slate-800">
+                        {[currentLead.presentCity, currentLead.presentCountry].filter(Boolean).join(', ') || 'Not specified'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 py-1">
+                    <MapPin className="w-3.5 h-3.5 text-[#D81124] shrink-0 mt-0.5" />
+                    <div>
+                      <span className="text-slate-400 text-[10px] block uppercase font-bold">Permanent Address</span>
+                      <span className="font-semibold text-slate-800">
+                        {[currentLead.permanentCity, currentLead.permanentCountry].filter(Boolean).join(', ') || 'Not specified'}
+                      </span>
+                    </div>
                   </div>
                 </div>
+
+                {/* Bio-data / CV Attachment */}
+                {currentLead.pdf && (
+                  <div className="p-3 bg-red-50/60 border border-red-200 rounded-2xl flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-[#D81124] shrink-0" />
+                      <div>
+                        <span className="font-bold text-slate-900 block text-xs truncate max-w-[150px]">{currentLead.pdf.name}</span>
+                        <span className="text-[10px] text-slate-500">
+                          {(currentLead.pdf.size / 1024).toFixed(1)} KB • PDF
+                        </span>
+                      </div>
+                    </div>
+                    <a
+                      href={currentLead.pdf.dataUrl}
+                      download={currentLead.pdf.name}
+                      className="px-2.5 py-1 bg-[#181E54] hover:bg-[#12163f] text-white rounded-lg text-xs font-semibold transition-colors"
+                    >
+                      Download
+                    </a>
+                  </div>
+                )}
               </div>
 
-              {/* Detailed Info Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Professional & Educational Bio */}
-                <div className="p-4 bg-white rounded-2xl border border-slate-200 space-y-3">
-                  <span className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                    <Briefcase className="w-3.5 h-3.5 text-[#181E54]" />
-                    Education & Career
-                  </span>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
-                      <span className="text-slate-400">Profession</span>
-                      <span className="font-semibold text-slate-800">{currentLead.profession || '—'}</span>
+              {/* RIGHT COLUMN: Bio-Data, Career, Profile, Requirements & Notes */}
+              <div className="lg:col-span-7 xl:col-span-8 space-y-4">
+                
+                {/* Professional & Personal Attributes Grid */}
+                <div className="p-4 bg-slate-50/90 rounded-2xl border border-slate-200/80">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#D81124] mb-3">
+                    Personal Attributes &amp; Background
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Profession</span>
+                      <span className="font-semibold text-slate-900">{currentLead.profession || '—'}</span>
                     </div>
-                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
-                      <span className="text-slate-400">Qualification</span>
-                      <span className="font-semibold text-slate-800">{currentLead.qualification || '—'}</span>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Qualification</span>
+                      <span className="font-semibold text-slate-900">{currentLead.qualification || '—'}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Height</span>
-                      <span className="font-semibold text-slate-800">{currentLead.height || '—'}</span>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Religion</span>
+                      <span className="font-semibold text-slate-900">{currentLead.religion || '—'}</span>
                     </div>
-                  </div>
-                </div>
-
-                {/* Cultural & Religious Bio */}
-                <div className="p-4 bg-white rounded-2xl border border-slate-200 space-y-3">
-                  <span className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                    <Award className="w-3.5 h-3.5 text-[#181E54]" />
-                    Personal Profile
-                  </span>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
-                      <span className="text-slate-400">Religion</span>
-                      <span className="font-semibold text-slate-800">{currentLead.religion || '—'}</span>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Gender</span>
+                      <span className="font-semibold text-slate-900">{currentLead.gender || '—'}</span>
                     </div>
-                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
-                      <span className="text-slate-400">Marital Status</span>
-                      <span className="font-semibold text-slate-800">{currentLead.maritalStatus || '—'}</span>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Height</span>
+                      <span className="font-semibold text-slate-900">{currentLead.height || '—'}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Current Status</span>
-                      <span className={`font-bold px-2 py-0.5 rounded text-[10px] border ${statusMeta.bg} ${statusMeta.text} ${statusMeta.border}`}>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Current Status</span>
+                      <span className={`font-bold px-2 py-0.5 rounded text-[10px] border inline-block ${statusMeta.bg} ${statusMeta.text} ${statusMeta.border}`}>
                         {statusMeta.label}
                       </span>
                     </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Address Details */}
-              <div className="p-4 bg-white rounded-2xl border border-slate-200 space-y-3">
-                <span className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-[#181E54]" />
-                  Address Details
-                </span>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="p-3 bg-slate-50 rounded-xl">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Present Address</span>
-                    <span className="text-slate-800 font-medium">
-                      {[currentLead.presentCity, currentLead.presentCountry].filter(Boolean).join(', ') || 'Not specified'}
-                    </span>
-                  </div>
-
-                  <div className="p-3 bg-slate-50 rounded-xl">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Permanent Address</span>
-                    <span className="text-slate-800 font-medium">
-                      {[currentLead.permanentCity, currentLead.permanentCountry].filter(Boolean).join(', ') || 'Not specified'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bio-data / CV Attachment */}
-              {currentLead.pdf && (
-                <div className="p-4 bg-red-50/60 border border-red-200 rounded-2xl flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <FileText className="w-8 h-8 text-[#D81124] shrink-0" />
-                    <div>
-                      <span className="font-bold text-slate-900 block text-xs">{currentLead.pdf.name}</span>
-                      <span className="text-[10px] text-slate-500">
-                        {(currentLead.pdf.size / 1024).toFixed(1)} KB • Attached Bio-data
-                      </span>
+                  {/* Partner Requirement */}
+                  {currentLead.requirement && (
+                    <div className="mt-3 bg-white p-3 rounded-xl border border-slate-200/60 shadow-2xs">
+                      <span className="text-slate-400 block mb-1 text-[10px] uppercase font-bold">Partner Requirement</span>
+                      <p className="text-slate-800 leading-relaxed text-xs">{currentLead.requirement}</p>
                     </div>
-                  </div>
-                  <a
-                    href={currentLead.pdf.dataUrl}
-                    download={currentLead.pdf.name}
-                    className="px-3 py-1.5 bg-[#181E54] hover:bg-[#12163f] text-white rounded-xl text-xs font-semibold transition-colors"
-                  >
-                    Download PDF
-                  </a>
+                  )}
+
+                  {/* Internal Staff Notes */}
+                  {currentLead.notes && (
+                    <div className="mt-3 bg-white p-3 rounded-xl border border-slate-200/60 shadow-2xs">
+                      <span className="text-slate-400 block mb-1 text-[10px] uppercase font-bold">Internal Staff Notes</span>
+                      <p className="text-slate-700 leading-relaxed text-xs">{currentLead.notes}</p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </>
+
+                {/* Conversion Banner & Quick Actions Card */}
+                <div className="p-4 bg-gradient-to-br from-slate-50 to-indigo-50/30 rounded-2xl border border-slate-200/80 flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <h4 className="font-bold text-[#181E54] text-xs">Ready to advance this candidate?</h4>
+                    <p className="text-[11px] text-slate-500">
+                      Promote this lead to a Traffic Profile with full matrimonial bio-data fields &amp; package billing.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onConvert(currentLead);
+                    }}
+                    className="px-4 py-2 bg-[#D81124] hover:bg-[#B80E1C] text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer shrink-0"
+                  >
+                    <span>Promote to Traffic</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+              </div>
+
+            </div>
           )}
         </div>
 

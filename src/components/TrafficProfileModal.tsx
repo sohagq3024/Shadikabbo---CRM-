@@ -110,7 +110,7 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 flex items-center justify-center p-3 md:p-6 transition-opacity duration-150">
-      <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-6">
+      <div className="relative w-full max-w-6xl xl:max-w-7xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-4 sm:my-6">
         
         {/* Header with Title and Edit Icon */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
@@ -269,315 +269,305 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
             />
           </div>
         ) : (
-          /* Content Body */
-          <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto text-xs text-slate-700">
-          
-          {/* Part 1: Basic Info */}
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#D81124] mb-3">Basic Information</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-              <div className="flex items-center gap-2">
-                <span className="text-slate-400 font-medium">Name:</span>
-                <span className="font-semibold text-slate-900">{traffic.name}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CountryFlag iso={detectCountryIso(traffic.phone)} className="w-5 h-3.5" />
-                <span className="font-semibold text-slate-900">{traffic.phone}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-slate-400" />
-                <span className="font-semibold text-slate-900">{traffic.email || 'N/A'}</span>
-              </div>
-            </div>
-          </div>
+          /* Content Body: Wide Horizontal Multi-Column Layout for Desktop Screens */
+          <div className="p-4 sm:p-6 max-h-[82vh] overflow-y-auto text-xs text-slate-700">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+              
+              {/* LEFT COLUMN: Photos, Biodata Document, Basic Contact & Addresses */}
+              <div className="lg:col-span-5 xl:col-span-5 space-y-4">
+                
+                {/* Candidate Photos Gallery */}
+                <div className="bg-slate-50/90 p-4 rounded-2xl border border-slate-200/80">
+                  <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-[#D81124]">
+                        Candidate Photos ({traffic.images?.length || 0})
+                      </h3>
+                    </div>
+                    {traffic.images && traffic.images.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenPhoto(0)}
+                        className="text-[11px] font-semibold text-[#181E54] hover:text-[#D81124] flex items-center gap-1 transition-colors cursor-pointer bg-white px-2 py-0.5 rounded-lg border border-slate-200 shadow-2xs"
+                      >
+                        <Maximize2 className="w-3 h-3 text-[#181E54]" />
+                        <span>View All ({traffic.images.length})</span>
+                      </button>
+                    )}
+                  </div>
 
-          {/* Part 2: Additional Info */}
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#D81124] mb-3">Additional Information</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-              <div>
-                <span className="text-slate-400 block mb-0.5">Assign By</span>
-                <span className="font-semibold text-slate-900">{traffic.assignBy || 'MK Unassigned'}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block mb-0.5">Profession</span>
-                <span className="font-semibold text-slate-900">{traffic.profession || 'N/A'}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block mb-0.5">Jobe Type</span>
-                <span className="font-semibold text-slate-900">{traffic.jobType || 'N/A'}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block mb-0.5">Date of Birth</span>
-                <span className="font-semibold text-slate-900">{traffic.dateOfBirth || 'N/A'}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block mb-0.5">Marital Status</span>
-                <span className="font-semibold text-slate-900">{traffic.maritalStatus || 'N/A'}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block mb-0.5">Gender</span>
-                <span className="font-semibold text-slate-900">{traffic.gender || 'N/A'}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block mb-0.5">Body Color</span>
-                <span className="font-semibold text-slate-900">{traffic.bodyColor || 'N/A'}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block mb-0.5">Height</span>
-                <span className="font-semibold text-slate-900">{traffic.height || 'N/A'}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block mb-0.5">Religion</span>
-                <span className="font-semibold text-slate-900">{traffic.religion || 'N/A'}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block mb-0.5">Blood Group</span>
-                <span className="font-semibold text-slate-900">{traffic.bloodGroup || 'N/A'}</span>
-              </div>
-              <div className="col-span-2">
-                <span className="text-slate-400 block mb-0.5">Qualification</span>
-                <span className="font-semibold text-slate-900">{traffic.qualification || 'N/A'}</span>
-              </div>
-            </div>
-
-            {/* Requirement */}
-            <div className="mt-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-              <span className="text-slate-400 block mb-1 font-medium">Requirement</span>
-              <p className="text-slate-800 leading-relaxed">{traffic.requirement || 'None specified.'}</p>
-            </div>
-          </div>
-
-          {/* Address Section */}
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#D81124] mb-3">Address Details</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-start gap-2.5">
-                <MapPin className="w-4 h-4 text-[#181E54] shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-bold text-slate-800 block">Present Address</span>
-                  <span className="text-slate-600">
-                    {traffic.presentCity || 'Dhaka'}, {traffic.presentCountry || 'Bangladesh'}
-                  </span>
-                </div>
-              </div>
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-start gap-2.5">
-                <MapPin className="w-4 h-4 text-[#D81124] shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-bold text-slate-800 block">Permanent Address</span>
-                  <span className="text-slate-600">
-                    {traffic.permanentCity || 'Chittagong'}, {traffic.permanentCountry || 'Bangladesh'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Picture Uploads (Unlimited) */}
-          <div>
-            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[#D81124]">
-                  Candidate Photos ({traffic.images?.length || 0})
-                </h3>
-                <span className="text-[10px] text-slate-400 hidden sm:inline">
-                  (Click any photo to view full screen &amp; download)
-                </span>
-              </div>
-              {traffic.images && traffic.images.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => handleOpenPhoto(0)}
-                  className="text-xs font-semibold text-[#181E54] hover:text-[#D81124] flex items-center gap-1.5 transition-colors cursor-pointer bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1 rounded-lg border border-slate-200/80 shadow-2xs"
-                >
-                  <Maximize2 className="w-3.5 h-3.5 text-[#181E54]" />
-                  <span>View Full Screen ({traffic.images.length})</span>
-                </button>
-              )}
-            </div>
-
-            {traffic.images && traffic.images.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
-                {traffic.images.map((img: string, index: number) => (
-                  <div
-                    key={index}
-                    onClick={() => handleOpenPhoto(index)}
-                    className="group relative aspect-square rounded-xl overflow-hidden border border-slate-200 hover:border-[#181E54] bg-slate-100 shadow-xs hover:shadow-md transition-all cursor-pointer"
-                  >
-                    <img
-                      src={img}
-                      alt={`Candidate Photo ${index + 1}`}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                    />
-
-                    {/* Hover Action Overlay with Direct Download & Fullscreen Icons */}
-                    <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[9px] font-mono font-bold text-white bg-black/60 px-1.5 py-0.5 rounded">
-                          #{index + 1}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            downloadCandidateImage(img, traffic.name, traffic.id, index);
-                          }}
-                          title="Download photo"
-                          className="p-1 rounded-md bg-white hover:bg-emerald-600 text-slate-800 hover:text-white shadow-xs transition-colors cursor-pointer"
+                  {traffic.images && traffic.images.length > 0 ? (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {traffic.images.map((img: string, index: number) => (
+                        <div
+                          key={index}
+                          onClick={() => handleOpenPhoto(index)}
+                          className="group relative aspect-square rounded-xl overflow-hidden border border-slate-200 hover:border-[#181E54] bg-slate-100 shadow-xs hover:shadow-md transition-all cursor-pointer"
                         >
-                          <Download className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                          <img
+                            src={img}
+                            alt={`Candidate Photo ${index + 1}`}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                          />
 
-                      <div className="flex items-center justify-center">
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-white bg-black/60 px-2 py-0.5 rounded-full backdrop-blur-xs">
-                          <Maximize2 className="w-3 h-3 text-emerald-400" />
-                          Full Screen
-                        </span>
-                      </div>
+                          <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[8px] font-mono font-bold text-white bg-black/60 px-1 rounded">
+                                #{index + 1}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  downloadCandidateImage(img, traffic.name, traffic.id, index);
+                                }}
+                                title="Download photo"
+                                className="p-1 rounded bg-white hover:bg-emerald-600 text-slate-800 hover:text-white shadow-xs transition-colors cursor-pointer"
+                              >
+                                <Download className="w-2.5 h-2.5" />
+                              </button>
+                            </div>
+                            <div className="text-[8px] text-center text-white/90 font-medium">
+                              Zoom
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-white rounded-xl text-slate-400 italic text-center border border-dashed border-slate-200 text-[11px]">
+                      No photos attached
+                    </div>
+                  )}
+                </div>
 
-                      <div className="text-[9px] text-center text-white/80 font-medium">
-                        Click to view
-                      </div>
+                {/* Basic Identity & Contact Info */}
+                <div className="bg-slate-50/90 p-4 rounded-2xl border border-slate-200/80 space-y-2.5">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#D81124] mb-2">Basic Information</h3>
+                  <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
+                    <span className="text-slate-400 font-medium">Full Name</span>
+                    <span className="font-bold text-slate-900">{traffic.name}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
+                    <span className="text-slate-400 font-medium">Phone Number</span>
+                    <div className="flex items-center gap-1.5 font-semibold text-slate-900">
+                      <CountryFlag iso={detectCountryIso(traffic.phone)} className="w-4 h-3" />
+                      <span>{traffic.phone}</span>
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-4 bg-slate-50 rounded-xl text-slate-400 italic text-center border border-dashed border-slate-200">
-                No photos attached to this candidate profile
-              </div>
-            )}
-          </div>
-
-          {/* PDF Upload */}
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#D81124] mb-3">Biodata Document (PDF)</h3>
-            {traffic.pdf ? (
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-200">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-[#D81124]" />
-                  <div>
-                    <p className="font-bold text-slate-800">{traffic.pdf.name}</p>
-                    <p className="text-[10px] text-slate-400">{(traffic.pdf.size / 1024).toFixed(1)} KB · PDF Document</p>
+                  <div className="flex items-center justify-between py-1 border-b border-slate-200/60">
+                    <span className="text-slate-400 font-medium">Email</span>
+                    <span className="font-semibold text-slate-900 truncate max-w-[180px]">{traffic.email || 'N/A'}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-1">
+                    <span className="text-slate-400 font-medium">Assigned Staff</span>
+                    <span className="font-semibold text-[#181E54]">{traffic.assignBy || 'MK Unassigned'}</span>
                   </div>
                 </div>
-                <a
-                  href={traffic.pdf.dataUrl}
-                  download={traffic.pdf.name}
-                  className="px-3 py-1 bg-[#181E54] text-white rounded-lg text-xs font-semibold hover:bg-[#121642] transition-colors"
-                >
-                  Download PDF
-                </a>
-              </div>
-            ) : (
-              <div className="p-3 bg-slate-50 rounded-xl text-slate-400 italic">No PDF document attached</div>
-            )}
-          </div>
 
-          {/* Part 3: Payment details */}
-          <div>
-            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#D81124]">Payment Summary</h3>
-              
-              <div className="flex items-center gap-2">
-                {traffic.paymentStatus === 'accepted' ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    Payment Cleared &amp; Invoiced
-                  </span>
-                ) : traffic.paidAmount > 0 ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                    <Clock className="w-3.5 h-3.5" />
-                    Payment Verification Pending
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
-                    Unpaid / Pending Submission
-                  </span>
+                {/* Address Details */}
+                <div className="bg-slate-50/90 p-4 rounded-2xl border border-slate-200/80 space-y-2.5">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#D81124] mb-2">Address Details</h3>
+                  <div className="flex items-start gap-2 py-1 border-b border-slate-200/60">
+                    <MapPin className="w-3.5 h-3.5 text-[#181E54] shrink-0 mt-0.5" />
+                    <div>
+                      <span className="text-slate-400 text-[10px] block uppercase font-bold">Present Address</span>
+                      <span className="font-semibold text-slate-800">
+                        {traffic.presentCity || 'Dhaka'}, {traffic.presentCountry || 'Bangladesh'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 py-1">
+                    <MapPin className="w-3.5 h-3.5 text-[#D81124] shrink-0 mt-0.5" />
+                    <div>
+                      <span className="text-slate-400 text-[10px] block uppercase font-bold">Permanent Address</span>
+                      <span className="font-semibold text-slate-800">
+                        {traffic.permanentCity || 'Chittagong'}, {traffic.permanentCountry || 'Bangladesh'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Biodata Document (PDF) */}
+                {traffic.pdf && (
+                  <div className="flex items-center justify-between p-3 bg-slate-50/90 rounded-2xl border border-slate-200/80">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-[#D81124]" />
+                      <div>
+                        <p className="font-bold text-slate-800 text-xs truncate max-w-[150px]">{traffic.pdf.name}</p>
+                        <p className="text-[10px] text-slate-400">{(traffic.pdf.size / 1024).toFixed(1)} KB · PDF</p>
+                      </div>
+                    </div>
+                    <a
+                      href={traffic.pdf.dataUrl}
+                      download={traffic.pdf.name}
+                      className="px-2.5 py-1 bg-[#181E54] text-white rounded-lg text-xs font-semibold hover:bg-[#121642] transition-colors"
+                    >
+                      Download
+                    </a>
+                  </div>
                 )}
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-              <div>
-                <span className="text-slate-400 block mb-0.5">Package</span>
-                <span className="font-semibold text-slate-900">{traffic.package || 'Standard'}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block mb-0.5">Price</span>
-                <span className="font-semibold text-slate-900">{Number(traffic.price || 0).toLocaleString()} BDT</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block mb-0.5">Discount</span>
-                <span className="font-semibold text-slate-900">{Number(traffic.discount || 0).toLocaleString()} BDT</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block mb-0.5">Paid Amount</span>
-                <span className="font-semibold text-emerald-600 font-mono">৳ {Number(traffic.paidAmount || 0).toLocaleString()}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block mb-0.5">Due Amount</span>
-                <span className="font-semibold text-red-600 font-mono">৳ {Number(traffic.dueAmount || 0).toLocaleString()}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block mb-0.5">Payment Method</span>
-                <span className="font-semibold text-slate-900">{traffic.paymentMethod || 'bKash'}</span>
-              </div>
-              <div className="col-span-2">
-                <span className="text-slate-400 block mb-0.5">After Marriage Fee</span>
-                <span className="font-semibold text-[#181E54] font-mono">৳ {Number(traffic.afterMarriageFee || 0).toLocaleString()}</span>
-              </div>
-            </div>
+              {/* RIGHT COLUMN: Comprehensive Bio-data, Requirements & Payment Details */}
+              <div className="lg:col-span-7 xl:col-span-7 space-y-4">
+                
+                {/* Comprehensive Bio-Data Attributes */}
+                <div className="bg-slate-50/90 p-4 rounded-2xl border border-slate-200/80">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#D81124] mb-3">
+                    Personal Attributes &amp; Bio-Data
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Profession</span>
+                      <span className="font-semibold text-slate-900">{traffic.profession || 'N/A'}</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Job Type</span>
+                      <span className="font-semibold text-slate-900">{traffic.jobType || 'N/A'}</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Date of Birth</span>
+                      <span className="font-semibold text-slate-900">{traffic.dateOfBirth || 'N/A'}</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Marital Status</span>
+                      <span className="font-semibold text-slate-900">{traffic.maritalStatus || 'N/A'}</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Gender</span>
+                      <span className="font-semibold text-slate-900">{traffic.gender || 'N/A'}</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Religion</span>
+                      <span className="font-semibold text-slate-900">{traffic.religion || 'N/A'}</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Height</span>
+                      <span className="font-semibold text-slate-900">{traffic.height || 'N/A'}</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Body Color</span>
+                      <span className="font-semibold text-slate-900">{traffic.bodyColor || 'N/A'}</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Blood Group</span>
+                      <span className="font-semibold text-slate-900">{traffic.bloodGroup || 'N/A'}</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs col-span-2 sm:col-span-3">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Qualification &amp; Education</span>
+                      <span className="font-semibold text-slate-900">{traffic.qualification || 'N/A'}</span>
+                    </div>
+                  </div>
 
-            {/* Payment Request Action Buttons */}
-            {traffic.paymentStatus !== 'accepted' && (
-              <div className="mt-3 flex items-center justify-between gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200 flex-wrap">
-                <div className="text-xs text-slate-600">
-                  {Number(traffic.paidAmount || 0) > 0 ? (
-                    <span>Payment info is recorded. You can send or re-send the request to Accounts for approval.</span>
-                  ) : (
-                    <span>Payment info is not complete yet. Click below to enter package and payment details.</span>
+                  {/* Candidate Requirement */}
+                  <div className="mt-3 bg-white p-3.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                    <span className="text-slate-400 block mb-1 text-[10px] uppercase font-bold">Partner Requirement</span>
+                    <p className="text-slate-800 leading-relaxed text-xs">{traffic.requirement || 'None specified.'}</p>
+                  </div>
+                </div>
+
+                {/* Payment Details & Request Actions */}
+                <div className="bg-slate-50/90 p-4 rounded-2xl border border-slate-200/80">
+                  <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#D81124]">Payment Summary</h3>
+                    <div>
+                      {traffic.paymentStatus === 'accepted' ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Payment Cleared &amp; Invoiced
+                        </span>
+                      ) : traffic.paidAmount > 0 ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                          <Clock className="w-3.5 h-3.5" />
+                          Verification Pending
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                          Unpaid
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Package</span>
+                      <span className="font-semibold text-slate-900">{traffic.package || 'Standard'}</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Price</span>
+                      <span className="font-semibold text-slate-900">{Number(traffic.price || 0).toLocaleString()} BDT</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Paid Amount</span>
+                      <span className="font-semibold text-emerald-600 font-mono">৳ {Number(traffic.paidAmount || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Due Amount</span>
+                      <span className="font-semibold text-red-600 font-mono">৳ {Number(traffic.dueAmount || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Method</span>
+                      <span className="font-semibold text-slate-900">{traffic.paymentMethod || 'bKash'}</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs col-span-2 sm:col-span-3">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">After Marriage Fee</span>
+                      <span className="font-semibold text-[#181E54] font-mono">৳ {Number(traffic.afterMarriageFee || 0).toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  {/* Payment Request Action Buttons */}
+                  {traffic.paymentStatus !== 'accepted' && (
+                    <div className="mt-3 flex items-center justify-between gap-3 p-3 bg-white rounded-xl border border-slate-200 flex-wrap">
+                      <div className="text-xs text-slate-600">
+                        {Number(traffic.paidAmount || 0) > 0 ? (
+                          <span>Payment recorded. Ready for Accounts review.</span>
+                        ) : (
+                          <span>Payment info pending. Click Edit to enter package details.</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {canEdit && onEdit && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClose();
+                              onEdit(traffic, 3);
+                            }}
+                            className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-[#D81124]" />
+                            <span>Edit Payment Info</span>
+                          </button>
+                        )}
+
+                        {Number(traffic.paidAmount || 0) > 0 && token && (
+                          <button
+                            type="button"
+                            onClick={handleSendPaymentRequest}
+                            disabled={isSendingRequest}
+                            className="px-3.5 py-1.5 bg-[#181E54] hover:bg-[#121642] text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                          >
+                            <Send className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>{isSendingRequest ? 'Sending...' : 'Send Payment Request'}</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {requestMessage && (
+                    <p className="mt-2 text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-center">
+                      {requestMessage}
+                    </p>
                   )}
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {canEdit && onEdit && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onClose();
-                        onEdit(traffic, 3);
-                      }}
-                      className="px-3.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
-                    >
-                      <Edit3 className="w-3.5 h-3.5 text-[#D81124]" />
-                      <span>Edit Payment Info</span>
-                    </button>
-                  )}
 
-                  {Number(traffic.paidAmount || 0) > 0 && token && (
-                    <button
-                      type="button"
-                      onClick={handleSendPaymentRequest}
-                      disabled={isSendingRequest}
-                      className="px-4 py-1.5 bg-[#181E54] hover:bg-[#121642] text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-                    >
-                      <Send className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>{isSendingRequest ? 'Sending...' : 'Send Payment Request'}</span>
-                    </button>
-                  )}
-                </div>
               </div>
-            )}
 
-            {requestMessage && (
-              <p className="mt-2 text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-center">
-                {requestMessage}
-              </p>
-            )}
+            </div>
           </div>
-
-        </div>
         )}
 
         {/* Footer */}

@@ -759,16 +759,16 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col">
+      <div className="bg-white rounded-2xl max-w-4xl xl:max-w-5xl w-full shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col">
         {/* Header */}
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#181E54] text-white flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-[#181E54] text-white flex items-center justify-center shadow-xs">
               <UserPlus className="w-4 h-4 text-[#D81124]" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-[#181E54]">Add New Account</h2>
-              <p className="text-[11px] text-slate-500">Official staff registration with role and login password</p>
+              <h2 className="text-base font-bold text-[#181E54]">Add New Account</h2>
+              <p className="text-[11px] text-slate-500">Official staff registration with role and login credentials</p>
             </div>
           </div>
           <button
@@ -781,7 +781,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="overflow-y-auto p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="overflow-y-auto p-5 sm:p-6 space-y-4 flex-1">
           {errorMsg && (
             <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-medium flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -789,233 +789,245 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({
             </div>
           )}
 
-          {/* Profile Picture Uploader & Employee Name */}
-          <div className="flex flex-col sm:flex-row items-center gap-4 p-3.5 bg-slate-50 rounded-xl border border-slate-100">
-            {/* Picture Preview & Upload */}
-            <div className="relative shrink-0 group">
-              <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-slate-200 bg-white flex items-center justify-center shadow-xs">
-                {profilePicture ? (
-                  <img src={profilePicture} alt="Preview" className="w-full h-full object-cover" />
-                ) : (
-                  <User className="w-8 h-8 text-slate-300" />
-                )}
-              </div>
-              <label
-                htmlFor="add-account-photo"
-                className="absolute inset-0 rounded-full bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer text-[10px] font-bold"
-              >
-                <Camera className="w-4 h-4 mb-0.5" />
-                <span>Upload</span>
-              </label>
-              <input
-                id="add-account-photo"
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoUpload}
-                className="hidden"
-              />
-            </div>
-
-            <div className="flex-1 w-full space-y-3">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                  Employee Name <span className="text-[#D81124]">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Tanvir Ahmed"
-                  className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <label
-                  htmlFor="add-account-photo"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-xs font-semibold text-slate-700 cursor-pointer shadow-2xs"
-                >
-                  <Upload className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Choose Profile Picture</span>
-                </label>
-                {profilePicture && (
-                  <button
-                    type="button"
-                    onClick={() => setProfilePicture('')}
-                    className="text-[11px] text-red-600 hover:underline cursor-pointer"
+          {/* 2-Column Responsive Layout for Web Screens */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+            
+            {/* LEFT COLUMN: Identity, Photo & Role Assignment */}
+            <div className="space-y-4">
+              {/* Profile Picture Uploader & Employee Name */}
+              <div className="flex flex-col sm:flex-row items-center gap-4 p-3.5 bg-slate-50 rounded-2xl border border-slate-200/70">
+                {/* Picture Preview & Upload */}
+                <div className="relative shrink-0 group">
+                  <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-slate-200 bg-white flex items-center justify-center shadow-xs">
+                    {profilePicture ? (
+                      <img src={profilePicture} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-8 h-8 text-slate-300" />
+                    )}
+                  </div>
+                  <label
+                    htmlFor="add-account-photo"
+                    className="absolute inset-0 rounded-full bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer text-[10px] font-bold"
                   >
-                    Remove
-                  </button>
-                )}
+                    <Camera className="w-4 h-4 mb-0.5" />
+                    <span>Upload</span>
+                  </label>
+                  <input
+                    id="add-account-photo"
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
+                </div>
+
+                <div className="flex-1 w-full space-y-2.5">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Employee Name <span className="text-[#D81124]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g. Tanvir Ahmed"
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <label
+                      htmlFor="add-account-photo"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-xs font-semibold text-slate-700 cursor-pointer shadow-2xs"
+                    >
+                      <Upload className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Choose Photo</span>
+                    </label>
+                    {profilePicture && (
+                      <button
+                        type="button"
+                        onClick={() => setProfilePicture('')}
+                        className="text-[11px] text-red-600 hover:underline cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* Role, Gender & Joining Date */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                Role <span className="text-[#D81124]">*</span>
-              </label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value as any)}
-                className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54] font-semibold text-[#181E54]"
-              >
-                <option value="CRO">CRO (Client Relations Officer)</option>
-                <option value="MK">MK (Matchmaking Officer)</option>
-              </select>
-            </div>
+              {/* Role, Gender & Joining Date */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Role <span className="text-[#D81124]">*</span>
+                  </label>
+                  <select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value as any)}
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54] font-semibold text-[#181E54]"
+                  >
+                    <option value="CRO">CRO (Client Relations)</option>
+                    <option value="MK">MK (Matchmaking)</option>
+                  </select>
+                </div>
 
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Gender</label>
-              <select
-                value={gender}
-                onChange={(e) => setGender(e.target.value as any)}
-                className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
-              >
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Gender</label>
+                  <select
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value as any)}
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
 
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Joining Date</label>
-              <input
-                type="date"
-                value={joiningDate}
-                onChange={(e) => setJoiningDate(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
-              />
-            </div>
-          </div>
-
-          {/* Branch & Contact Numbers */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Branch Name</label>
-              <select
-                value={branch}
-                onChange={(e) => setBranch(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
-              >
-                <option value="Uttara">Uttara Branch</option>
-                <option value="Dhanmondi">Dhanmondi Branch</option>
-                <option value="Mirpur">Mirpur Branch</option>
-                <option value="Gulshan">Gulshan Branch</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                Official Number <span className="text-[#D81124]">* (Login ID)</span>
-              </label>
-              <div className="relative">
-                <Phone className="w-3.5 h-3.5 text-[#181E54] absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="e.g. 01700000001"
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54] font-mono font-medium"
-                />
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Joining Date</label>
+                  <input
+                    type="date"
+                    value={joiningDate}
+                    onChange={(e) => setJoiningDate(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
+                  />
+                </div>
               </div>
-              <p className="text-[10px] text-slate-400 mt-0.5">Used as login phone</p>
-            </div>
 
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Personal Number</label>
-              <div className="relative">
-                <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={personalPhone}
-                  onChange={(e) => setPersonalPhone(e.target.value)}
-                  placeholder="e.g. 01911223344"
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54] font-mono"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Email & Password (Login Credentials) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-amber-50/40 rounded-xl border border-amber-200/50">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Personal Email</label>
-              <div className="relative">
-                <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="employee@shadikabbo.com"
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                Password <span className="text-[#D81124]">* (Required for login)</span>
-              </label>
-              <div className="relative">
-                <Lock className="w-3.5 h-3.5 text-[#181E54] absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Set login password"
-                  className="w-full pl-9 pr-9 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54] font-mono"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              {/* Branch */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">Branch Name</label>
+                <select
+                  value={branch}
+                  onChange={(e) => setBranch(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
                 >
-                  {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                </button>
-              </div>
-              <p className="text-[10px] text-slate-500 mt-0.5">Required for staff account authentication</p>
-            </div>
-          </div>
-
-          {/* Locations */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Present Location</label>
-              <div className="relative">
-                <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={presentLocation}
-                  onChange={(e) => setPresentLocation(e.target.value)}
-                  placeholder="e.g. Sector 11, Uttara, Dhaka"
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
-                />
+                  <option value="Uttara">Uttara Branch</option>
+                  <option value="Dhanmondi">Dhanmondi Branch</option>
+                  <option value="Mirpur">Mirpur Branch</option>
+                  <option value="Gulshan">Gulshan Branch</option>
+                </select>
               </div>
             </div>
 
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Current Location</label>
-              <div className="relative">
-                <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={currentLocation}
-                  onChange={(e) => setCurrentLocation(e.target.value)}
-                  placeholder="e.g. Dhanmondi, Dhaka"
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
-                />
+            {/* RIGHT COLUMN: Contacts, Login Credentials & Locations */}
+            <div className="space-y-4">
+              {/* Contact Numbers */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Official Number <span className="text-[#D81124]">* (Login ID)</span>
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-3.5 h-3.5 text-[#181E54] absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      required
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="e.g. 01700000001"
+                      className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54] font-mono font-medium"
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Used as staff login ID</p>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Personal Number</label>
+                  <div className="relative">
+                    <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={personalPhone}
+                      onChange={(e) => setPersonalPhone(e.target.value)}
+                      placeholder="e.g. 01911223344"
+                      className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54] font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Email & Password (Login Credentials) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-amber-50/40 rounded-2xl border border-amber-200/60">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Personal Email</label>
+                  <div className="relative">
+                    <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="employee@shadikabbo.com"
+                      className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Password <span className="text-[#D81124]">* (Required)</span>
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-3.5 h-3.5 text-[#181E54] absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Set login password"
+                      className="w-full pl-9 pr-9 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54] font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Staff login authentication</p>
+                </div>
+              </div>
+
+              {/* Locations */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Present Location</label>
+                  <div className="relative">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={presentLocation}
+                      onChange={(e) => setPresentLocation(e.target.value)}
+                      placeholder="e.g. Sector 11, Uttara"
+                      className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Current Location</label>
+                  <div className="relative">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={currentLocation}
+                      onChange={(e) => setCurrentLocation(e.target.value)}
+                      placeholder="e.g. Dhanmondi, Dhaka"
+                      className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
+
           </div>
 
           {/* Footer Actions */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={onClose}
@@ -1154,15 +1166,15 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col">
+      <div className="bg-white rounded-2xl max-w-4xl xl:max-w-5xl w-full shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col">
         {/* Header */}
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#181E54] text-white flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-[#181E54] text-white flex items-center justify-center shadow-xs">
               <Edit className="w-4 h-4 text-amber-400" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-[#181E54]">
+              <h2 className="text-base font-bold text-[#181E54]">
                 {isSuperAdmin ? `Edit Account: ${account.name}` : 'Update Profile Information'}
               </h2>
               <p className="text-[11px] text-slate-500">
@@ -1182,7 +1194,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="overflow-y-auto p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="overflow-y-auto p-5 sm:p-6 space-y-4 flex-1">
           {errorMsg && (
             <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-medium flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -1190,266 +1202,278 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
             </div>
           )}
 
-          {/* Profile Picture Uploader & Employee Name */}
-          <div className="flex flex-col sm:row items-center gap-4 p-3.5 bg-slate-50 rounded-xl border border-slate-100">
-            <div className="relative shrink-0 group">
-              <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-slate-200 bg-white flex items-center justify-center shadow-xs">
-                {profilePicture ? (
-                  <img src={profilePicture} alt="Preview" className="w-full h-full object-cover" />
-                ) : (
-                  <User className="w-8 h-8 text-slate-300" />
-                )}
-              </div>
-              <label
-                htmlFor="edit-account-photo"
-                className="absolute inset-0 rounded-full bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer text-[10px] font-bold"
-              >
-                <Camera className="w-4 h-4 mb-0.5" />
-                <span>Upload</span>
-              </label>
-              <input
-                id="edit-account-photo"
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoUpload}
-                className="hidden"
-              />
-            </div>
+          {/* 2-Column Responsive Layout for Web Screens */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+            
+            {/* LEFT COLUMN: Identity, Photo & Role Assignment */}
+            <div className="space-y-4">
+              {/* Profile Picture Uploader & Employee Name */}
+              <div className="flex flex-col sm:flex-row items-center gap-4 p-3.5 bg-slate-50 rounded-2xl border border-slate-200/70">
+                <div className="relative shrink-0 group">
+                  <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-slate-200 bg-white flex items-center justify-center shadow-xs">
+                    {profilePicture ? (
+                      <img src={profilePicture} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-8 h-8 text-slate-300" />
+                    )}
+                  </div>
+                  <label
+                    htmlFor="edit-account-photo"
+                    className="absolute inset-0 rounded-full bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer text-[10px] font-bold"
+                  >
+                    <Camera className="w-4 h-4 mb-0.5" />
+                    <span>Upload</span>
+                  </label>
+                  <input
+                    id="edit-account-photo"
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
+                </div>
 
-            <div className="flex-1 w-full space-y-3">
+                <div className="flex-1 w-full space-y-2.5">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Employee Name <span className="text-[#D81124]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <label
+                      htmlFor="edit-account-photo"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-xs font-semibold text-slate-700 cursor-pointer shadow-2xs"
+                    >
+                      <Upload className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Change Photo</span>
+                    </label>
+                    {profilePicture && (
+                      <button
+                        type="button"
+                        onClick={() => setProfilePicture('')}
+                        className="text-[11px] text-red-600 hover:underline cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Role, Gender & Joining Date */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Role</label>
+                  {isSuperAdmin ? (
+                    <select
+                      value={role}
+                      onChange={(e) => setRole(e.target.value as any)}
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54] font-semibold text-[#181E54]"
+                    >
+                      <option value="Super Admin">Super Admin</option>
+                      <option value="CRO">CRO</option>
+                      <option value="MK">MK</option>
+                    </select>
+                  ) : (
+                    <div className="px-3 py-2 text-xs bg-slate-100 border border-slate-200 rounded-xl font-bold text-[#181E54] flex items-center justify-between">
+                      <span>{account.role}</span>
+                      <Lock className="w-3.5 h-3.5 text-slate-400" />
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Gender</label>
+                  <select
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value as any)}
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Joining Date</label>
+                  {isSuperAdmin ? (
+                    <input
+                      type="date"
+                      value={joiningDate}
+                      onChange={(e) => setJoiningDate(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
+                    />
+                  ) : (
+                    <div className="px-3 py-2 text-xs bg-slate-100 border border-slate-200 rounded-xl font-mono text-slate-700 flex items-center justify-between">
+                      <span>{account.joiningDate || '2024-01-15'}</span>
+                      <Lock className="w-3.5 h-3.5 text-slate-400" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Branch */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                  Employee Name <span className="text-[#D81124]">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <label
-                  htmlFor="edit-account-photo"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-xs font-semibold text-slate-700 cursor-pointer shadow-2xs"
-                >
-                  <Upload className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Change Photo</span>
-                </label>
-                {profilePicture && (
-                  <button
-                    type="button"
-                    onClick={() => setProfilePicture('')}
-                    className="text-[11px] text-red-600 hover:underline cursor-pointer"
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">Branch</label>
+                {isSuperAdmin ? (
+                  <select
+                    value={branch}
+                    onChange={(e) => setBranch(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
                   >
-                    Remove
-                  </button>
+                    <option value="Uttara">Uttara Branch</option>
+                    <option value="Dhanmondi">Dhanmondi Branch</option>
+                    <option value="Mirpur">Mirpur Branch</option>
+                    <option value="Gulshan">Gulshan Branch</option>
+                  </select>
+                ) : (
+                  <div className="px-3 py-2 text-xs bg-slate-100 border border-slate-200 rounded-xl font-medium text-slate-700 flex items-center justify-between">
+                    <span>{account.branch || 'Uttara'}</span>
+                    <Lock className="w-3.5 h-3.5 text-slate-400" />
+                  </div>
                 )}
               </div>
             </div>
-          </div>
 
-          {/* Role, Gender & Joining Date */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Role</label>
-              {isSuperAdmin ? (
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value as any)}
-                  className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54] font-semibold text-[#181E54]"
-                >
-                  <option value="Super Admin">Super Admin</option>
-                  <option value="CRO">CRO</option>
-                  <option value="MK">MK</option>
-                </select>
-              ) : (
-                <div className="px-3 py-2 text-xs bg-slate-100 border border-slate-200 rounded-xl font-bold text-[#181E54] flex items-center justify-between">
-                  <span>{account.role}</span>
-                  <Lock className="w-3.5 h-3.5 text-slate-400" />
+            {/* RIGHT COLUMN: Contacts, Login Credentials & Locations */}
+            <div className="space-y-4">
+              {/* Contact Numbers */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Official Number {isSuperAdmin ? '(Login)' : '(Locked)'}
+                  </label>
+                  {isSuperAdmin ? (
+                    <div className="relative">
+                      <Phone className="w-3.5 h-3.5 text-[#181E54] absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        required
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54] font-mono font-medium"
+                      />
+                    </div>
+                  ) : (
+                    <div className="px-3 py-2 text-xs bg-slate-100 border border-slate-200 rounded-xl font-mono text-slate-700 flex items-center justify-between">
+                      <span>{account.phone}</span>
+                      <span title="Managed by Super Admin">
+                        <Lock className="w-3.5 h-3.5 text-slate-400" />
+                      </span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Gender</label>
-              <select
-                value={gender}
-                onChange={(e) => setGender(e.target.value as any)}
-                className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
-              >
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Joining Date</label>
-              {isSuperAdmin ? (
-                <input
-                  type="date"
-                  value={joiningDate}
-                  onChange={(e) => setJoiningDate(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
-                />
-              ) : (
-                <div className="px-3 py-2 text-xs bg-slate-100 border border-slate-200 rounded-xl font-mono text-slate-700 flex items-center justify-between">
-                  <span>{account.joiningDate || '2024-01-15'}</span>
-                  <Lock className="w-3.5 h-3.5 text-slate-400" />
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Personal Number</label>
+                  <div className="relative">
+                    <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={personalPhone}
+                      onChange={(e) => setPersonalPhone(e.target.value)}
+                      placeholder="e.g. 01911223344"
+                      className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54] font-mono"
+                    />
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Branch & Contact Numbers */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Branch</label>
-              {isSuperAdmin ? (
-                <select
-                  value={branch}
-                  onChange={(e) => setBranch(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
-                >
-                  <option value="Uttara">Uttara Branch</option>
-                  <option value="Dhanmondi">Dhanmondi Branch</option>
-                  <option value="Mirpur">Mirpur Branch</option>
-                  <option value="Gulshan">Gulshan Branch</option>
-                </select>
-              ) : (
-                <div className="px-3 py-2 text-xs bg-slate-100 border border-slate-200 rounded-xl font-medium text-slate-700 flex items-center justify-between">
-                  <span>{account.branch || 'Uttara'}</span>
-                  <Lock className="w-3.5 h-3.5 text-slate-400" />
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                Official Number {isSuperAdmin ? '(Login)' : '(Locked)'}
-              </label>
-              {isSuperAdmin ? (
-                <div className="relative">
-                  <Phone className="w-3.5 h-3.5 text-[#181E54] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54] font-mono font-medium"
-                  />
-                </div>
-              ) : (
-                <div className="px-3 py-2 text-xs bg-slate-100 border border-slate-200 rounded-xl font-mono text-slate-700 flex items-center justify-between">
-                  <span>{account.phone}</span>
-                  <span title="Managed by Super Admin">
-                    <Lock className="w-3.5 h-3.5 text-slate-400" />
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Personal Number</label>
-              <div className="relative">
-                <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={personalPhone}
-                  onChange={(e) => setPersonalPhone(e.target.value)}
-                  placeholder="e.g. 01911223344"
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54] font-mono"
-                />
               </div>
-            </div>
-          </div>
 
-          {/* Email & Password */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-100">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Personal Email</label>
-              <div className="relative">
-                <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="employee@shadikabbo.com"
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
-                />
+              {/* Email & Password */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200/70">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Personal Email</label>
+                  <div className="relative">
+                    <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="employee@shadikabbo.com"
+                      className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
+                    />
+                  </div>
+                </div>
+
+                {/* Password input */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    {isSuperAdmin ? 'Reset Password (Blank to keep)' : 'Password (Login)'}
+                  </label>
+                  {isSuperAdmin ? (
+                    <div className="relative">
+                      <Lock className="w-3.5 h-3.5 text-[#181E54] absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="New password"
+                        className="w-full pl-9 pr-9 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54] font-mono"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="px-3 py-2 text-xs bg-slate-100 border border-slate-200 rounded-xl text-slate-500 flex items-center justify-between">
+                      <span>•••••••• (Protected)</span>
+                      <span title="Contact Super Admin to reset password">
+                        <Lock className="w-3.5 h-3.5 text-slate-400" />
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Locations */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Present Location</label>
+                  <div className="relative">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={presentLocation}
+                      onChange={(e) => setPresentLocation(e.target.value)}
+                      placeholder="e.g. Sector 11, Uttara, Dhaka"
+                      className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Current Location</label>
+                  <div className="relative">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={currentLocation}
+                      onChange={(e) => setCurrentLocation(e.target.value)}
+                      placeholder="e.g. Dhanmondi, Dhaka"
+                      className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Password input: Super Admin can reset; CRO/MK sees locked message */}
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                {isSuperAdmin ? 'Reset Password (Leave blank to keep)' : 'Password (Login)'}
-              </label>
-              {isSuperAdmin ? (
-                <div className="relative">
-                  <Lock className="w-3.5 h-3.5 text-[#181E54] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter new password to change"
-                    className="w-full pl-9 pr-9 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54] font-mono"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
-              ) : (
-                <div className="px-3 py-2 text-xs bg-slate-100 border border-slate-200 rounded-xl text-slate-500 flex items-center justify-between">
-                  <span>•••••••• (Protected)</span>
-                  <span title="Contact Super Admin to reset password">
-                    <Lock className="w-3.5 h-3.5 text-slate-400" />
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Locations */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Present Location</label>
-              <div className="relative">
-                <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={presentLocation}
-                  onChange={(e) => setPresentLocation(e.target.value)}
-                  placeholder="e.g. Sector 11, Uttara, Dhaka"
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Current Location</label>
-              <div className="relative">
-                <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={currentLocation}
-                  onChange={(e) => setCurrentLocation(e.target.value)}
-                  placeholder="e.g. Dhanmondi, Dhaka"
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#181E54]"
-                />
-              </div>
-            </div>
           </div>
 
           {/* Footer Actions */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={onClose}

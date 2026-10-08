@@ -169,7 +169,7 @@ export default function App() {
         activePage={activePage}
         onSelectPage={(page) => setActivePage(page)}
         onLogout={handleLogout}
-        onOpenScanner={isStaff ? () => setStaffViewMode('scanner') : undefined}
+        onOpenScanner={isStaff ? () => setStaffViewMode('scanner') : () => setShowAdminScanner(true)}
       >
         {/* Attendance section (Admin full view vs Staff personal view) */}
         {activePage === 'Attendance' && (

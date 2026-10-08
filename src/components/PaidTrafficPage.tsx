@@ -102,14 +102,35 @@ const PaidTrafficTableRow = React.memo<PaidTrafficTableRowProps>(
           </div>
         </td>
 
-        {/* 5. Assign (Assigned MK Account) */}
-        <td className="py-2 px-3.5 w-36">
-          <div className="font-semibold text-slate-800 text-xs truncate">
-            {row.assignedTo?.name || row.assignBy || 'General MK'}
-          </div>
-          <div className="text-[10px] text-slate-500 font-medium">
-            Role: {row.assignedTo?.role || 'MK'}
-          </div>
+        {/* 5. Assign (Assigned MK Accounts - Supports Multiple Assign) */}
+        <td className="py-2 px-3.5 w-44">
+          {Array.isArray(row.assignedMKs) && row.assignedMKs.length > 1 ? (
+            <div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-bold text-slate-900 text-xs truncate max-w-[120px]">
+                  {row.assignedMKs[0].name}
+                </span>
+                <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-bold">
+                  +{row.assignedMKs.length - 1} more
+                </span>
+              </div>
+              <div
+                className="text-[10px] text-emerald-700 font-semibold truncate max-w-[150px] mt-0.5"
+                title={row.assignedMKs.map((m: any) => m.name).join(', ')}
+              >
+                Multi-MK ({row.assignedMKs.map((m: any) => m.name.replace(/^MK - /, '')).join(', ')})
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div className="font-semibold text-slate-800 text-xs truncate">
+                {row.assignedTo?.name || row.assignBy || 'General MK'}
+              </div>
+              <div className="text-[10px] text-slate-500 font-medium">
+                Role: {row.assignedTo?.role || 'MK'}
+              </div>
+            </div>
+          )}
         </td>
 
         {/* 6. Phone */}

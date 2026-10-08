@@ -546,7 +546,7 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 flex items-center justify-center p-3 md:p-6 transition-opacity duration-150">
-      <div className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-6 flex flex-col h-[650px] max-h-[92vh]">
+      <div className="relative w-full max-w-6xl xl:max-w-7xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-4 sm:my-6 flex flex-col h-[700px] lg:h-[750px] max-h-[92vh]">
         
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/80 shrink-0">
@@ -573,9 +573,9 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
           </button>
         </div>
 
-        {/* MODERN MULTI-STEP PROGRESS STEPPER */}
+        {/* MODERN MULTI-STEP PROGRESS STEPPER (Wide Web Optimized) */}
         <div className="px-6 py-3.5 bg-white border-b border-slate-100 shrink-0">
-          <div className="flex items-center justify-between max-w-2xl mx-auto relative">
+          <div className="flex items-center justify-between max-w-3xl mx-auto relative">
             {/* Connecting Progress Track */}
             <div className="absolute left-6 right-6 top-1/2 -translate-y-1/2 h-1 bg-slate-100 -z-0 rounded-full overflow-hidden">
               <motion.div
@@ -700,159 +700,188 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
           {/* STEP 1: PART 1 - BASIC INFO                              */}
           {/* ======================================================== */}
           {currentStep === 1 && (
-            <motion.div key="step-1" custom={direction} variants={STEP_VARIANTS} initial="enter" animate="center" exit="exit" className="space-y-6 max-w-2xl mx-auto min-h-[440px]">
-              <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-4">
-                <div className="flex items-center gap-2.5 pb-2 border-b border-slate-200/60">
-                  <div className="w-7 h-7 rounded-lg bg-[#181E54] text-white flex items-center justify-center">
-                    <User className="w-4 h-4" />
+            <motion.div key="step-1" custom={direction} variants={STEP_VARIANTS} initial="enter" animate="center" exit="exit" className="space-y-5 w-full min-h-[400px]">
+              <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-5">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-[#181E54] text-white flex items-center justify-center">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-[#181E54]">Candidate Primary Details</h3>
+                      <p className="text-[11px] text-slate-500">
+                        Essential identity and contact credentials for the client
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-[#181E54]">Candidate Primary Details</h3>
-                    <p className="text-[11px] text-slate-500">
-                      Essential identity and contact credentials for the client
-                    </p>
-                  </div>
+                  <span className="text-[11px] font-semibold text-slate-400 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+                    Step 1 of 3
+                  </span>
                 </div>
 
-                {/* 1. Name */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                    Candidate Full Name <span className="text-[#D81124]">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => {
-                      setName(e.target.value);
-                      clearFieldError('name');
-                    }}
-                    placeholder="e.g. Farhana Yasmin or Tanvir Ahmed"
-                    required
-                    autoFocus
-                    className={`w-full px-3.5 py-2.5 bg-white border rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 ${
-                      errors.name
-                        ? 'border-red-500 focus:ring-red-500'
-                        : 'border-slate-300 focus:ring-[#181E54]'
-                    }`}
-                  />
-                  {errors.name && <p className="text-[11px] text-red-600 mt-1">{errors.name}</p>}
-                </div>
-
-                {/* 2. Official Phone Number with Country Flag & Code Selector */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                    Official Phone Number <span className="text-[#D81124]">*</span>
-                  </label>
-                  
-                  <div className="relative flex items-center rounded-xl border border-slate-300 bg-white focus-within:ring-2 focus-within:ring-[#181E54] focus-within:border-transparent transition-all">
-                    
-                    {/* Country Code Trigger Button */}
-                    <div ref={countryDropdownRef} className="relative shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
-                        className="flex items-center gap-1.5 px-3 py-2.5 bg-slate-50 hover:bg-slate-100 rounded-l-xl border-r border-slate-200 text-xs font-semibold text-slate-800 transition-colors cursor-pointer select-none"
-                        title={`Selected: ${selectedCountry.name} (${selectedCountry.code})`}
-                      >
-                        <CountryFlag iso={selectedCountry.iso} name={selectedCountry.name} className="w-6 h-4" />
-                        <span className="font-mono text-slate-700 text-xs">{selectedCountry.code}</span>
-                        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isCountryDropdownOpen ? 'rotate-180' : ''}`} />
-                      </button>
-
-                      {/* Dropdown Menu */}
-                      {isCountryDropdownOpen && (
-                        <div className="absolute left-0 top-full mt-1.5 w-64 max-h-60 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden flex flex-col">
-                          {/* Search inside dropdown */}
-                          <div className="p-2 border-b border-slate-100 bg-slate-50">
-                            <div className="relative">
-                              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                              <input
-                                type="text"
-                                value={countrySearch}
-                                onChange={(e) => setCountrySearch(e.target.value)}
-                                placeholder="Search country or code..."
-                                className="w-full pl-8 pr-2.5 py-1 text-[11px] bg-white border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#181E54]"
-                                autoFocus
-                              />
-                            </div>
-                          </div>
-
-                          {/* Country List */}
-                          <div className="overflow-y-auto flex-1 divide-y divide-slate-50 p-1">
-                            {filteredCountries.length === 0 ? (
-                              <div className="p-3 text-center text-xs text-slate-400">
-                                No country found
-                              </div>
-                            ) : (
-                              filteredCountries.map((c) => (
-                                <button
-                                  key={c.code + c.name}
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedCountry(c);
-                                    setIsCountryDropdownOpen(false);
-                                    setCountrySearch('');
-                                  }}
-                                  className={`w-full flex items-center justify-between px-2.5 py-2 text-left text-xs rounded-lg transition-colors cursor-pointer ${
-                                    selectedCountry.code === c.code && selectedCountry.name === c.name
-                                      ? 'bg-[#181E54]/10 text-[#181E54] font-semibold'
-                                      : 'hover:bg-slate-50 text-slate-700'
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <CountryFlag iso={c.iso} name={c.name} className="w-6 h-4" />
-                                    <span className="truncate text-xs">{c.name}</span>
-                                  </div>
-                                  <span className="font-mono text-[11px] text-slate-500 shrink-0 ml-2">
-                                    {c.code}
-                                  </span>
-                                </button>
-                              ))
-                            )}
-                          </div>
-                        </div>
-                      )}
+                {/* 2-Column Responsive Grid for Web */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* LEFT COLUMN: Name & Phone */}
+                  <div className="space-y-4">
+                    {/* 1. Name */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                        Candidate Full Name <span className="text-[#D81124]">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => {
+                          setName(e.target.value);
+                          clearFieldError('name');
+                        }}
+                        placeholder="e.g. Farhana Yasmin or Tanvir Ahmed"
+                        required
+                        autoFocus
+                        className={`w-full px-3.5 py-2.5 bg-white border rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 ${
+                          errors.name
+                            ? 'border-red-500 focus:ring-red-500'
+                            : 'border-slate-300 focus:ring-[#181E54]'
+                        }`}
+                      />
+                      {errors.name && <p className="text-[11px] text-red-600 mt-1">{errors.name}</p>}
                     </div>
 
-                    {/* Phone Number Input */}
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => {
-                        setPhone(e.target.value);
-                        clearFieldError('phone');
-                      }}
-                      placeholder={selectedCountry.placeholder}
-                      required
-                      className="flex-1 px-3.5 py-2.5 bg-transparent text-xs text-slate-900 font-mono placeholder-slate-400 focus:outline-none"
-                    />
+                    {/* 2. Official Phone Number with Country Flag & Code Selector */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                        Official Phone Number <span className="text-[#D81124]">*</span>
+                      </label>
+                      
+                      <div className="relative flex items-center rounded-xl border border-slate-300 bg-white focus-within:ring-2 focus-within:ring-[#181E54] focus-within:border-transparent transition-all">
+                        
+                        {/* Country Code Trigger Button */}
+                        <div ref={countryDropdownRef} className="relative shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
+                            className="flex items-center gap-1.5 px-3 py-2.5 bg-slate-50 hover:bg-slate-100 rounded-l-xl border-r border-slate-200 text-xs font-semibold text-slate-800 transition-colors cursor-pointer select-none"
+                            title={`Selected: ${selectedCountry.name} (${selectedCountry.code})`}
+                          >
+                            <CountryFlag iso={selectedCountry.iso} name={selectedCountry.name} className="w-6 h-4" />
+                            <span className="font-mono text-slate-700 text-xs">{selectedCountry.code}</span>
+                            <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isCountryDropdownOpen ? 'rotate-180' : ''}`} />
+                          </button>
+
+                          {/* Dropdown Menu */}
+                          {isCountryDropdownOpen && (
+                            <div className="absolute left-0 top-full mt-1.5 w-64 max-h-60 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden flex flex-col">
+                              {/* Search inside dropdown */}
+                              <div className="p-2 border-b border-slate-100 bg-slate-50">
+                                <div className="relative">
+                                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                                  <input
+                                    type="text"
+                                    value={countrySearch}
+                                    onChange={(e) => setCountrySearch(e.target.value)}
+                                    placeholder="Search country or code..."
+                                    className="w-full pl-8 pr-2.5 py-1 text-[11px] bg-white border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#181E54]"
+                                    autoFocus
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Country List */}
+                              <div className="overflow-y-auto flex-1 divide-y divide-slate-50 p-1">
+                                {filteredCountries.length === 0 ? (
+                                  <div className="p-3 text-center text-xs text-slate-400">
+                                    No country found
+                                  </div>
+                                ) : (
+                                  filteredCountries.map((c) => (
+                                    <button
+                                      key={c.code + c.name}
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedCountry(c);
+                                        setIsCountryDropdownOpen(false);
+                                        setCountrySearch('');
+                                      }}
+                                      className={`w-full flex items-center justify-between px-2.5 py-2 text-left text-xs rounded-lg transition-colors cursor-pointer ${
+                                        selectedCountry.code === c.code && selectedCountry.name === c.name
+                                          ? 'bg-[#181E54]/10 text-[#181E54] font-semibold'
+                                          : 'hover:bg-slate-50 text-slate-700'
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <CountryFlag iso={c.iso} name={c.name} className="w-6 h-4" />
+                                        <span className="truncate text-xs">{c.name}</span>
+                                      </div>
+                                      <span className="font-mono text-[11px] text-slate-500 shrink-0 ml-2">
+                                        {c.code}
+                                      </span>
+                                    </button>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Phone Number Input */}
+                        <input
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => {
+                            setPhone(e.target.value);
+                            clearFieldError('phone');
+                          }}
+                          placeholder={selectedCountry.placeholder}
+                          required
+                          className="flex-1 px-3.5 py-2.5 bg-transparent text-xs text-slate-900 font-mono placeholder-slate-400 focus:outline-none"
+                        />
+                      </div>
+
+                      {errors.phone && (
+                        <p className="text-[11px] text-red-600 mt-1">{errors.phone}</p>
+                      )}
+                    </div>
                   </div>
 
-                  {errors.phone && (
-                    <p className="text-[11px] text-red-600 mt-1">{errors.phone}</p>
-                  )}
-                </div>
+                  {/* RIGHT COLUMN: Email & Summary */}
+                  <div className="space-y-4">
+                    {/* 3. Email */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                        Email Address (Optional)
+                      </label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          clearFieldError('email');
+                        }}
+                        placeholder="candidate@example.com"
+                        className={`w-full px-3.5 py-2.5 bg-white border rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 ${
+                          errors.email
+                            ? 'border-red-500 focus:ring-red-500'
+                            : 'border-slate-300 focus:ring-[#181E54]'
+                        }`}
+                      />
+                      {errors.email && <p className="text-[11px] text-red-600 mt-1">{errors.email}</p>}
+                    </div>
 
-                {/* 3. Email */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                    Email Address (Optional)
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      clearFieldError('email');
-                    }}
-                    placeholder="candidate@example.com"
-                    className={`w-full px-3.5 py-2.5 bg-white border rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 ${
-                      errors.email
-                        ? 'border-red-500 focus:ring-red-500'
-                        : 'border-slate-300 focus:ring-[#181E54]'
-                    }`}
-                  />
-                  {errors.email && <p className="text-[11px] text-red-600 mt-1">{errors.email}</p>}
+                    {/* Candidate Preview Card */}
+                    <div className="p-3.5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-2">
+                      <div className="flex items-center justify-between text-xs font-bold text-[#181E54]">
+                        <span>Traffic Candidate Preview</span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          Active Traffic
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-600 space-y-1">
+                        <p><strong className="text-slate-800">Name:</strong> {name || '—'}</p>
+                        <p><strong className="text-slate-800">Phone:</strong> {phone ? `${selectedCountry.code} ${phone}` : '—'}</p>
+                        <p><strong className="text-slate-800">Email:</strong> {email || 'None'}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -904,7 +933,7 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
                   </h3>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
                   {/* Profession Selection Menu */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -1081,7 +1110,7 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
                   </div>
 
                   {/* Requirement - Manually Input */}
-                  <div className="sm:col-span-2 md:col-span-3">
+                  <div className="sm:col-span-2 md:col-span-3 lg:col-span-4">
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Partner Requirement (Manually Input)
                     </label>
@@ -1096,8 +1125,10 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
                 </div>
               </div>
 
-              {/* Address Section */}
-              <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-4">
+              {/* 2-Column Responsive Section: Address Details on Left, Uploads on Right */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+                {/* Address Section */}
+                <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-200/60">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-[#181E54]" />
@@ -1214,7 +1245,7 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
               </div>
 
               {/* Uploads Section: Unlimited Pictures & PDF Only */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
                 
                 {/* 1. PICTURE UPLOAD (Unlimited) */}
                 <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 space-y-3">
@@ -1355,16 +1386,16 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
                     </div>
                   )}
                 </div>
-
               </div>
-            </motion.div>
+            </div>
+          </motion.div>
           )}
 
           {/* ======================================================== */}
           {/* STEP 3: PART 3 - PAYMENT                                 */}
           {/* ======================================================== */}
           {currentStep === 3 && (
-            <motion.div key="step-3" custom={direction} variants={STEP_VARIANTS} initial="enter" animate="center" exit="exit" className="space-y-6 max-w-3xl mx-auto min-h-[440px]">
+            <motion.div key="step-3" custom={direction} variants={STEP_VARIANTS} initial="enter" animate="center" exit="exit" className="space-y-6 w-full min-h-[440px]">
               
               <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-5">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-200/60">
@@ -1379,7 +1410,7 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {/* 1. Package - Selection Menu */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">

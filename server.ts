@@ -2316,7 +2316,8 @@ app.get('/api/paid-traffic', authMiddleware, (req, res) => {
       const isCreator = (t.creatorId && t.creatorId === actor.id) || t.createdBy === actor.name;
       const isAssigned = (t.assignedTo?.id && t.assignedTo?.id === actor.id) ||
                          (t.assignedTo?.name && t.assignedTo?.name === actor.name) ||
-                         t.assignBy === actor.name;
+                         t.assignBy === actor.name ||
+                         (Array.isArray(t.assignedMKs) && t.assignedMKs.some((m: any) => m.id === actor.id || m.name === actor.name));
       return isCreator || isAssigned;
     });
   }
@@ -2329,7 +2330,7 @@ app.get('/api/paid-traffic', authMiddleware, (req, res) => {
   res.json(result);
 });
 
-// Change assign for paid traffic
+// Change assign for paid traffic (supports single or multiple MK accounts)
 app.put('/api/paid-traffic/:id/change-assign', authMiddleware, (req, res) => {
   const actor = (req as any).user;
   if (actor.role === 'CRO' || actor.role === 'MK') {
@@ -2337,10 +2338,7 @@ app.put('/api/paid-traffic/:id/change-assign', authMiddleware, (req, res) => {
   }
 
   const { id } = req.params;
-  const { assignedName, role } = req.body;
-  if (!assignedName || !role) {
-    return res.status(400).json({ error: 'Assigned name and role are required' });
-  }
+  const { assignedName, role, assignedMKs } = req.body;
 
   const db = loadDB();
   const traffic = db.traffics.find(t => t.id === id);
@@ -2348,15 +2346,161 @@ app.put('/api/paid-traffic/:id/change-assign', authMiddleware, (req, res) => {
     return res.status(404).json({ error: 'Traffic record not found' });
   }
 
-  traffic.assignedTo = {
-    id: req.body.assignedId || '',
-    name: assignedName,
-    role: role,
-  };
-  traffic.assignBy = assignedName;
+  const now = Date.now();
+
+  if (Array.isArray(assignedMKs) && assignedMKs.length > 0) {
+    traffic.assignedMKs = assignedMKs.map((m: any) => ({
+      id: m.id || '',
+      name: m.name || '',
+      role: m.role || 'MK',
+      assignedAt: now,
+    }));
+    traffic.assignedTo = {
+      id: assignedMKs[0].id || '',
+      name: assignedMKs[0].name || '',
+      role: assignedMKs[0].role || 'MK',
+    };
+    traffic.assignBy = assignedMKs.map((m: any) => m.name).join(', ');
+    traffic.assignedAt = now;
+  } else if (assignedName) {
+    traffic.assignedTo = {
+      id: req.body.assignedId || '',
+      name: assignedName,
+      role: role || 'MK',
+    };
+    traffic.assignedMKs = [{
+      id: req.body.assignedId || '',
+      name: assignedName,
+      role: role || 'MK',
+      assignedAt: now,
+    }];
+    traffic.assignBy = assignedName;
+    traffic.assignedAt = now;
+  } else {
+    return res.status(400).json({ error: 'Assigned accounts are required' });
+  }
 
   saveDB(db);
   res.json({ success: true, traffic });
+});
+
+// --- MATCHMAKING SERVICES API ---
+// Record matchmaking service action (Incoming Call, Outgoing Call, CV Send, Update)
+app.post('/api/matchmaking/:id/service', authMiddleware, (req, res) => {
+  const actor = (req as any).user;
+  const { id } = req.params;
+  const { serviceType, note } = req.body;
+
+  if (!serviceType) {
+    return res.status(400).json({ error: 'Service type is required (Incoming Call, Outgoing Call, CV Send, or Update)' });
+  }
+
+  const validTypes = ['Incoming Call', 'Outgoing Call', 'CV Send', 'Update'];
+  if (!validTypes.includes(serviceType)) {
+    return res.status(400).json({ error: `Invalid service type. Must be one of: ${validTypes.join(', ')}` });
+  }
+
+  const db = loadDB();
+  const traffic = (db.traffics || []).find(t => t.id === id);
+  if (!traffic) {
+    return res.status(404).json({ error: 'Candidate profile not found' });
+  }
+
+  if (!Array.isArray(traffic.matchmakingServices)) {
+    traffic.matchmakingServices = [];
+  }
+
+  const now = Date.now();
+  const formattedDate = new Date(now).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+
+  const serviceRecord = {
+    id: `srv_${now}_${Math.random().toString(36).slice(2, 7)}`,
+    serviceType,
+    note: note ? String(note).trim() : '',
+    timestamp: now,
+    isoDate: new Date(now).toISOString(),
+    formattedDate,
+    providedBy: {
+      id: actor.id,
+      name: actor.name,
+      role: actor.role,
+    },
+  };
+
+  traffic.matchmakingServices.unshift(serviceRecord);
+  traffic.lastServiceAt = now;
+  traffic.lastServiceType = serviceType;
+  traffic.lastServiceNote = note ? String(note).trim() : '';
+  traffic.lastServiceBy = {
+    id: actor.id,
+    name: actor.name,
+    role: actor.role,
+  };
+  traffic.serviceStatus = 'completed';
+
+  saveDB(db);
+  res.json({ success: true, service: serviceRecord, traffic });
+});
+
+// Get matchmaking stats & overdue counts for MK / Super Admin
+app.get('/api/matchmaking/stats', authMiddleware, (req, res) => {
+  const actor = (req as any).user;
+  const db = loadDB();
+
+  let paid = (db.traffics || []).filter(t => t.status !== 'trash' && t.paymentStatus === 'accepted');
+
+  if (actor.role === 'MK') {
+    paid = paid.filter(t => {
+      const isCreator = (t.creatorId && t.creatorId === actor.id) || t.createdBy === actor.name;
+      const isAssigned = (t.assignedTo?.id && t.assignedTo?.id === actor.id) ||
+                         (t.assignedTo?.name && t.assignedTo?.name === actor.name) ||
+                         t.assignBy === actor.name ||
+                         (Array.isArray(t.assignedMKs) && t.assignedMKs.some((m: any) => m.id === actor.id || m.name === actor.name));
+      return isCreator || isAssigned;
+    });
+  }
+
+  const now = Date.now();
+  const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+
+  let serviceRequiredCount = 0;
+  let serviceCompletedCount = 0;
+  let totalServicesProvidedByMe = 0;
+  const myServicedClientIds = new Set<string>();
+
+  paid.forEach(t => {
+    const lastServiceTime = t.lastServiceAt || t.assignedAt || t.createdTimestamp || Date.now();
+    const isOverdue = (now - lastServiceTime) >= THREE_DAYS_MS;
+    if (isOverdue || !t.lastServiceAt) {
+      serviceRequiredCount++;
+    } else {
+      serviceCompletedCount++;
+    }
+
+    if (Array.isArray(t.matchmakingServices)) {
+      t.matchmakingServices.forEach((s: any) => {
+        if (s.providedBy?.id === actor.id || s.providedBy?.name === actor.name) {
+          totalServicesProvidedByMe++;
+          myServicedClientIds.add(t.id);
+        }
+      });
+    }
+  });
+
+  res.json({
+    totalAssignedClients: paid.length,
+    serviceRequiredCount,
+    serviceCompletedCount,
+    myTotalServicesCount: totalServicesProvidedByMe,
+    myUniqueClientsServicedCount: myServicedClientIds.size,
+  });
 });
 
 // Remove from Paid Traffic (moves to Trush bin)

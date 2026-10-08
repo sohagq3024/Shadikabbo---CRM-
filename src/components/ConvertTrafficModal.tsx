@@ -469,7 +469,7 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 md:p-6 transition-opacity duration-150">
-      <div className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-6 flex flex-col max-h-[92vh]">
+      <div className="relative w-full max-w-6xl xl:max-w-7xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-4 sm:my-6 flex flex-col max-h-[92vh]">
         {/* Conversion In-Progress / Success Animation Overlay */}
         <AnimatePresence>
           {isConverting && (
@@ -639,10 +639,14 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
             </div>
           )}
 
-          {/* ======================================================== */}
-          {/* SECTION 1: PART 1 - BASIC INFO                           */}
-          {/* ======================================================== */}
-          <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-4">
+          {/* 2-Column Responsive Layout for Web */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+            {/* LEFT COLUMN: Basic Info, Assignment, Bio Specification */}
+            <div className="space-y-5">
+              {/* ======================================================== */}
+              {/* SECTION 1: PART 1 - BASIC INFO                           */}
+              {/* ======================================================== */}
+              <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4 text-[#181E54]" />
@@ -1377,9 +1381,14 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                 )}
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Address Details */}
-            <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-3">
+          {/* RIGHT COLUMN: Address Details & Uploads Section */}
+          <div className="space-y-5">
+            <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-4">
+              {/* Address Details */}
+              <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
                 <div className="flex items-center gap-1.5">
                   <MapPin className="w-4 h-4 text-[#181E54]" />
@@ -1726,6 +1735,8 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
           {/* Form Actions Footer */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-slate-100 shrink-0">

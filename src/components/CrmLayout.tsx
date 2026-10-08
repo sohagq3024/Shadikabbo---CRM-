@@ -18,6 +18,8 @@ import {
   User,
   Camera,
   HeartHandshake,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
 
 export type SidebarPage =
@@ -52,10 +54,26 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
+  const [isOnline, setIsOnline] = useState<boolean>(() => {
+    return typeof navigator !== 'undefined' ? navigator.onLine : true;
+  });
 
   useEffect(() => {
     setAvatarError(false);
   }, [user?.profilePicture]);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const role = user?.role || 'Super Admin';
 
@@ -90,6 +108,60 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
     setMobileMenuOpen(false);
   };
 
+  // Primary workflow page for mobile bottom bar based on role:
+  // - MK and Super Admin: Matchmaking (routine 3-day client services)
+  // - CRO: Paid Traffic (pipeline review)
+  const primaryWorkflowPage: SidebarPage =
+    role === 'MK' || role === 'Super Admin' ? 'Matchmaking' : 'Paid Traffic';
+  const primaryWorkflowLabel =
+    role === 'MK' || role === 'Super Admin' ? 'Match' : 'Traffic';
+  const primaryWorkflowIcon =
+    role === 'MK' || role === 'Super Admin' ? (
+      <HeartHandshake className="w-5 h-5" />
+    ) : (
+      <CheckCircle className="w-5 h-5" />
+    );
+
+  const directTabPages: SidebarPage[] = ['Dashboard', 'Lead', primaryWorkflowPage];
+  const isMoreActive = !directTabPages.includes(activePage);
+
+  const handleMobileNavClick = (page: SidebarPage) => {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      try {
+        navigator.vibrate(12);
+      } catch {
+        // Safe fallback
+      }
+    }
+    handleNavClick(page);
+  };
+
+  const handleMobileScanClick = () => {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      try {
+        navigator.vibrate([18, 25, 18]);
+      } catch {
+        // Safe fallback
+      }
+    }
+    if (onOpenScanner) {
+      onOpenScanner();
+    } else {
+      handleNavClick('Attendance');
+    }
+  };
+
+  const handleMobileMoreClick = () => {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      try {
+        navigator.vibrate(12);
+      } catch {
+        // Safe fallback
+      }
+    }
+    setMobileMenuOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* ==================================================
@@ -115,7 +187,33 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
         </div>
 
         {/* TOP RIGHT */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          {/* Subtle Network Status Indicator (Online / Offline) */}
+          <div
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all select-none ${
+              isOnline
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80 shadow-2xs'
+                : 'bg-rose-50 text-rose-700 border-rose-300 shadow-2xs animate-pulse'
+            }`}
+            title={
+              isOnline
+                ? 'Network Status: Online (Connected to office cloud server)'
+                : 'Network Status: Offline (Attendance scans will be cached locally and synced upon reconnect)'
+            }
+          >
+            {isOnline ? (
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+            ) : (
+              <span className="inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+            )}
+            <span className="font-semibold tracking-tight text-[11px]">
+              {isOnline ? 'Online' : 'Offline'}
+            </span>
+          </div>
+
           {/* Add to Home Screen (PWA Install Button) */}
           <PWAInstallButton />
 
@@ -173,18 +271,31 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
         {/* Mobile Sidebar Overlay */}
         {mobileMenuOpen && (
           <div
-            className="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-xs md:hidden"
+            className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs md:hidden"
             onClick={() => setMobileMenuOpen(false)}
           />
         )}
 
-        {/* SIDEBAR: EXACTLY 11 items - ROCK-SOLID FIXED WIDTH */}
+        {/* SIDEBAR: ROCK-SOLID FIXED WIDTH & MOBILE SLIDE-OVER */}
         <aside
-          className={`fixed md:sticky top-16 z-30 h-[calc(100vh-4rem)] w-60 min-w-[15rem] max-w-[15rem] shrink-0 bg-white border-r border-slate-200 transition-transform duration-300 ease-in-out overflow-y-auto flex flex-col justify-between p-3 ${
+          className={`fixed md:sticky top-0 md:top-16 z-50 md:z-30 h-full md:h-[calc(100vh-4rem)] w-64 md:w-60 min-w-[15rem] max-w-[16rem] md:max-w-[15rem] shrink-0 bg-white border-r border-slate-200 transition-transform duration-300 ease-in-out overflow-y-auto flex flex-col justify-between p-3.5 md:p-3 shadow-2xl md:shadow-none ${
             mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
           }`}
         >
-          {/* Top 10 items */}
+          {/* Mobile drawer header (md:hidden) */}
+          <div className="md:hidden flex items-center justify-between pb-3 mb-2 border-b border-slate-100">
+            <ShadikabboLogo size="sm" />
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(false)}
+              className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer"
+              aria-label="Close Navigation Drawer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Top nav items */}
           <nav className="space-y-1">
             {navItems.map((item) => {
               const isActive = activePage === item.label;
@@ -208,8 +319,8 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
             })}
           </nav>
 
-          {/* 11. Logout */}
-          <div className="pt-3 border-t border-slate-100">
+          {/* Logout */}
+          <div className="pt-3 border-t border-slate-100 mt-auto">
             <button
               type="button"
               onClick={onLogout}
@@ -221,12 +332,156 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
           </div>
         </aside>
 
-        {/* MAIN CONTENT VIEWPORT: FULL WIDTH & COMPACT PADDING */}
-        <main className="flex-1 min-w-0 p-2.5 sm:p-3.5 md:px-5 md:py-3 w-full overflow-y-auto">
+        {/* MAIN CONTENT VIEWPORT: FULL WIDTH & COMPACT PADDING WITH BOTTOM BAR CLEARANCE */}
+        <main className="flex-1 min-w-0 p-2.5 sm:p-3.5 md:px-5 md:py-3 w-full overflow-y-auto pb-24 md:pb-4">
           {children}
         </main>
 
       </div>
+
+      {/* ==================================================
+          MOBILE BOTTOM TAB BAR NAVIGATION (md:hidden)
+          Persistent, ergonomic navigation for staff members on the go:
+          1. Dashboard
+          2. Leads
+          3. Center Elevated QR Attendance Scanner
+          4. Matchmaking (MK) / Traffic (CRO)
+          5. More Menu Drawer
+      ================================================== */}
+      <nav
+        aria-label="Mobile Bottom Navigation"
+        className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] md:hidden pb-[max(env(safe-area-inset-bottom),0.35rem)] pt-1 select-none"
+      >
+        <div className="grid grid-cols-5 items-center justify-around px-1 max-w-lg mx-auto">
+          {/* Tab 1: Dashboard */}
+          <button
+            type="button"
+            onClick={() => handleMobileNavClick('Dashboard')}
+            className={`group flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all duration-100 ease-out select-none touch-manipulation cursor-pointer active:scale-[0.88] active:translate-y-0.5 active:opacity-90 ${
+              activePage === 'Dashboard' ? 'text-[#181E54]' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <div
+              className={`p-1.5 rounded-xl transition-all duration-100 ease-out ${
+                activePage === 'Dashboard'
+                  ? 'bg-[#181E54]/10 text-[#181E54] shadow-2xs group-active:scale-95'
+                  : 'text-slate-400 group-hover:text-slate-600 group-active:bg-slate-100 group-active:scale-90'
+              }`}
+            >
+              <LayoutDashboard className="w-5 h-5 transition-transform duration-100 group-active:scale-95" />
+            </div>
+            <span
+              className={`text-[10px] tracking-tight transition-transform duration-100 group-active:scale-95 ${
+                activePage === 'Dashboard' ? 'font-bold text-[#181E54]' : 'font-medium text-slate-500'
+              }`}
+            >
+              Dashboard
+            </span>
+          </button>
+
+          {/* Tab 2: Leads */}
+          <button
+            type="button"
+            onClick={() => handleMobileNavClick('Lead')}
+            className={`group flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all duration-100 ease-out select-none touch-manipulation cursor-pointer active:scale-[0.88] active:translate-y-0.5 active:opacity-90 ${
+              activePage === 'Lead' ? 'text-[#181E54]' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <div
+              className={`p-1.5 rounded-xl transition-all duration-100 ease-out ${
+                activePage === 'Lead'
+                  ? 'bg-[#181E54]/10 text-[#181E54] shadow-2xs group-active:scale-95'
+                  : 'text-slate-400 group-hover:text-slate-600 group-active:bg-slate-100 group-active:scale-90'
+              }`}
+            >
+              <Users2 className="w-5 h-5 transition-transform duration-100 group-active:scale-95" />
+            </div>
+            <span
+              className={`text-[10px] tracking-tight transition-transform duration-100 group-active:scale-95 ${
+                activePage === 'Lead' ? 'font-bold text-[#181E54]' : 'font-medium text-slate-500'
+              }`}
+            >
+              Leads
+            </span>
+          </button>
+
+          {/* Tab 3: Center Elevated Scanner Button */}
+          <div className="flex flex-col items-center justify-center -mt-4 touch-manipulation">
+            <button
+              type="button"
+              onClick={handleMobileScanClick}
+              className="relative w-12 h-12 rounded-full bg-gradient-to-tr from-[#181E54] via-[#1f2868] to-[#2b3582] text-white shadow-lg shadow-[#181E54]/30 border-2 border-white flex items-center justify-center active:scale-[0.85] active:translate-y-1 active:shadow-sm active:ring-2 active:ring-[#D81124]/60 transition-all duration-100 ease-out cursor-pointer group select-none touch-manipulation"
+              title="Quick QR Attendance Scanner"
+              aria-label="Scan QR Attendance"
+            >
+              <Camera className="w-5 h-5 text-white group-hover:scale-110 group-active:scale-90 transition-transform duration-100" />
+              <span className="absolute top-0 right-0 w-3 h-3 bg-[#D81124] rounded-full border-2 border-white animate-pulse" />
+            </button>
+            <span className="text-[10px] font-bold text-[#181E54] mt-0.5 tracking-tight active:scale-95 transition-transform">
+              Scan QR
+            </span>
+          </div>
+
+          {/* Tab 4: Matchmaking (MK / Admin) or Paid Traffic (CRO) */}
+          <button
+            type="button"
+            onClick={() => handleMobileNavClick(primaryWorkflowPage)}
+            className={`group flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all duration-100 ease-out select-none touch-manipulation cursor-pointer active:scale-[0.88] active:translate-y-0.5 active:opacity-90 ${
+              activePage === primaryWorkflowPage
+                ? 'text-[#181E54]'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <div
+              className={`p-1.5 rounded-xl transition-all duration-100 ease-out ${
+                activePage === primaryWorkflowPage
+                  ? 'bg-[#181E54]/10 text-[#181E54] shadow-2xs group-active:scale-95'
+                  : 'text-slate-400 group-hover:text-slate-600 group-active:bg-slate-100 group-active:scale-90'
+              }`}
+            >
+              {primaryWorkflowIcon}
+            </div>
+            <span
+              className={`text-[10px] tracking-tight transition-transform duration-100 group-active:scale-95 ${
+                activePage === primaryWorkflowPage
+                  ? 'font-bold text-[#181E54]'
+                  : 'font-medium text-slate-500'
+              }`}
+            >
+              {primaryWorkflowLabel}
+            </span>
+          </button>
+
+          {/* Tab 5: More Menu Drawer */}
+          <button
+            type="button"
+            onClick={handleMobileMoreClick}
+            className={`group flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all duration-100 ease-out select-none touch-manipulation cursor-pointer relative active:scale-[0.88] active:translate-y-0.5 active:opacity-90 ${
+              isMoreActive ? 'text-[#181E54]' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <div
+              className={`p-1.5 rounded-xl transition-all duration-100 ease-out relative ${
+                isMoreActive
+                  ? 'bg-[#181E54]/10 text-[#181E54] shadow-2xs group-active:scale-95'
+                  : 'text-slate-400 group-hover:text-slate-600 group-active:bg-slate-100 group-active:scale-90'
+              }`}
+            >
+              <Menu className="w-5 h-5 transition-transform duration-100 group-active:scale-95" />
+              {isMoreActive && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#D81124]" />
+              )}
+            </div>
+            <span
+              className={`text-[10px] tracking-tight transition-transform duration-100 group-active:scale-95 ${
+                isMoreActive ? 'font-bold text-[#181E54]' : 'font-medium text-slate-500'
+              }`}
+            >
+              More
+            </span>
+          </button>
+        </div>
+      </nav>
     </div>
   );
 };

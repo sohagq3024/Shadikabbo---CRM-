@@ -45,7 +45,7 @@ export const AttendanceDailyModal: React.FC<AttendanceDailyModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200 relative animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-3xl max-w-5xl xl:max-w-6xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200 relative animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-start justify-between pb-4 border-b border-slate-100 shrink-0">
           <div className="flex items-center gap-3">
@@ -122,8 +122,10 @@ export const AttendanceDailyModal: React.FC<AttendanceDailyModalProps> = ({
                 </div>
               </div>
 
-              {/* LIST 1: PRESENT EMPLOYEES */}
-              <div className="bg-emerald-50/30 rounded-2xl border border-emerald-200/80 p-4">
+              {/* 2-Column Responsive Layout for Desktop: Present Staff on Left, Absent & Day Off on Right */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+                {/* LEFT COLUMN: PRESENT EMPLOYEES */}
+                <div className="bg-emerald-50/30 rounded-2xl border border-emerald-200/80 p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
@@ -200,8 +202,10 @@ export const AttendanceDailyModal: React.FC<AttendanceDailyModalProps> = ({
                 )}
               </div>
 
-              {/* LIST 2: ABSENT EMPLOYEES */}
-              <div className="bg-rose-50/30 rounded-2xl border border-rose-200/80 p-4">
+                {/* RIGHT COLUMN: ABSENT EMPLOYEES & DAY OFF */}
+                <div className="space-y-4">
+                  {/* LIST 2: ABSENT EMPLOYEES */}
+                  <div className="bg-rose-50/30 rounded-2xl border border-rose-200/80 p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
@@ -274,6 +278,8 @@ export const AttendanceDailyModal: React.FC<AttendanceDailyModalProps> = ({
                   </div>
                 </div>
               )}
+                </div>
+              </div>
             </>
           )}
         </div>

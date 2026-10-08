@@ -24,6 +24,7 @@ import {
   History,
   Check,
   X,
+  Vibrate,
 } from 'lucide-react';
 import { ShadikabboLogo } from './ShadikabboLogo';
 import { PWAInstallButton } from './PWAInstallButton';
@@ -77,6 +78,9 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
     isOffline?: boolean;
   } | null>(null);
 
+  // Scan Error Message Modal/Toast
+  const [scanError, setScanError] = useState<string | null>(null);
+
   // Live time ticker
   const [currentTime, setCurrentTime] = useState<string>('');
 
@@ -100,8 +104,30 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
     }
   }, []);
 
-  // Pleasant audio confirmation chime via Web Audio API
-  const playBeep = () => {
+  /**
+   * Tactile vibration / haptic feedback for mobile devices:
+   * - 'success': Crisp double-pulse confirmation ([120, 60, 120] ms)
+   * - 'error': Urgent triple-pulse buzz alert ([220, 90, 220, 90, 220] ms)
+   * - 'warning': Dual warning pulse ([150, 80, 150] ms)
+   */
+  const triggerHaptic = (type: 'success' | 'error' | 'warning' = 'success') => {
+    try {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        if (type === 'success') {
+          navigator.vibrate([120, 60, 120]);
+        } else if (type === 'error') {
+          navigator.vibrate([220, 90, 220, 90, 220]);
+        } else {
+          navigator.vibrate([150, 80, 150]);
+        }
+      }
+    } catch (e) {
+      // Ignore vibration error if blocked or unsupported
+    }
+  };
+
+  // Pleasant audio confirmation chime via Web Audio API (for successful scans)
+  const playSuccessChime = () => {
     try {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
       const osc = audioCtx.createOscillator();
@@ -119,14 +145,46 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
 
       osc.start();
       osc.stop(audioCtx.currentTime + 0.25);
-
-      // Trigger haptic vibration if supported on phone
-      if ('vibrate' in navigator) {
-        navigator.vibrate([100, 50, 100]);
-      }
     } catch (e) {
       // Audio not allowed or unavailable
     }
+  };
+
+  // Low warning buzz audio for error states
+  const playErrorChime = () => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(220, audioCtx.currentTime); // Low A3
+      osc.frequency.setValueAtTime(160, audioCtx.currentTime + 0.12); // Drop to E3
+
+      gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.3);
+    } catch (e) {
+      // Audio not allowed or unavailable
+    }
+  };
+
+  // Combined confirmation helper for successful scan
+  const handleScanSuccessFeedback = () => {
+    triggerHaptic('success');
+    playSuccessChime();
+  };
+
+  // Combined feedback helper for scan error
+  const handleScanErrorFeedback = (errorMessage: string) => {
+    triggerHaptic('error');
+    playErrorChime();
+    setScanError(errorMessage);
   };
 
   // Clock ticker
@@ -215,6 +273,8 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
       }
     } catch (err: any) {
       console.warn('Camera access denied or failed:', err);
+      triggerHaptic('error');
+      playErrorChime();
       setCameraError(
         'Camera permission was not granted or camera is in use. You can use the ⚡ Quick Scan button below to record attendance.'
       );
@@ -342,9 +402,12 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
       trimmed.includes('SHADIKABBO_OFFICE_QR');
 
     if (!isValidCode) {
-      alert('Invalid QR Code! Please scan the official Shadikabbo Office QR code.');
+      handleScanErrorFeedback('Invalid QR Code! Please point camera at the official Shadikabbo Office QR code.');
       setIsProcessing(false);
-      if (cameraActive) startScanningLoop();
+      setTimeout(() => {
+        setScanError(null);
+        if (cameraActive) startScanningLoop();
+      }, 3500);
       return;
     }
 
@@ -375,10 +438,16 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
 
       const json = await res.json();
       if (!res.ok) {
-        throw new Error(json.error || 'Server rejected scan');
+        handleScanErrorFeedback(json.error || 'Server rejected scan');
+        setIsProcessing(false);
+        setTimeout(() => {
+          setScanError(null);
+          if (cameraActive) startScanningLoop();
+        }, 3500);
+        return;
       }
 
-      playBeep();
+      handleScanSuccessFeedback();
       setScanResult({
         type: json.type,
         message: json.message,
@@ -422,7 +491,7 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
       type,
     });
 
-    playBeep();
+    handleScanSuccessFeedback();
 
     // Optimistically update today status for immediate user confidence
     setTodayStatus((prev: any) => {
@@ -872,6 +941,38 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
           </div>
         )}
 
+        {/* Scan Error Overlay Modal with Haptic Feedback */}
+        {scanError && (
+          <div className="absolute inset-0 z-40 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-slate-900 border-2 border-rose-500/80 rounded-3xl p-6 text-center max-w-sm w-full shadow-2xl">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg bg-rose-500/20 border border-rose-500/40 text-rose-400 animate-pulse">
+                <AlertCircle className="w-9 h-9" />
+              </div>
+
+              <h3 className="text-xl font-bold text-white">Scan Failed</h3>
+              <p className="text-xs text-rose-200 mt-2 font-medium leading-relaxed">
+                {scanError}
+              </p>
+
+              <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/30 text-[11px] font-semibold">
+                <Vibrate className="w-3.5 h-3.5" />
+                <span>Tactile haptic error alert triggered</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setScanError(null);
+                  if (cameraActive) startScanningLoop();
+                }}
+                className="mt-5 w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer shadow-md"
+              >
+                Dismiss &amp; Try Again
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Quick Instant Scan / Simulated Button */}
         <div className="w-full mt-3.5 space-y-2.5">
           <button
@@ -883,6 +984,27 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
             <Zap className="w-4 h-4 text-amber-300 fill-amber-300 animate-pulse" />
             <span>⚡ Tap to Scan Office QR Code (Works Online &amp; Offline)</span>
           </button>
+
+          {/* Haptic Vibration & Audio Status Indicator */}
+          <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-slate-800/60 border border-slate-700/60 text-[11px] text-slate-300">
+            <div className="flex items-center gap-2">
+              <div className="p-1 rounded-lg bg-emerald-500/15 text-emerald-400">
+                <Vibrate className="w-3.5 h-3.5" />
+              </div>
+              <span>Haptic vibration &amp; audio feedback active</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('success');
+                playSuccessChime();
+              }}
+              className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-1 rounded-lg border border-emerald-500/30 transition-all cursor-pointer"
+              title="Tap to test tactile vibration on your phone"
+            >
+              Test Haptic
+            </button>
+          </div>
 
           {/* Today's Log Card */}
           {todayStatus?.record && (

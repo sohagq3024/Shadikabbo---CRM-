@@ -418,7 +418,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 flex items-center justify-center p-3 md:p-6 transition-opacity duration-150">
-      <div className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-6 flex flex-col h-[650px] max-h-[92vh]">
+      <div className="relative w-full max-w-6xl xl:max-w-7xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-4 sm:my-6 flex flex-col h-[700px] lg:h-[750px] max-h-[92vh]">
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/80 shrink-0">
           <div className="flex items-center gap-3">
@@ -444,9 +444,9 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
           </button>
         </div>
 
-        {/* MULTI-STEP PROGRESS STEPPER (Matching AddTrafficModal layout) */}
+        {/* MULTI-STEP PROGRESS STEPPER (Wide Web Optimized) */}
         <div className="px-6 py-3.5 bg-white border-b border-slate-100 shrink-0">
-          <div className="flex items-center justify-between max-w-xl mx-auto relative">
+          <div className="flex items-center justify-between max-w-3xl mx-auto relative">
             {/* Connecting Progress Track */}
             <div className="absolute left-6 right-6 top-1/2 -translate-y-1/2 h-1 bg-slate-100 -z-0 rounded-full overflow-hidden">
               <motion.div
@@ -562,217 +562,248 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                 initial="enter"
                 animate="center"
                 exit="exit"
-                className="space-y-6 max-w-2xl mx-auto min-h-[440px]"
+                className="space-y-5 w-full min-h-[400px]"
               >
-                <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-4">
-                  <div className="flex items-center gap-2.5 pb-2 border-b border-slate-200/60">
-                    <div className="w-7 h-7 rounded-lg bg-[#181E54] text-white flex items-center justify-center">
-                      <User className="w-4 h-4" />
+                <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-5">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-[#181E54] text-white flex items-center justify-center">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-[#181E54]">Candidate Primary Details</h3>
+                        <p className="text-[11px] text-slate-500">
+                          Essential identity and contact credentials for the client
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-[#181E54]">Candidate Primary Details</h3>
-                      <p className="text-[11px] text-slate-500">
-                        Essential identity and contact credentials for the client
-                      </p>
-                    </div>
+                    <span className="text-[11px] font-semibold text-slate-400 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+                      Step 1 of 3
+                    </span>
                   </div>
 
-                  {/* 1. Name */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Candidate Full Name <span className="text-[#D81124]">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => {
-                        setName(e.target.value);
-                        if (errors.name) {
-                          setErrors((prev) => ({ ...prev, name: '' }));
-                        }
-                      }}
-                      placeholder="e.g. Farhana Yasmin or Tanvir Ahmed"
-                      required
-                      autoFocus
-                      className={`w-full px-3.5 py-2.5 bg-white border rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 ${
-                        errors.name
-                          ? 'border-red-500 focus:ring-red-500'
-                          : 'border-slate-300 focus:ring-[#181E54]'
-                      }`}
-                    />
-                    {errors.name && <p className="text-[11px] text-red-600 mt-1">{errors.name}</p>}
-                  </div>
-
-                  {/* 2. Official Phone Number with Country Flag & Code Selector */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Official Phone Number <span className="text-[#D81124]">*</span>
-                    </label>
-
-                    <div className="relative flex items-center rounded-xl border border-slate-300 bg-white focus-within:ring-2 focus-within:ring-[#181E54] focus-within:border-transparent transition-all">
-                      {/* Country Code Trigger Button */}
-                      <div ref={countryDropdownRef} className="relative shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
-                          className="flex items-center gap-1.5 px-3 py-2.5 bg-slate-50 hover:bg-slate-100 rounded-l-xl border-r border-slate-200 text-xs font-semibold text-slate-800 transition-colors cursor-pointer select-none"
-                          title={`Selected: ${selectedCountry.name} (${selectedCountry.code})`}
-                        >
-                          <CountryFlag iso={selectedCountry.iso} name={selectedCountry.name} className="w-6 h-4" />
-                          <span className="font-mono text-slate-700 text-xs">{selectedCountry.code}</span>
-                          <ChevronDown
-                            className={`w-3.5 h-3.5 text-slate-400 transition-transform ${
-                              isCountryDropdownOpen ? 'rotate-180' : ''
-                            }`}
-                          />
-                        </button>
-
-                        {/* Dropdown Menu */}
-                        {isCountryDropdownOpen && (
-                          <div className="absolute left-0 top-full mt-1.5 w-64 max-h-60 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden flex flex-col">
-                            {/* Search inside dropdown */}
-                            <div className="p-2 border-b border-slate-100 bg-slate-50">
-                              <div className="relative">
-                                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                                <input
-                                  type="text"
-                                  value={countrySearch}
-                                  onChange={(e) => setCountrySearch(e.target.value)}
-                                  placeholder="Search country or code..."
-                                  className="w-full pl-8 pr-2.5 py-1 text-[11px] bg-white border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#181E54]"
-                                  autoFocus
-                                />
-                              </div>
-                            </div>
-
-                            {/* Country List */}
-                            <div className="overflow-y-auto flex-1 divide-y divide-slate-50 p-1">
-                              {filteredCountries.length === 0 ? (
-                                <div className="p-3 text-center text-xs text-slate-400">
-                                  No country found
-                                </div>
-                              ) : (
-                                filteredCountries.map((c) => (
-                                  <button
-                                    key={c.code + c.name}
-                                    type="button"
-                                    onClick={() => {
-                                      setSelectedCountry(c);
-                                      setIsCountryDropdownOpen(false);
-                                      setCountrySearch('');
-                                    }}
-                                    className={`w-full flex items-center justify-between px-2.5 py-2 text-left text-xs rounded-lg transition-colors cursor-pointer ${
-                                      selectedCountry.code === c.code && selectedCountry.name === c.name
-                                        ? 'bg-[#181E54]/10 text-[#181E54] font-semibold'
-                                        : 'hover:bg-slate-50 text-slate-700'
-                                    }`}
-                                  >
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      <CountryFlag iso={c.iso} name={c.name} className="w-6 h-4" />
-                                      <span className="truncate text-xs">{c.name}</span>
-                                    </div>
-                                    <span className="font-mono text-[11px] text-slate-500 shrink-0 ml-2">
-                                      {c.code}
-                                    </span>
-                                  </button>
-                                ))
-                              )}
-                            </div>
-                          </div>
-                        )}
+                  {/* 2-Column Responsive Grid for Web */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* LEFT COLUMN: Name & Phone */}
+                    <div className="space-y-4">
+                      {/* 1. Name */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                          Candidate Full Name <span className="text-[#D81124]">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={name}
+                          onChange={(e) => {
+                            setName(e.target.value);
+                            if (errors.name) {
+                              setErrors((prev) => ({ ...prev, name: '' }));
+                            }
+                          }}
+                          placeholder="e.g. Farhana Yasmin or Tanvir Ahmed"
+                          required
+                          autoFocus
+                          className={`w-full px-3.5 py-2.5 bg-white border rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 ${
+                            errors.name
+                              ? 'border-red-500 focus:ring-red-500'
+                              : 'border-slate-300 focus:ring-[#181E54]'
+                          }`}
+                        />
+                        {errors.name && <p className="text-[11px] text-red-600 mt-1">{errors.name}</p>}
                       </div>
 
-                      {/* Phone Input */}
-                      <input
-                        type="tel"
-                        value={phone}
-                        onChange={(e) => {
-                          setPhone(e.target.value);
-                          if (errors.phone) {
-                            setErrors((prev) => ({ ...prev, phone: '' }));
-                          }
-                        }}
-                        placeholder="e.g. 01711223344"
-                        required
-                        className="w-full px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none rounded-r-xl"
-                      />
+                      {/* 2. Official Phone Number with Country Flag & Code Selector */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                          Official Phone Number <span className="text-[#D81124]">*</span>
+                        </label>
+
+                        <div className="relative flex items-center rounded-xl border border-slate-300 bg-white focus-within:ring-2 focus-within:ring-[#181E54] focus-within:border-transparent transition-all">
+                          {/* Country Code Trigger Button */}
+                          <div ref={countryDropdownRef} className="relative shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
+                              className="flex items-center gap-1.5 px-3 py-2.5 bg-slate-50 hover:bg-slate-100 rounded-l-xl border-r border-slate-200 text-xs font-semibold text-slate-800 transition-colors cursor-pointer select-none"
+                              title={`Selected: ${selectedCountry.name} (${selectedCountry.code})`}
+                            >
+                              <CountryFlag iso={selectedCountry.iso} name={selectedCountry.name} className="w-6 h-4" />
+                              <span className="font-mono text-slate-700 text-xs">{selectedCountry.code}</span>
+                              <ChevronDown
+                                className={`w-3.5 h-3.5 text-slate-400 transition-transform ${
+                                  isCountryDropdownOpen ? 'rotate-180' : ''
+                                }`}
+                              />
+                            </button>
+
+                            {/* Dropdown Menu */}
+                            {isCountryDropdownOpen && (
+                              <div className="absolute left-0 top-full mt-1.5 w-64 max-h-60 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden flex flex-col">
+                                {/* Search inside dropdown */}
+                                <div className="p-2 border-b border-slate-100 bg-slate-50">
+                                  <div className="relative">
+                                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                                    <input
+                                      type="text"
+                                      value={countrySearch}
+                                      onChange={(e) => setCountrySearch(e.target.value)}
+                                      placeholder="Search country or code..."
+                                      className="w-full pl-8 pr-2.5 py-1 text-[11px] bg-white border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#181E54]"
+                                      autoFocus
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* Country List */}
+                                <div className="overflow-y-auto flex-1 divide-y divide-slate-50 p-1">
+                                  {filteredCountries.length === 0 ? (
+                                    <div className="p-3 text-center text-xs text-slate-400">
+                                      No country found
+                                    </div>
+                                  ) : (
+                                    filteredCountries.map((c) => (
+                                      <button
+                                        key={c.code + c.name}
+                                        type="button"
+                                        onClick={() => {
+                                          setSelectedCountry(c);
+                                          setIsCountryDropdownOpen(false);
+                                          setCountrySearch('');
+                                        }}
+                                        className={`w-full flex items-center justify-between px-2.5 py-2 text-left text-xs rounded-lg transition-colors cursor-pointer ${
+                                          selectedCountry.code === c.code && selectedCountry.name === c.name
+                                            ? 'bg-[#181E54]/10 text-[#181E54] font-semibold'
+                                            : 'hover:bg-slate-50 text-slate-700'
+                                        }`}
+                                      >
+                                        <div className="flex items-center gap-2 min-w-0">
+                                          <CountryFlag iso={c.iso} name={c.name} className="w-6 h-4" />
+                                          <span className="truncate text-xs">{c.name}</span>
+                                        </div>
+                                        <span className="font-mono text-[11px] text-slate-500 shrink-0 ml-2">
+                                          {c.code}
+                                        </span>
+                                      </button>
+                                    ))
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Phone Input */}
+                          <input
+                            type="tel"
+                            value={phone}
+                            onChange={(e) => {
+                              setPhone(e.target.value);
+                              if (errors.phone) {
+                                setErrors((prev) => ({ ...prev, phone: '' }));
+                              }
+                            }}
+                            placeholder="e.g. 01711223344"
+                            required
+                            className="w-full px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none rounded-r-xl"
+                          />
+                        </div>
+                        {errors.phone && <p className="text-[11px] text-red-600 mt-1">{errors.phone}</p>}
+                      </div>
                     </div>
-                    {errors.phone && <p className="text-[11px] text-red-600 mt-1">{errors.phone}</p>}
+
+                    {/* RIGHT COLUMN: Email & Source */}
+                    <div className="space-y-4">
+                      {/* 3. Email (Optional) */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                          Email Address <span className="text-slate-400 font-normal">(Optional)</span>
+                        </label>
+                        <div className="relative">
+                          <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="e.g. client@gmail.com"
+                            className="w-full pl-10 pr-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+                          />
+                        </div>
+                      </div>
+
+                      {/* 4. Source (Mandatory Selection Menu to count as Lead) */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="text-xs font-semibold text-slate-700">
+                            Source <span className="text-[#D81124]">*</span>
+                          </label>
+                          <span className="text-[10px] text-slate-400 font-medium">
+                            Mandatory to qualify as a Lead
+                          </span>
+                        </div>
+                        <div className="relative">
+                          <Layers className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          <select
+                            value={category}
+                            onChange={(e) => {
+                              setCategory(e.target.value);
+                              if (errors.category) {
+                                setErrors((prev) => ({ ...prev, category: '' }));
+                              }
+                            }}
+                            required
+                            className={`w-full pl-10 pr-10 py-2.5 bg-white border rounded-xl text-xs appearance-none focus:outline-none focus:ring-2 cursor-pointer transition-colors ${
+                              errors.category
+                                ? 'border-red-500 focus:ring-red-500 bg-red-50/20 text-red-900'
+                                : category
+                                ? 'border-slate-300 focus:ring-[#181E54] text-slate-900 font-medium'
+                                : 'border-slate-300 focus:ring-[#181E54] text-slate-400'
+                            }`}
+                          >
+                            <option value="" disabled>
+                              Select Lead Source...
+                            </option>
+                            {(fields.leadCategories && fields.leadCategories.length > 0
+                              ? fields.leadCategories
+                              : [
+                                  'FB Message',
+                                  'FB Call',
+                                  'FB Comment',
+                                  'Call center',
+                                  'Reference',
+                                  'Others source',
+                                ]
+                            ).map((cat: string) => (
+                              <option key={cat} value={cat} className="text-slate-800 py-1 font-medium">
+                                {cat}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
+                        {errors.category && (
+                          <p className="text-[11px] text-red-600 mt-1 flex items-center gap-1 font-medium">
+                            <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-500" />
+                            <span>{errors.category}</span>
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
-                  {/* 3. Email (Optional) */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Email Address <span className="text-slate-400 font-normal">(Optional)</span>
-                    </label>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="e.g. client@gmail.com"
-                        className="w-full pl-10 pr-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
-                      />
+                  {/* Live Candidate Summary Strip */}
+                  <div className="p-3 bg-white rounded-xl border border-slate-200/90 flex items-center justify-between flex-wrap gap-2 text-xs">
+                    <div className="flex items-center gap-2 text-slate-600">
+                      <span className="font-bold text-[#181E54]">Live Preview:</span>
+                      <span className="font-semibold text-slate-900">{name || '(No Name entered)'}</span>
+                      <span>•</span>
+                      <span className="font-mono text-slate-700">{phone ? `${selectedCountry.code} ${phone}` : '(No Phone)'}</span>
+                      <span>•</span>
+                      <span className="text-slate-500">{email || 'No Email'}</span>
                     </div>
-                  </div>
-
-                  {/* 4. Source (Mandatory Selection Menu to count as Lead) */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-semibold text-slate-700">
-                        Source <span className="text-[#D81124]">*</span>
-                      </label>
-                      <span className="text-[10px] text-slate-400 font-medium">
-                        Mandatory to qualify as a Lead
+                    <div>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${category ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                        Source: {category || 'Pending'}
                       </span>
                     </div>
-                    <div className="relative">
-                      <Layers className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      <select
-                        value={category}
-                        onChange={(e) => {
-                          setCategory(e.target.value);
-                          if (errors.category) {
-                            setErrors((prev) => ({ ...prev, category: '' }));
-                          }
-                        }}
-                        required
-                        className={`w-full pl-10 pr-10 py-2.5 bg-white border rounded-xl text-xs appearance-none focus:outline-none focus:ring-2 cursor-pointer transition-colors ${
-                          errors.category
-                            ? 'border-red-500 focus:ring-red-500 bg-red-50/20 text-red-900'
-                            : category
-                            ? 'border-slate-300 focus:ring-[#181E54] text-slate-900 font-medium'
-                            : 'border-slate-300 focus:ring-[#181E54] text-slate-400'
-                        }`}
-                      >
-                        <option value="" disabled>
-                          Select Lead Source...
-                        </option>
-                        {(fields.leadCategories && fields.leadCategories.length > 0
-                          ? fields.leadCategories
-                          : [
-                              'FB Message',
-                              'FB Call',
-                              'FB Comment',
-                              'Call center',
-                              'Reference',
-                              'Others source',
-                            ]
-                        ).map((cat: string) => (
-                          <option key={cat} value={cat} className="text-slate-800 py-1 font-medium">
-                            {cat}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    </div>
-                    {errors.category && (
-                      <p className="text-[11px] text-red-600 mt-1 flex items-center gap-1 font-medium">
-                        <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-500" />
-                        <span>{errors.category}</span>
-                      </p>
-                    )}
                   </div>
                 </div>
               </motion.div>
@@ -800,7 +831,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                     </h3>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
                     {/* Profession Selection Menu */}
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -1001,257 +1032,260 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                   </div>
                 </div>
 
-                {/* Address Section */}
-                <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-200/60">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-[#181E54]" />
-                      <h3 className="text-xs font-bold text-[#181E54] uppercase tracking-wider">
-                        Address Details
-                      </h3>
-                    </div>
-                    <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={sameAsPresent}
-                        onChange={(e) => handleSameAsPresentToggle(e.target.checked)}
-                        className="rounded border-slate-300 text-[#181E54] focus:ring-[#181E54]"
-                      />
-                      <span>Permanent address same as Present</span>
-                    </label>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Present Address */}
-                    <div className="space-y-3 bg-white p-3.5 rounded-xl border border-slate-200">
-                      <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                        Present Address
-                      </span>
-                      <div>
-                        <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                          Present City / District
-                        </label>
-                        <select
-                          value={presentCity}
-                          onChange={(e) => {
-                            setPresentCity(e.target.value);
-                            if (sameAsPresent) setPermanentCity(e.target.value);
-                          }}
-                          className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
-                        >
-                          <option value="">Select Present City / District</option>
-                          {(fields.cities || []).map((c) => (
-                            <option key={c} value={c}>{c}</option>
-                          ))}
-                          {presentCity && !(fields.cities || []).includes(presentCity) && (
-                            <option value={presentCity}>{presentCity} (Custom)</option>
-                          )}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                          Present Country
-                        </label>
-                        <select
-                          value={presentCountry}
-                          onChange={(e) => {
-                            setPresentCountry(e.target.value);
-                            if (sameAsPresent) setPermanentCountry(e.target.value);
-                          }}
-                          className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
-                        >
-                          <option value="">Select Present Country</option>
-                          {(fields.countries || []).map((co) => (
-                            <option key={co} value={co}>{co}</option>
-                          ))}
-                          {presentCountry && !(fields.countries || []).includes(presentCountry) && (
-                            <option value={presentCountry}>{presentCountry} (Custom)</option>
-                          )}
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Permanent Address */}
-                    <div className="space-y-3 bg-white p-3.5 rounded-xl border border-slate-200">
-                      <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                        Permanent Address
-                      </span>
-                      <div>
-                        <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                          Permanent City / District (Permanent CT)
-                        </label>
-                        <select
-                          value={permanentCity}
-                          disabled={sameAsPresent}
-                          onChange={(e) => setPermanentCity(e.target.value)}
-                          className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54] disabled:opacity-60"
-                        >
-                          <option value="">Select Permanent City / CT</option>
-                          {(fields.cities || []).map((c) => (
-                            <option key={c} value={c}>{c}</option>
-                          ))}
-                          {permanentCity && !(fields.cities || []).includes(permanentCity) && (
-                            <option value={permanentCity}>{permanentCity} (Custom)</option>
-                          )}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                          Permanent Country
-                        </label>
-                        <select
-                          value={permanentCountry}
-                          disabled={sameAsPresent}
-                          onChange={(e) => setPermanentCountry(e.target.value)}
-                          className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54] disabled:opacity-60"
-                        >
-                          <option value="">Select Permanent Country</option>
-                          {(fields.countries || []).map((co) => (
-                            <option key={co} value={co}>{co}</option>
-                          ))}
-                          {permanentCountry && !(fields.countries || []).includes(permanentCountry) && (
-                            <option value={permanentCountry}>{permanentCountry} (Custom)</option>
-                          )}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Uploads Section: Unlimited Pictures & PDF Only (Matching AddTraffic) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* 1. PICTURE UPLOAD (Unlimited) */}
-                  <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 space-y-3">
-                    <div className="flex items-center justify-between">
+                {/* 2-Column Responsive Section: Address Details on Left, Uploads on Right */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+                  {/* Address Section */}
+                  <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-200/60">
                       <div className="flex items-center gap-2">
-                        <ImageIcon className="w-4 h-4 text-[#181E54]" />
-                        <span className="text-xs font-bold text-slate-800">
-                          Picture Upload ({images.length})
+                        <MapPin className="w-4 h-4 text-[#181E54]" />
+                        <h3 className="text-xs font-bold text-[#181E54] uppercase tracking-wider">
+                          Address Details
+                        </h3>
+                      </div>
+                      <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={sameAsPresent}
+                          onChange={(e) => handleSameAsPresentToggle(e.target.checked)}
+                          className="rounded border-slate-300 text-[#181E54] focus:ring-[#181E54]"
+                        />
+                        <span>Same as Present</span>
+                      </label>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Present Address */}
+                      <div className="space-y-3 bg-white p-3.5 rounded-xl border border-slate-200">
+                        <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                          Present Address
                         </span>
-                      </div>
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        Unlimited allowed
-                      </span>
-                    </div>
-
-                    <div
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        setIsDraggingImages(true);
-                      }}
-                      onDragLeave={() => setIsDraggingImages(false)}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        setIsDraggingImages(false);
-                        if (e.dataTransfer.files) {
-                          processImageFiles(Array.from(e.dataTransfer.files));
-                        }
-                      }}
-                      className={`border-2 border-dashed rounded-xl p-4 text-center transition-all bg-white ${
-                        isDraggingImages
-                          ? 'border-[#181E54] bg-[#181E54]/5'
-                          : 'border-slate-300 hover:border-slate-400'
-                      }`}
-                    >
-                      <label className="cursor-pointer block">
-                        <Upload className="w-6 h-6 text-slate-400 mx-auto mb-1.5" />
-                        <p className="text-xs font-semibold text-slate-700">Click or Drag images here</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">Supports JPG, PNG, WEBP</p>
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-
-                    {images.length > 0 && (
-                      <div className="grid grid-cols-4 gap-2 max-h-36 overflow-y-auto p-1 bg-white rounded-xl border border-slate-200">
-                        {images.map((img, idx) => (
-                          <div
-                            key={idx}
-                            className="relative group aspect-square rounded-lg overflow-hidden border border-slate-200 shadow-2xs"
+                        <div>
+                          <label className="block text-[11px] font-medium text-slate-600 mb-1">
+                            City / District
+                          </label>
+                          <select
+                            value={presentCity}
+                            onChange={(e) => {
+                              setPresentCity(e.target.value);
+                              if (sameAsPresent) setPermanentCity(e.target.value);
+                            }}
+                            className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                           >
-                            <img src={img} alt="candidate" className="w-full h-full object-cover" />
-                            <button
-                              type="button"
-                              onClick={() => removeImage(idx)}
-                              className="absolute inset-0 bg-red-600/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                              title="Delete photo"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
+                            <option value="">Select City / District</option>
+                            {(fields.cities || []).map((c) => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                            {presentCity && !(fields.cities || []).includes(presentCity) && (
+                              <option value={presentCity}>{presentCity} (Custom)</option>
+                            )}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-medium text-slate-600 mb-1">
+                            Country
+                          </label>
+                          <select
+                            value={presentCountry}
+                            onChange={(e) => {
+                              setPresentCountry(e.target.value);
+                              if (sameAsPresent) setPermanentCountry(e.target.value);
+                            }}
+                            className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+                          >
+                            <option value="">Select Country</option>
+                            {(fields.countries || []).map((co) => (
+                              <option key={co} value={co}>{co}</option>
+                            ))}
+                            {presentCountry && !(fields.countries || []).includes(presentCountry) && (
+                              <option value={presentCountry}>{presentCountry} (Custom)</option>
+                            )}
+                          </select>
+                        </div>
                       </div>
-                    )}
+
+                      {/* Permanent Address */}
+                      <div className="space-y-3 bg-white p-3.5 rounded-xl border border-slate-200">
+                        <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                          Permanent Address
+                        </span>
+                        <div>
+                          <label className="block text-[11px] font-medium text-slate-600 mb-1">
+                            City / District (Permanent CT)
+                          </label>
+                          <select
+                            value={permanentCity}
+                            disabled={sameAsPresent}
+                            onChange={(e) => setPermanentCity(e.target.value)}
+                            className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54] disabled:opacity-60"
+                          >
+                            <option value="">Select Permanent City</option>
+                            {(fields.cities || []).map((c) => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                            {permanentCity && !(fields.cities || []).includes(permanentCity) && (
+                              <option value={permanentCity}>{permanentCity} (Custom)</option>
+                            )}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-medium text-slate-600 mb-1">
+                            Country
+                          </label>
+                          <select
+                            value={permanentCountry}
+                            disabled={sameAsPresent}
+                            onChange={(e) => setPermanentCountry(e.target.value)}
+                            className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54] disabled:opacity-60"
+                          >
+                            <option value="">Select Country</option>
+                            {(fields.countries || []).map((co) => (
+                              <option key={co} value={co}>{co}</option>
+                            ))}
+                            {permanentCountry && !(fields.countries || []).includes(permanentCountry) && (
+                              <option value={permanentCountry}>{permanentCountry} (Custom)</option>
+                            )}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* 2. PDF UPLOAD (Strictly PDF only) */}
-                  <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-[#D81124]" />
-                        <span className="text-xs font-bold text-slate-800">PDF Bio-data</span>
-                      </div>
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
-                        PDF only
-                      </span>
-                    </div>
-
-                    <div
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        setIsDraggingPdf(true);
-                      }}
-                      onDragLeave={() => setIsDraggingPdf(false)}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        setIsDraggingPdf(false);
-                        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                          processPdfFile(e.dataTransfer.files[0]);
-                        }
-                      }}
-                      className={`border-2 border-dashed rounded-xl p-4 text-center transition-all bg-white ${
-                        isDraggingPdf
-                          ? 'border-[#D81124] bg-[#D81124]/5'
-                          : 'border-slate-300 hover:border-slate-400'
-                      }`}
-                    >
-                      <label className="cursor-pointer block">
-                        <FileCheck className="w-6 h-6 text-slate-400 mx-auto mb-1.5" />
-                        <p className="text-xs font-semibold text-slate-700">Click or Drag PDF biodata</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">Authentic .pdf document only</p>
-                        <input
-                          type="file"
-                          accept=".pdf,application/pdf"
-                          onChange={handlePdfUpload}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-
-                    {pdfFile && (
-                      <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
-                          <span className="truncate font-medium">{pdfFile.name}</span>
-                          <span className="text-[10px] text-emerald-600 shrink-0">
-                            ({(pdfFile.size / 1024).toFixed(0)} KB)
+                  {/* Uploads Section: Unlimited Pictures & PDF Only */}
+                  <div className="space-y-4">
+                    {/* 1. PICTURE UPLOAD */}
+                    <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <ImageIcon className="w-4 h-4 text-[#181E54]" />
+                          <span className="text-xs font-bold text-slate-800">
+                            Picture Upload ({images.length})
                           </span>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setPdfFile(null)}
-                          className="text-emerald-700 hover:text-rose-600 p-1"
-                          title="Remove PDF"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          Unlimited allowed
+                        </span>
                       </div>
-                    )}
+
+                      <div
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setIsDraggingImages(true);
+                        }}
+                        onDragLeave={() => setIsDraggingImages(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setIsDraggingImages(false);
+                          if (e.dataTransfer.files) {
+                            processImageFiles(Array.from(e.dataTransfer.files));
+                          }
+                        }}
+                        className={`border-2 border-dashed rounded-xl p-3 text-center transition-all bg-white ${
+                          isDraggingImages
+                            ? 'border-[#181E54] bg-[#181E54]/5'
+                            : 'border-slate-300 hover:border-slate-400'
+                        }`}
+                      >
+                        <label className="cursor-pointer block">
+                          <Upload className="w-5 h-5 text-slate-400 mx-auto mb-1" />
+                          <p className="text-xs font-semibold text-slate-700">Click or Drag images here</p>
+                          <p className="text-[10px] text-slate-400">Supports JPG, PNG, WEBP</p>
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+
+                      {images.length > 0 && (
+                        <div className="grid grid-cols-4 gap-2 max-h-28 overflow-y-auto p-1 bg-white rounded-xl border border-slate-200">
+                          {images.map((img, idx) => (
+                            <div
+                              key={idx}
+                              className="relative group aspect-square rounded-lg overflow-hidden border border-slate-200 shadow-2xs"
+                            >
+                              <img src={img} alt="candidate" className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => removeImage(idx)}
+                                className="absolute inset-0 bg-red-600/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                title="Delete photo"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 2. PDF UPLOAD */}
+                    <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-[#D81124]" />
+                          <span className="text-xs font-bold text-slate-800">PDF Bio-data</span>
+                        </div>
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
+                          PDF only
+                        </span>
+                      </div>
+
+                      <div
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setIsDraggingPdf(true);
+                        }}
+                        onDragLeave={() => setIsDraggingPdf(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setIsDraggingPdf(false);
+                          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                            processPdfFile(e.dataTransfer.files[0]);
+                          }
+                        }}
+                        className={`border-2 border-dashed rounded-xl p-3 text-center transition-all bg-white ${
+                          isDraggingPdf
+                            ? 'border-[#D81124] bg-[#D81124]/5'
+                            : 'border-slate-300 hover:border-slate-400'
+                        }`}
+                      >
+                        <label className="cursor-pointer block">
+                          <FileCheck className="w-5 h-5 text-slate-400 mx-auto mb-1" />
+                          <p className="text-xs font-semibold text-slate-700">Click or Drag PDF biodata</p>
+                          <p className="text-[10px] text-slate-400">Authentic .pdf document only</p>
+                          <input
+                            type="file"
+                            accept=".pdf,application/pdf"
+                            onChange={handlePdfUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+
+                      {pdfFile && (
+                        <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span className="truncate font-medium">{pdfFile.name}</span>
+                            <span className="text-[10px] text-emerald-600 shrink-0">
+                              ({(pdfFile.size / 1024).toFixed(0)} KB)
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setPdfFile(null)}
+                            className="text-emerald-700 hover:text-rose-600 p-1"
+                            title="Remove PDF"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </motion.div>

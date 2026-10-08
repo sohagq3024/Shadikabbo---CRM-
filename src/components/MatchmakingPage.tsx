@@ -12,9 +12,18 @@ import {
   Calendar,
   Briefcase,
   Layers,
+  Clock,
+  CheckCircle2,
+  AlertTriangle,
+  PhoneCall,
+  Send,
+  Users,
+  ShieldCheck,
+  Check,
 } from 'lucide-react';
 import { CountryFlag, detectCountryIso } from './CountryFlag';
 import { TrafficProfileModal } from './TrafficProfileModal';
+import { MatchmakingServiceModal } from './MatchmakingServiceModal';
 import { useCrmFields } from '../context/CrmFieldsContext';
 
 interface MatchmakingPageProps {
@@ -30,13 +39,11 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ user, token })
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
-  const [genderFilter, setGenderFilter] = useState<string>('all');
-  const [religionFilter, setReligionFilter] = useState<string>('all');
-  const [maritalStatusFilter, setMaritalStatusFilter] = useState<string>('all');
-  const [professionFilter, setProfessionFilter] = useState<string>('all');
+  const [serviceStatusFilter, setServiceStatusFilter] = useState<'all' | 'required' | 'completed'>('all');
 
   // Modals
   const [viewingProfile, setViewingProfile] = useState<any | null>(null);
+  const [selectedServiceCandidate, setSelectedServiceCandidate] = useState<any | null>(null);
 
   const loadCandidates = async () => {
     setLoading(true);
@@ -61,10 +68,86 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ user, token })
     loadCandidates();
   }, [token]);
 
+  // Helper: 3-Day Rule Calculation
+  const getCandidateServiceInfo = (row: any) => {
+    const now = Date.now();
+    const lastTime =
+      row.lastServiceAt ||
+      row.assignedAt ||
+      row.createdTimestamp ||
+      (row.createdAt ? new Date(row.createdAt).getTime() : now);
+    const diffMs = now - lastTime;
+    const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+    const hasEverBeenServiced = !!row.lastServiceAt;
+    const isOverdue = diffDays >= 3 || !hasEverBeenServiced;
+    const daysOverdue = Math.max(1, diffDays - 2);
+    const daysRemaining = Math.max(0, 3 - diffDays);
+
+    return {
+      isOverdue,
+      daysOverdue,
+      daysRemaining,
+      diffDays,
+      hasEverBeenServiced,
+      lastServiceType: row.lastServiceType,
+      lastServiceAt: row.lastServiceAt,
+      lastServiceBy: row.lastServiceBy,
+      lastServiceNote: row.lastServiceNote,
+      servicesCount: Array.isArray(row.matchmakingServices) ? row.matchmakingServices.length : 0,
+    };
+  };
+
+  // Metrics calculation across all loaded candidates
+  const metrics = useMemo(() => {
+    let serviceRequiredCount = 0;
+    let serviceCompletedCount = 0;
+    let myTotalServices = 0;
+    const myServicedClientIds = new Set<string>();
+
+    candidates.forEach((c) => {
+      const info = getCandidateServiceInfo(c);
+      if (info.isOverdue) {
+        serviceRequiredCount++;
+      } else {
+        serviceCompletedCount++;
+      }
+
+      if (Array.isArray(c.matchmakingServices)) {
+        c.matchmakingServices.forEach((s: any) => {
+          if (
+            (user?.id && s.providedBy?.id === user.id) ||
+            (user?.name && s.providedBy?.name === user.name)
+          ) {
+            myTotalServices++;
+            myServicedClientIds.add(c.id);
+          }
+        });
+      }
+    });
+
+    return {
+      totalClients: candidates.length,
+      serviceRequiredCount,
+      serviceCompletedCount,
+      myTotalServices,
+      myUniqueClients: myServicedClientIds.size,
+    };
+  }, [candidates, user]);
+
   // Client-side filtering
   const filteredCandidates = useMemo(() => {
     return candidates.filter((item) => {
-      // 1. Top center manual search
+      const serviceInfo = getCandidateServiceInfo(item);
+
+      // 1. Service Status filter
+      if (serviceStatusFilter === 'required' && !serviceInfo.isOverdue) {
+        return false;
+      }
+      if (serviceStatusFilter === 'completed' && serviceInfo.isOverdue) {
+        return false;
+      }
+
+      // 2. Top center manual search
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const matchName = item.name?.toLowerCase().includes(q);
@@ -72,37 +155,15 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ user, token })
         const matchId = item.id?.toLowerCase().includes(q);
         const matchProfession = item.profession?.toLowerCase().includes(q);
         const matchCity = item.presentCity?.toLowerCase().includes(q);
-        const matchRequirement = item.requirement?.toLowerCase().includes(q);
-        if (!matchName && !matchPhone && !matchId && !matchProfession && !matchCity && !matchRequirement) {
+        const matchServiceNote = item.lastServiceNote?.toLowerCase().includes(q);
+        if (!matchName && !matchPhone && !matchId && !matchProfession && !matchCity && !matchServiceNote) {
           return false;
         }
       }
 
-      // 2. Gender filter
-      if (genderFilter !== 'all') {
-        const itemGender = item.gender?.toLowerCase() || '';
-        if (genderFilter === 'Male' && !itemGender.includes('male')) return false;
-        if (genderFilter === 'Female' && !itemGender.includes('female')) return false;
-      }
-
-      // 3. Religion filter
-      if (religionFilter !== 'all') {
-        if (item.religion?.toLowerCase() !== religionFilter.toLowerCase()) return false;
-      }
-
-      // 4. Marital Status filter
-      if (maritalStatusFilter !== 'all') {
-        if (item.maritalStatus?.toLowerCase() !== maritalStatusFilter.toLowerCase()) return false;
-      }
-
-      // 5. Profession filter
-      if (professionFilter !== 'all') {
-        if (item.profession?.toLowerCase() !== professionFilter.toLowerCase()) return false;
-      }
-
       return true;
     });
-  }, [candidates, searchQuery, genderFilter, religionFilter, maritalStatusFilter, professionFilter]);
+  }, [candidates, serviceStatusFilter, searchQuery]);
 
   // Calculate age from DOB
   const calculateAge = (dobString?: string) => {
@@ -112,6 +173,12 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ user, token })
     const diffMs = Date.now() - dob.getTime();
     const ageDt = new Date(diffMs);
     return Math.abs(ageDt.getUTCFullYear() - 1970);
+  };
+
+  const handleServiceRecorded = (updatedTraffic: any) => {
+    setCandidates((prev) =>
+      prev.map((item) => (item.id === updatedTraffic.id ? { ...item, ...updatedTraffic } : item))
+    );
   };
 
   return (
@@ -131,11 +198,11 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ user, token })
                   Matchmaking Portal
                 </h1>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#181E54]/10 text-[#181E54]">
-                  MK Exclusive
+                  MK Workflow &bull; 3-Day Cycle
                 </span>
               </div>
               <p className="text-xs text-slate-500">
-                Match verified profiles and find prospective proposals for assigned clients
+                Active client matchmaking pool &bull; Routine service required every 3 days
               </p>
             </div>
           </div>
@@ -147,23 +214,138 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ user, token })
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span>Refresh</span>
+              <span>Refresh Pool</span>
             </button>
           </div>
         </div>
 
         {/* ==================================================
-            TOP CENTER SEARCH BAR (Explicit Requirement)
-            "top center a thakbe akta search option"
+            STAT CARDS / MK METRICS OVERVIEW
+            "and akjon mk role er account user total koto gula clent service dise ta count hobe"
         ================================================== */}
-        <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col items-center">
+        <div className="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+          {/* Card 1: Total Assigned */}
+          <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/90 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                Total Clients
+              </span>
+              <span className="text-lg font-bold text-[#181E54]">{metrics.totalClients}</span>
+            </div>
+            <div className="w-8 h-8 rounded-xl bg-slate-200/80 text-slate-700 flex items-center justify-center">
+              <Users className="w-4 h-4" />
+            </div>
+          </div>
+
+          {/* Card 2: Service Required / Overdue (>3 Days) */}
+          <div
+            onClick={() => setServiceStatusFilter('required')}
+            className={`p-3 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
+              serviceStatusFilter === 'required'
+                ? 'bg-amber-100/70 border-amber-400 ring-2 ring-amber-400/30'
+                : 'bg-amber-50/80 border-amber-200 hover:border-amber-300'
+            }`}
+          >
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 block flex items-center gap-1">
+                <span>Service Overdue</span>
+                {metrics.serviceRequiredCount > 0 && (
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping inline-block" />
+                )}
+              </span>
+              <span className="text-lg font-bold text-amber-900">
+                {metrics.serviceRequiredCount}
+              </span>
+            </div>
+            <div className="w-8 h-8 rounded-xl bg-amber-200 text-amber-900 flex items-center justify-center font-bold text-xs">
+              <AlertTriangle className="w-4 h-4 text-amber-700" />
+            </div>
+          </div>
+
+          {/* Card 3: Service Completed (Up to Date) */}
+          <div
+            onClick={() => setServiceStatusFilter('completed')}
+            className={`p-3 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
+              serviceStatusFilter === 'completed'
+                ? 'bg-emerald-100/70 border-emerald-400 ring-2 ring-emerald-400/30'
+                : 'bg-emerald-50/80 border-emerald-200 hover:border-emerald-300'
+            }`}
+          >
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-900 block">
+                Up to Date (&le;3d)
+              </span>
+              <span className="text-lg font-bold text-emerald-900">
+                {metrics.serviceCompletedCount}
+              </span>
+            </div>
+            <div className="w-8 h-8 rounded-xl bg-emerald-200 text-emerald-900 flex items-center justify-center font-bold text-xs">
+              <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+            </div>
+          </div>
+
+          {/* Card 4: My Services Count (MK Role tracking) */}
+          <div className="bg-purple-50/80 p-3 rounded-2xl border border-purple-200/90 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-purple-900 block">
+                My Services Delivered
+              </span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-lg font-bold text-purple-900">
+                  {metrics.myTotalServices}
+                </span>
+                <span className="text-[10px] text-purple-700 font-semibold">
+                  ({metrics.myUniqueClients} clients)
+                </span>
+              </div>
+            </div>
+            <div className="w-8 h-8 rounded-xl bg-purple-200 text-purple-900 flex items-center justify-center font-bold text-xs">
+              <Sparkles className="w-4 h-4 text-purple-700" />
+            </div>
+          </div>
+        </div>
+
+        {/* ==================================================
+            OVERDUE NOTIFICATION BANNER (Top Notification Sent)
+            "and upore Notification sent thakbe"
+        ================================================== */}
+        {metrics.serviceRequiredCount > 0 && (
+          <div className="mt-3.5 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 border border-amber-300 p-3 rounded-2xl flex items-center justify-between gap-3 text-xs text-amber-950 shadow-2xs animate-in fade-in duration-300">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-xl bg-amber-500 text-white shadow-2xs shrink-0">
+                <AlertTriangle className="w-4 h-4 animate-bounce" />
+              </div>
+              <div>
+                <p className="font-bold text-amber-900">
+                  Matchmaking Service Action Required: {metrics.serviceRequiredCount} client(s) pending routine service!
+                </p>
+                <p className="text-[11px] text-amber-800">
+                  Clients require follow-up service every 3 days. Please review and log Incoming Call, Outgoing Call, CV Send, or Update.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setServiceStatusFilter('required')}
+              className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs whitespace-nowrap shadow-xs transition-colors cursor-pointer shrink-0"
+            >
+              View Overdue ({metrics.serviceRequiredCount})
+            </button>
+          </div>
+        )}
+
+        {/* ==================================================
+            TOP CENTER SEARCH BAR (Manual search)
+        ================================================== */}
+        <div className="mt-4 pt-3.5 border-t border-slate-100 flex flex-col items-center">
           <div className="relative w-full max-w-2xl">
             <Search className="w-4 h-4 text-[#181E54] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search candidate by name, phone, profession, location, requirements..."
+              placeholder="Search candidate by name, phone, profession, location, service note..."
               className="w-full pl-10 pr-4 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#181E54]/20 focus:border-[#181E54] focus:bg-white transition-all shadow-2xs font-medium"
             />
             {searchQuery && (
@@ -179,93 +361,67 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ user, token })
         </div>
 
         {/* ==================================================
-            FILTERING SECTION (Like Paid Traffic)
+            FILTERING SECTION (Service Required, Gender, Religion, etc.)
+            "Service requ filtering section thakbe"
         ================================================== */}
         <div className="mt-3.5 flex flex-wrap items-center justify-center gap-2 text-xs">
-          {/* Gender Filter */}
-          <div className="flex items-center gap-1">
-            <span className="text-[11px] font-bold text-slate-500">Gender:</span>
-            <select
-              value={genderFilter}
-              onChange={(e) => setGenderFilter(e.target.value)}
-              className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-medium focus:outline-none focus:border-[#181E54]"
-            >
-              <option value="all">All Genders</option>
-              <option value="Male">Groom (Male)</option>
-              <option value="Female">Bride (Female)</option>
-            </select>
-          </div>
-
-          {/* Religion Filter */}
-          <div className="flex items-center gap-1">
-            <span className="text-[11px] font-bold text-slate-500">Religion:</span>
-            <select
-              value={religionFilter}
-              onChange={(e) => setReligionFilter(e.target.value)}
-              className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-medium focus:outline-none focus:border-[#181E54]"
-            >
-              <option value="all">All Religions</option>
-              {(fields.religions || ['Muslim', 'Hindu', 'Christian', 'Buddhist']).map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Marital Status Filter */}
-          <div className="flex items-center gap-1">
-            <span className="text-[11px] font-bold text-slate-500">Marital Status:</span>
-            <select
-              value={maritalStatusFilter}
-              onChange={(e) => setMaritalStatusFilter(e.target.value)}
-              className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-medium focus:outline-none focus:border-[#181E54]"
-            >
-              <option value="all">All Status</option>
-              {(fields.maritalStatuses || ['Never Married', 'Divorced', 'Widowed']).map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Profession Filter */}
-          <div className="flex items-center gap-1">
-            <span className="text-[11px] font-bold text-slate-500">Profession:</span>
-            <select
-              value={professionFilter}
-              onChange={(e) => setProfessionFilter(e.target.value)}
-              className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-medium focus:outline-none focus:border-[#181E54]"
-            >
-              <option value="all">All Professions</option>
-              {(fields.professions || []).slice(0, 15).map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {(genderFilter !== 'all' || religionFilter !== 'all' || maritalStatusFilter !== 'all' || professionFilter !== 'all') && (
+          {/* Service Status Filter */}
+          <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200">
             <button
               type="button"
-              onClick={() => {
-                setGenderFilter('all');
-                setReligionFilter('all');
-                setMaritalStatusFilter('all');
-                setProfessionFilter('all');
-              }}
-              className="text-[11px] font-bold text-[#D81124] hover:underline ml-1 cursor-pointer"
+              onClick={() => setServiceStatusFilter('all')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                serviceStatusFilter === 'all'
+                  ? 'bg-white text-[#181E54] shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
             >
-              Reset Filters
+              All ({metrics.totalClients})
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setServiceStatusFilter('required')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                serviceStatusFilter === 'required'
+                  ? 'bg-amber-500 text-white shadow-xs'
+                  : 'text-amber-800 hover:text-amber-950'
+              }`}
+            >
+              <AlertTriangle className="w-3 h-3" />
+              <span>Service Overdue ({metrics.serviceRequiredCount})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setServiceStatusFilter('completed')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                serviceStatusFilter === 'completed'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-emerald-800 hover:text-emerald-950'
+              }`}
+            >
+              <CheckCircle2 className="w-3 h-3" />
+              <span>Up to Date ({metrics.serviceCompletedCount})</span>
+            </button>
+          </div>
+
+          {serviceStatusFilter !== 'all' && (
+            <button
+              type="button"
+              onClick={() => setServiceStatusFilter('all')}
+              className="text-[11px] font-bold text-[#D81124] hover:underline ml-2 cursor-pointer"
+            >
+              Reset Filter
             </button>
           )}
         </div>
       </div>
 
       {/* ==================================================
-          MATCHMAKING TABLE (Paid Traffic Style with MK Focus)
+          MATCHMAKING TABLE
+          - Removed: Partner Requirements column
+          - Added: 3-Day Service Status column (Clickable modal link)
       ================================================== */}
       <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
         {loading ? (
@@ -288,8 +444,8 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ user, token })
             <HeartHandshake className="w-10 h-10 mx-auto mb-2 text-slate-300" />
             <p className="text-xs font-semibold text-slate-700">No matching candidate profiles found</p>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              {searchQuery || genderFilter !== 'all'
-                ? 'Try broadening your search query or filter options'
+              {searchQuery || serviceStatusFilter !== 'all'
+                ? 'Try broadening your search query or reset filters'
                 : 'Candidates with completed payment will appear here for matchmaking'}
             </p>
           </div>
@@ -300,12 +456,13 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ user, token })
                 <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
                   <th className="py-3 px-3.5 w-14 text-center">#</th>
                   <th className="py-3 px-3.5 w-28">Candidate ID</th>
-                  <th className="py-3 px-3.5 min-w-[200px]">Candidate Profile</th>
-                  <th className="py-3 px-3.5">Gender & Age</th>
-                  <th className="py-3 px-3.5">Religion & Marital</th>
+                  <th className="py-3 px-3.5 min-w-[190px]">Candidate Profile</th>
+                  <th className="py-3 px-3.5">Gender &amp; Age</th>
+                  <th className="py-3 px-3.5">Religion &amp; Marital</th>
                   <th className="py-3 px-3.5">Location</th>
                   <th className="py-3 px-3.5">Package</th>
-                  <th className="py-3 px-3.5 min-w-[180px]">Partner Requirements</th>
+                  {/* Status column (replaces Partner Requirements) */}
+                  <th className="py-3 px-3.5 min-w-[200px]">Service Status (3-Day Cycle)</th>
                   <th className="py-3 px-3.5 min-w-[140px]">Assigned MK</th>
                   <th className="py-3 px-3.5 text-right w-24">Action</th>
                 </tr>
@@ -314,6 +471,7 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ user, token })
                 {filteredCandidates.map((row, idx) => {
                   const age = calculateAge(row.dateOfBirth);
                   const isFemale = row.gender?.toLowerCase() === 'female';
+                  const serviceInfo = getCandidateServiceInfo(row);
 
                   return (
                     <tr key={row.id} className="hover:bg-slate-50/80 transition-colors">
@@ -394,8 +552,12 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ user, token })
 
                       {/* 5. Religion & Marital */}
                       <td className="py-2.5 px-3.5">
-                        <div className="font-semibold text-slate-800 text-[11px]">{row.religion || 'Muslim'}</div>
-                        <div className="text-[10px] text-slate-500">{row.maritalStatus || 'Never Married'}</div>
+                        <div className="font-semibold text-slate-800 text-[11px]">
+                          {row.religion || 'Muslim'}
+                        </div>
+                        <div className="text-[10px] text-slate-500">
+                          {row.maritalStatus || 'Never Married'}
+                        </div>
                       </td>
 
                       {/* 6. Location */}
@@ -413,26 +575,103 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ user, token })
                         </span>
                       </td>
 
-                      {/* 8. Partner Requirements snippet */}
+                      {/* 8. 3-Day Service Status Column (Replaced Partner Requirements) */}
                       <td className="py-2.5 px-3.5">
-                        <p className="text-[11px] text-slate-600 line-clamp-2 max-w-[200px]" title={row.requirement}>
-                          {row.requirement || 'Standard matching criteria'}
-                        </p>
+                        {serviceInfo.isOverdue ? (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedServiceCandidate(row)}
+                            className="text-left group/status cursor-pointer focus:outline-none"
+                            title="3-day cycle overdue! Click to record service and reset cycle."
+                          >
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-900 border border-amber-300 shadow-2xs group-hover/status:bg-amber-100 group-hover/status:border-amber-400 transition-all">
+                              <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                              </span>
+                              <span>Service Required</span>
+                              <span className="text-[10px] bg-amber-200/90 text-amber-950 px-1.5 py-0.2 rounded-md font-mono font-bold">
+                                {serviceInfo.daysOverdue}d overdue
+                              </span>
+                            </div>
+
+                            <div className="text-[10px] text-amber-700 font-medium mt-0.5 flex items-center gap-1 pl-1">
+                              <Clock className="w-3 h-3 text-amber-600 shrink-0" />
+                              <span className="truncate max-w-[170px]">
+                                {serviceInfo.hasEverBeenServiced
+                                  ? `Last: ${row.lastServiceType || 'Service'} (${serviceInfo.diffDays}d ago)`
+                                  : 'Initial service pending'}
+                              </span>
+                            </div>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedServiceCandidate(row)}
+                            className="text-left group/status cursor-pointer focus:outline-none"
+                            title="Click to add another service or view service log history."
+                          >
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs group-hover/status:bg-emerald-100 group-hover/status:border-emerald-400 transition-all">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Service Completed</span>
+                              <span className="text-[10px] bg-emerald-200/60 text-emerald-900 px-1.5 py-0.2 rounded-md font-mono font-semibold">
+                                {serviceInfo.daysRemaining}d left
+                              </span>
+                            </div>
+
+                            <div className="text-[10px] text-slate-500 font-medium mt-0.5 flex items-center gap-1 pl-1 truncate max-w-[180px]">
+                              <span className="font-semibold text-emerald-700">
+                                {row.lastServiceType || 'Service'}
+                              </span>
+                              <span>&bull;</span>
+                              <span>{serviceInfo.diffDays === 0 ? 'Today' : `${serviceInfo.diffDays}d ago`}</span>
+                              {serviceInfo.servicesCount > 1 && (
+                                <span className="text-[9px] text-slate-400 font-mono">
+                                  ({serviceInfo.servicesCount} logs)
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        )}
                       </td>
 
                       {/* 9. Assigned MK Account */}
                       <td className="py-2.5 px-3.5">
-                        <div className="font-semibold text-slate-800 text-xs truncate">
-                          {row.assignedTo?.name || row.assignBy || 'General MK'}
-                        </div>
-                        <div className="text-[10px] text-emerald-600 font-bold">
-                          Assigned MK Officer
-                        </div>
+                        {Array.isArray(row.assignedMKs) && row.assignedMKs.length > 1 ? (
+                          <div>
+                            <div className="font-bold text-slate-900 text-xs truncate max-w-[130px]">
+                              {row.assignedMKs[0].name}
+                            </div>
+                            <div className="text-[10px] text-emerald-600 font-bold">
+                              +{row.assignedMKs.length - 1} Co-Assigned MKs
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="font-semibold text-slate-800 text-xs truncate">
+                              {row.assignedTo?.name || row.assignBy || 'General MK'}
+                            </div>
+                            <div className="text-[10px] text-emerald-600 font-bold">
+                              Assigned MK Officer
+                            </div>
+                          </div>
+                        )}
                       </td>
 
-                      {/* 10. Actions (View Profile & PDF) */}
+                      {/* 10. Actions (Record Service, View Profile, PDF) */}
                       <td className="py-2.5 px-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
+                        <div className="flex items-center justify-end gap-1">
+                          {/* Record Matchmaking Service button */}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedServiceCandidate(row)}
+                            className="p-1.5 rounded-lg text-emerald-700 hover:text-white hover:bg-emerald-600 transition-colors cursor-pointer"
+                            title="Record Service (Incoming/Outgoing Call, CV Send, Update)"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* View Profile */}
                           <button
                             type="button"
                             onClick={() => setViewingProfile(row)}
@@ -442,6 +681,7 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ user, token })
                             <Eye className="w-3.5 h-3.5" />
                           </button>
 
+                          {/* PDF Biodata */}
                           {row.pdf && (row.pdf.dataUrl || row.pdf.url) && (
                             <a
                               href={row.pdf.dataUrl || row.pdf.url}
@@ -471,7 +711,21 @@ export const MatchmakingPage: React.FC<MatchmakingPageProps> = ({ user, token })
           isOpen={!!viewingProfile}
           onClose={() => setViewingProfile(null)}
           traffic={viewingProfile}
-          canEdit={false} // MK cannot edit candidate
+          canEdit={false}
+        />
+      )}
+
+      {/* ==================================================
+          MATCHMAKING SERVICE MODAL
+      ================================================== */}
+      {selectedServiceCandidate && (
+        <MatchmakingServiceModal
+          isOpen={!!selectedServiceCandidate}
+          onClose={() => setSelectedServiceCandidate(null)}
+          candidate={selectedServiceCandidate}
+          token={token}
+          currentUser={user}
+          onServiceRecorded={handleServiceRecorded}
         />
       )}
     </div>
