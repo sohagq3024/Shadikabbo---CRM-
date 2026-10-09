@@ -28,21 +28,21 @@ const PaidTrafficTableRow = React.memo<PaidTrafficTableRowProps>(
     return (
       <tr className="hover:bg-slate-50/90 transition-colors group">
         {/* 1. Serial Number */}
-        <td className="py-2 px-3.5 font-mono font-semibold text-slate-600 w-16">
+        <td className="py-2 px-2.5 sm:px-3 font-mono font-semibold text-slate-600 w-14">
           <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-slate-100 text-slate-700 text-[11px] font-mono">
             {row.serialNumber || index + 1}
           </span>
         </td>
 
         {/* 2. ID & Date */}
-        <td className="py-2 px-3.5 w-36">
+        <td className="py-2 px-2.5 sm:px-3 w-32">
           <div className="font-mono font-bold text-[#181E54] text-xs">{row.id}</div>
           <div className="text-[10px] text-slate-500">{row.createdAt}</div>
         </td>
 
         {/* 3. Name with integrated Rounded Profile Picture */}
-        <td className="py-2 px-3.5">
-          <div className="flex items-center gap-3">
+        <td className="py-2 px-2.5 sm:px-3">
+          <div className="flex items-center gap-2.5">
             {/* Rounded Thumbnail */}
             <button
               type="button"
@@ -50,7 +50,7 @@ const PaidTrafficTableRow = React.memo<PaidTrafficTableRowProps>(
               className="relative shrink-0 group/avatar cursor-pointer focus:outline-none"
               title={`View ${row.name}'s profile and photos`}
             >
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-slate-200/90 shadow-2xs group-hover/avatar:ring-2 group-hover/avatar:ring-[#181E54]/25 transition-all bg-slate-100 flex items-center justify-center">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border border-slate-200/90 shadow-2xs group-hover/avatar:ring-2 group-hover/avatar:ring-[#181E54]/25 transition-all bg-slate-100 flex items-center justify-center">
                 {row.images && row.images.length > 0 ? (
                   <img
                     src={row.images[0]}
@@ -70,7 +70,7 @@ const PaidTrafficTableRow = React.memo<PaidTrafficTableRowProps>(
                 )}
               </div>
               {row.images && row.images.length > 1 && (
-                <span className="absolute -bottom-0.5 -right-0.5 bg-[#181E54] text-white text-[8px] font-bold px-1 py-0.5 rounded-full border border-white shadow-2xs">
+                <span className="absolute -bottom-0.5 -right-0.5 bg-[#181E54] text-white text-[8px] font-bold px-1 py-0.2 rounded-full border border-white shadow-2xs">
                   +{row.images.length - 1}
                 </span>
               )}
@@ -93,7 +93,7 @@ const PaidTrafficTableRow = React.memo<PaidTrafficTableRowProps>(
         </td>
 
         {/* 4. Created By (Account person who added candidate into CRM) */}
-        <td className="py-2 px-3.5 w-36">
+        <td className="py-2 px-2.5 sm:px-3 w-32">
           <div className="font-semibold text-[#181E54] text-xs truncate">
             {row.createdBy || 'Sohag'}
           </div>
@@ -103,22 +103,22 @@ const PaidTrafficTableRow = React.memo<PaidTrafficTableRowProps>(
         </td>
 
         {/* 5. Assign (Assigned MK Accounts - Supports Multiple Assign) */}
-        <td className="py-2 px-3.5 w-44">
+        <td className="py-2 px-2.5 sm:px-3 w-36">
           {Array.isArray(row.assignedMKs) && row.assignedMKs.length > 1 ? (
             <div>
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-bold text-slate-900 text-xs truncate max-w-[120px]">
+                <span className="font-bold text-slate-900 text-xs truncate max-w-[100px]">
                   {row.assignedMKs[0].name}
                 </span>
-                <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-bold">
-                  +{row.assignedMKs.length - 1} more
+                <span className="px-1 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-bold">
+                  +{row.assignedMKs.length - 1}
                 </span>
               </div>
               <div
-                className="text-[10px] text-emerald-700 font-semibold truncate max-w-[150px] mt-0.5"
+                className="text-[10px] text-emerald-700 font-semibold truncate max-w-[130px] mt-0.5"
                 title={row.assignedMKs.map((m: any) => m.name).join(', ')}
               >
-                Multi-MK ({row.assignedMKs.map((m: any) => m.name.replace(/^MK - /, '')).join(', ')})
+                Multi-MK
               </div>
             </div>
           ) : (
@@ -134,22 +134,22 @@ const PaidTrafficTableRow = React.memo<PaidTrafficTableRowProps>(
         </td>
 
         {/* 6. Phone */}
-        <td className="py-2 px-3.5 w-36">
-          <div className="flex items-center gap-1.5 font-mono text-slate-700 text-xs">
-            <CountryFlag iso={detectCountryIso(row.phone)} className="w-4 h-3" />
+        <td className="py-2 px-2.5 sm:px-3 w-32">
+          <div className="flex items-center gap-1 font-mono text-slate-700 text-xs">
+            <CountryFlag iso={detectCountryIso(row.phone)} className="w-3.5 h-2.5" />
             <span>{row.phone}</span>
           </div>
         </td>
 
         {/* 7. Package */}
-        <td className="py-2 px-3.5 w-28">
-          <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#181E54]/10 text-[#181E54]">
+        <td className="py-2 px-2.5 sm:px-3 w-28">
+          <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#181E54]/10 text-[#181E54]">
             {row.package || 'Gold Package'}
           </span>
         </td>
 
         {/* 8. Action (3-dot menu trigger) */}
-        <td className="py-2 px-3.5 text-right w-20 relative">
+        <td className="py-2 px-2.5 sm:px-3 text-right w-16 relative">
           <button
             type="button"
             onClick={(e) => onToggleMenu(row, e)}
@@ -427,17 +427,17 @@ export const PaidTrafficPage: React.FC<PaidTrafficPageProps> = ({ token, user })
         )}
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs min-w-[780px]">
-            <thead className="bg-[#181E54] text-white uppercase text-[10px] tracking-wider">
+          <table className="w-full text-left text-xs min-w-[960px]">
+            <thead className="bg-[#181E54] text-white uppercase text-[10px] tracking-wider font-semibold">
               <tr>
-                <th className="py-2.5 px-3.5 font-semibold w-16">Serial Number</th>
-                <th className="py-2.5 px-3.5 font-semibold w-36">ID &amp; Date</th>
-                <th className="py-2.5 px-3.5 font-semibold">Name</th>
-                <th className="py-2.5 px-3.5 font-semibold w-36">Created By</th>
-                <th className="py-2.5 px-3.5 font-semibold w-36">Assign</th>
-                <th className="py-2.5 px-3.5 font-semibold w-36">Phone</th>
-                <th className="py-2.5 px-3.5 font-semibold w-28">Package</th>
-                <th className="py-2.5 px-3.5 font-semibold text-right w-20">Action</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-14">Serial</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-32">ID &amp; Date</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold min-w-[170px]">Name</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-32">Created By</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-36">Assign</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-32">Phone</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-28">Package</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold text-right w-16">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">

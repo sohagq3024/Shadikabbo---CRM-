@@ -4,22 +4,14 @@ import {
   Calendar,
   Users,
   CheckCircle2,
-  PhoneCall,
-  MessageSquare,
-  DollarSign,
-  TrendingUp,
-  Plus,
   RefreshCw,
   Eye,
-  Filter,
-  Check,
-  Clock,
   HeartHandshake,
-  ArrowRight,
-  Sparkles,
   ShieldAlert,
-  ChevronRight,
-  Layers,
+  RotateCcw,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from 'lucide-react';
 import { DailyReportModal } from './DailyReportModal';
 import { DailyReportDetailsModal } from './DailyReportDetailsModal';
@@ -42,10 +34,12 @@ export const DailyReportPage: React.FC<DailyReportPageProps> = ({ token, user })
   const [selectedReportForDetails, setSelectedReportForDetails] = useState<DailyReportRecord | null>(null);
 
   // Filters
-  const [filterDate, setFilterDate] = useState('');
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
   const [filterRole, setFilterRole] = useState<'all' | 'CRO' | 'MK'>('all');
   const [staffList, setStaffList] = useState<any[]>([]);
   const [filterStaffId, setFilterStaffId] = useState('all');
+  const [quickDatePreset, setQuickDatePreset] = useState<'all' | 'today' | 'last7' | 'thisMonth' | 'lastMonth' | 'custom'>('all');
 
   const isSuperAdmin = user?.role === 'Super Admin';
   const isMK = user?.role === 'MK';
@@ -56,7 +50,8 @@ export const DailyReportPage: React.FC<DailyReportPageProps> = ({ token, user })
     setError(null);
     try {
       const params = new URLSearchParams();
-      if (filterDate) params.append('date', filterDate);
+      if (filterStartDate) params.append('startDate', filterStartDate);
+      if (filterEndDate) params.append('endDate', filterEndDate);
       if (filterRole !== 'all') params.append('role', filterRole);
       if (isSuperAdmin && filterStaffId !== 'all') params.append('userId', filterStaffId);
 
@@ -88,46 +83,165 @@ export const DailyReportPage: React.FC<DailyReportPageProps> = ({ token, user })
 
   useEffect(() => {
     loadReports();
-  }, [token, filterDate, filterRole, filterStaffId]);
+  }, [token, filterStartDate, filterEndDate, filterRole, filterStaffId]);
 
-  // Aggregate Today's KPI Metrics across all loaded reports or today's reports
-  const todayReports = useMemo(() => {
-    const curDate = todayStr || new Date().toISOString().substring(0, 10);
-    return reports.filter((r) => r.date === curDate);
-  }, [reports, todayStr]);
+  // Handle Quick Date Presets (e.g. today, this month, last month, last 7 days, all time)
+  const handleQuickPreset = (preset: 'all' | 'today' | 'last7' | 'thisMonth' | 'lastMonth') => {
+    setQuickDatePreset(preset);
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth(); // 0-based
 
-  const aggregateStats = useMemo(() => {
-    const targetSet = todayReports.length > 0 ? todayReports : reports;
-    let totalLeads = 0;
-    let totalTraffics = 0;
-    let totalPaid = 0;
-    let totalSales = 0;
-    let totalCalls = 0;
-    let totalMessages = 0;
-    let totalServices = 0;
+    if (preset === 'all') {
+      setFilterStartDate('');
+      setFilterEndDate('');
+    } else if (preset === 'today') {
+      const t = now.toISOString().substring(0, 10);
+      setFilterStartDate(t);
+      setFilterEndDate(t);
+    } else if (preset === 'last7') {
+      const past = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000);
+      setFilterStartDate(past.toISOString().substring(0, 10));
+      setFilterEndDate(now.toISOString().substring(0, 10));
+    } else if (preset === 'thisMonth') {
+      const start = new Date(curYear, curMonth, 1);
+      const end = new Date(curYear, curMonth + 1, 0);
+      setFilterStartDate(start.toISOString().substring(0, 10));
+      setFilterEndDate(end.toISOString().substring(0, 10));
+    } else if (preset === 'lastMonth') {
+      const start = new Date(curYear, curMonth - 1, 1);
+      const end = new Date(curYear, curMonth, 0);
+      setFilterStartDate(start.toISOString().substring(0, 10));
+      setFilterEndDate(end.toISOString().substring(0, 10));
+    }
+  };
 
-    targetSet.forEach((r) => {
-      totalLeads += r.metrics?.leadsAddedCount || 0;
-      totalTraffics += r.metrics?.trafficsAddedCount || 0;
-      totalPaid += r.metrics?.paidTrafficsCount || 0;
-      totalSales += r.metrics?.sellingAmount || 0;
-      totalCalls += r.manualInputs?.receivedCalls || 0;
-      totalMessages += r.manualInputs?.messagesAssigned || 0;
-      if (r.metrics?.matchmaking) {
-        totalServices += r.metrics.matchmaking.totalServicesCount || 0;
+  // Group reports by date for the aggregated Date-Wise sheet view
+  const groupedByDate = useMemo(() => {
+    const map = new Map<string, DailyReportRecord[]>();
+    reports.forEach((r) => {
+      const d = r.date || 'Unknown';
+      if (!map.has(d)) {
+        map.set(d, []);
       }
+      map.get(d)!.push(r);
     });
 
+    // Convert map to sorted array of date groups (newest date first)
+    const groups: {
+      date: string;
+      reports: DailyReportRecord[];
+      staffCount: number;
+      croCount: number;
+      mkCount: number;
+      attendancePresent: number;
+      attendanceLate: number;
+      totalLeads: number;
+      topLeadSources: string;
+      totalTraffics: number;
+      transferredTraffics: number;
+      totalPaid: number;
+      totalSales: number;
+      totalCalls: number;
+      totalMessages: number;
+      totalServices: number;
+      uniqueClients: number;
+    }[] = [];
+
+    const sortedDates = Array.from(map.keys()).sort((a, b) => b.localeCompare(a));
+
+    sortedDates.forEach((d) => {
+      const dayReports = map.get(d)!;
+      let totalLeads = 0;
+      let totalTraffics = 0;
+      let transferredTraffics = 0;
+      let totalPaid = 0;
+      let totalSales = 0;
+      let totalCalls = 0;
+      let totalMessages = 0;
+      let totalServices = 0;
+      let uniqueClients = 0;
+      let attendancePresent = 0;
+      let attendanceLate = 0;
+      let croCount = 0;
+      let mkCount = 0;
+      const allSources: Record<string, number> = {};
+
+      dayReports.forEach((r) => {
+        if (r.userRole === 'CRO') croCount++;
+        if (r.userRole === 'MK') mkCount++;
+
+        const att = r.attendance?.status || '';
+        if (att.includes('Late')) {
+          attendanceLate++;
+        } else if (att.includes('Present')) {
+          attendancePresent++;
+        }
+
+        totalLeads += r.metrics?.leadsAddedCount || 0;
+        totalTraffics += r.metrics?.trafficsAddedCount || 0;
+        transferredTraffics += r.metrics?.leadsTransferredToTrafficCount || 0;
+        totalPaid += r.metrics?.paidTrafficsCount || 0;
+        totalSales += r.metrics?.sellingAmount || 0;
+        totalCalls += r.manualInputs?.receivedCalls || 0;
+        totalMessages += r.manualInputs?.messagesAssigned || 0;
+
+        if (r.metrics?.leadSources) {
+          Object.entries(r.metrics.leadSources).forEach(([src, count]) => {
+            allSources[src] = (allSources[src] || 0) + Number(count || 0);
+          });
+        }
+
+        if (r.metrics?.matchmaking) {
+          totalServices += r.metrics.matchmaking.totalServicesCount || 0;
+          uniqueClients += r.metrics.matchmaking.uniqueClientsCount || 0;
+        }
+      });
+
+      const topSources = Object.entries(allSources)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 2)
+        .map(([s, c]) => `${s}: ${c}`)
+        .join(', ');
+
+      groups.push({
+        date: d,
+        reports: dayReports,
+        staffCount: dayReports.length,
+        croCount,
+        mkCount,
+        attendancePresent,
+        attendanceLate,
+        totalLeads,
+        topLeadSources: topSources,
+        totalTraffics,
+        transferredTraffics,
+        totalPaid,
+        totalSales,
+        totalCalls,
+        totalMessages,
+        totalServices,
+        uniqueClients,
+      });
+    });
+
+    return groups;
+  }, [reports]);
+
+  // Fast, lightweight summary statistics derived from grouped data without heavy loops
+  const summaryStats = useMemo(() => {
+    let totalSales = 0;
+    let totalSubmissions = 0;
+    for (let i = 0; i < groupedByDate.length; i++) {
+      totalSales += groupedByDate[i].totalSales;
+      totalSubmissions += groupedByDate[i].staffCount;
+    }
     return {
-      totalLeads,
-      totalTraffics,
-      totalPaid,
+      daysCount: groupedByDate.length,
       totalSales,
-      totalCalls,
-      totalMessages,
-      totalServices,
+      totalSubmissions,
     };
-  }, [todayReports, reports]);
+  }, [groupedByDate]);
 
   return (
     <div className="space-y-5 pb-16 max-w-full overflow-y-auto">
@@ -135,235 +249,294 @@ export const DailyReportPage: React.FC<DailyReportPageProps> = ({ token, user })
           TOP BANNER & RIGHT-TOP CORNER "DAILY REPORT" ACTION BUTTON
           "Page a akta table ar right top corner a thakbe akta button 'Daily Report'"
          ========================================================= */}
-      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-xs flex items-center justify-between flex-wrap gap-4">
+      <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-xs flex items-center justify-between flex-wrap gap-4">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#181E54] text-white flex items-center justify-center shadow-xs">
-              <FileText className="w-5 h-5 text-amber-400" />
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-[#181E54] text-white flex items-center justify-center shadow-xs">
+              <FileText className="w-6 h-6 text-amber-400" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-[#181E54]">
-                Daily Performance Report
-              </h1>
-              <span className="text-[11px] text-slate-500 font-medium">
-                Real-time activity logs, lead source breakdown &amp; matchmaking tracking
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-[#181E54] tracking-tight">
+                  Daily Performance Report
+                </h1>
+                {isSuperAdmin && (
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                    Super Admin View
+                  </span>
+                )}
+              </div>
+              <span className="text-xs sm:text-sm text-slate-500 font-medium">
+                Total daily aggregated sales, leads &amp; matchmaking tracking with instant agent breakdown
               </span>
             </div>
           </div>
         </div>
 
-        {/* RIGHT TOP CORNER ACTION BUTTONS */}
-        <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Refresh Table */}
+        {/* RIGHT TOP CORNER ACTION BUTTONS - PROMINENT & COMFORTABLE SIZING */}
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Refresh Table Button */}
           <button
             type="button"
             onClick={loadReports}
-            className="p-2.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+            className="w-12 h-12 flex items-center justify-center rounded-2xl bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200/80 transition-all cursor-pointer shadow-xs active:scale-95"
             title="Refresh reports"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
           </button>
 
           {/* THE MANDATORY RIGHT-TOP CORNER "Daily Report" BUTTON */}
           <button
             type="button"
             onClick={() => setIsFormModalOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#181E54] via-[#242D73] to-[#181E54] hover:shadow-md text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-xs cursor-pointer active:scale-98"
+            className="flex items-center gap-2.5 px-6 py-3 bg-gradient-to-r from-[#181E54] via-[#242D73] to-[#181E54] hover:shadow-lg text-white rounded-2xl text-sm sm:text-base font-bold transition-all shadow-md cursor-pointer active:scale-98"
             title="Open Daily Report Form"
           >
-            <FileText className="w-4 h-4 text-amber-400" />
+            <FileText className="w-5 h-5 text-amber-400" />
             <span>Daily Report</span>
             {hasSubmittedToday && (
-              <span className="ml-1 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-emerald-200" title="Today's report already submitted" />
+              <span
+                className="ml-1 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-emerald-200"
+                title="Today's report already submitted"
+              />
             )}
           </button>
         </div>
       </div>
 
-      {/* TODAY'S LIVE KPI METRIC CARDS */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-        {/* Leads */}
-        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-              Today Leads
+      {/* FILTER & SEARCH CONTROLS (SUPER ADMIN UNRESTRICTED DATE RANGES) - CLEAN, SPACIOUS, FAST */}
+      <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
+        {/* Row 1: Quick Date Presets & Live Summary Strip */}
+        <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-1 flex items-center gap-1.5">
+              <Calendar className="w-4 h-4 text-slate-500" />
+              Presets:
             </span>
-            <Users className="w-3.5 h-3.5 text-blue-600" />
-          </div>
-          <p className="text-xl sm:text-2xl font-bold text-[#181E54]">
-            {aggregateStats.totalLeads}
-          </p>
-          <span className="text-[10px] text-slate-400">Added to pipeline</span>
-        </div>
-
-        {/* Traffics */}
-        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-              Add Traffic
-            </span>
-            <TrendingUp className="w-3.5 h-3.5 text-indigo-600" />
-          </div>
-          <p className="text-xl sm:text-2xl font-bold text-indigo-900">
-            {aggregateStats.totalTraffics}
-          </p>
-          <span className="text-[10px] text-slate-400">Total verified</span>
-        </div>
-
-        {/* Paid Traffic */}
-        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
-              Paid Traffic
-            </span>
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-          </div>
-          <p className="text-xl sm:text-2xl font-bold text-emerald-700">
-            {aggregateStats.totalPaid}
-          </p>
-          <span className="text-[10px] text-emerald-600">Converted</span>
-        </div>
-
-        {/* Selling Amount */}
-        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider">
-              Selling Amount
-            </span>
-            <DollarSign className="w-3.5 h-3.5 text-emerald-700" />
-          </div>
-          <p className="text-lg sm:text-xl font-bold text-emerald-900 font-mono">
-            ৳ {aggregateStats.totalSales.toLocaleString()}
-          </p>
-          <span className="text-[10px] text-slate-400">Approved sales</span>
-        </div>
-
-        {/* Calls Received */}
-        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-              Total Calls
-            </span>
-            <PhoneCall className="w-3.5 h-3.5 text-emerald-600" />
-          </div>
-          <p className="text-xl sm:text-2xl font-bold text-slate-900">
-            {aggregateStats.totalCalls}
-          </p>
-          <span className="text-[10px] text-slate-400">Incoming calls</span>
-        </div>
-
-        {/* Matchmaking Services or Messages */}
-        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-              {isMK ? 'MK Services' : 'Messages'}
-            </span>
-            {isMK ? (
-              <HeartHandshake className="w-3.5 h-3.5 text-[#D81124]" />
-            ) : (
-              <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
-            )}
-          </div>
-          <p className="text-xl sm:text-2xl font-bold text-[#181E54]">
-            {isMK ? aggregateStats.totalServices : aggregateStats.totalMessages}
-          </p>
-          <span className="text-[10px] text-slate-400">
-            {isMK ? 'Client interactions' : 'Threads assigned'}
-          </span>
-        </div>
-      </div>
-
-      {/* FILTER & SEARCH ROW */}
-      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Date Picker */}
-          <div className="relative">
-            <Calendar className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="date"
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-              className="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
-            />
-          </div>
-
-          {/* Role Filter (Super Admin) */}
-          {isSuperAdmin && (
-            <div className="flex items-center bg-slate-100 p-0.5 rounded-xl text-xs">
-              <button
-                type="button"
-                onClick={() => setFilterRole('all')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                  filterRole === 'all'
-                    ? 'bg-white text-[#181E54] shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                All Roles
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilterRole('CRO')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                  filterRole === 'CRO'
-                    ? 'bg-purple-600 text-white shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                CRO
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilterRole('MK')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                  filterRole === 'MK'
-                    ? 'bg-emerald-600 text-white shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                MK
-              </button>
-            </div>
-          )}
-
-          {/* Staff Filter (Super Admin) */}
-          {isSuperAdmin && staffList.length > 0 && (
-            <select
-              value={filterStaffId}
-              onChange={(e) => setFilterStaffId(e.target.value)}
-              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54] cursor-pointer"
-            >
-              <option value="all">All Staff Members</option>
-              {staffList.map((emp) => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.name} ({emp.role})
-                </option>
-              ))}
-            </select>
-          )}
-
-          {(filterDate || filterRole !== 'all' || filterStaffId !== 'all') && (
             <button
               type="button"
-              onClick={() => {
-                setFilterDate('');
-                setFilterRole('all');
-                setFilterStaffId('all');
-              }}
-              className="text-xs text-[#D81124] hover:underline font-semibold cursor-pointer px-1"
+              onClick={() => handleQuickPreset('all')}
+              className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-xs active:scale-98 ${
+                quickDatePreset === 'all'
+                  ? 'bg-[#181E54] text-white shadow-sm ring-2 ring-[#181E54]/20'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
             >
-              Reset Filters
+              All Time
             </button>
-          )}
+            <button
+              type="button"
+              onClick={() => handleQuickPreset('today')}
+              className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-xs active:scale-98 ${
+                quickDatePreset === 'today'
+                  ? 'bg-[#181E54] text-white shadow-sm ring-2 ring-[#181E54]/20'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickPreset('last7')}
+              className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-xs active:scale-98 ${
+                quickDatePreset === 'last7'
+                  ? 'bg-[#181E54] text-white shadow-sm ring-2 ring-[#181E54]/20'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              Last 7 Days
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickPreset('thisMonth')}
+              className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-xs active:scale-98 ${
+                quickDatePreset === 'thisMonth'
+                  ? 'bg-[#181E54] text-white shadow-sm ring-2 ring-[#181E54]/20'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              This Month
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickPreset('lastMonth')}
+              className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-xs active:scale-98 ${
+                quickDatePreset === 'lastMonth'
+                  ? 'bg-[#181E54] text-white shadow-sm ring-2 ring-[#181E54]/20'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              Last Month
+            </button>
+          </div>
+
+          {/* Quick Lightweight Live Summary Strip */}
+          <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-600 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-200/70">
+            <span className="text-slate-800 font-bold">{summaryStats.daysCount} Days</span>
+            <span className="text-slate-300">•</span>
+            <span className="text-blue-700 font-bold">{summaryStats.totalSubmissions} Reports</span>
+            <span className="text-slate-300">•</span>
+            <span className="text-emerald-700 font-bold font-mono">
+              ৳ {summaryStats.totalSales.toLocaleString()}
+            </span>
+            {groupedByDate.length >= 2 && (() => {
+              const diff = groupedByDate[0].totalSales - groupedByDate[1].totalSales;
+              if (diff > 0) {
+                return (
+                  <>
+                    <span className="text-slate-300">•</span>
+                    <span
+                      className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-lg border border-emerald-200"
+                      title={`Latest day (${groupedByDate[0].date}) vs previous day: +৳${diff.toLocaleString()}`}
+                    >
+                      <TrendingUp className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
+                      <span>+৳{diff.toLocaleString()}</span>
+                    </span>
+                  </>
+                );
+              }
+              if (diff < 0) {
+                return (
+                  <>
+                    <span className="text-slate-300">•</span>
+                    <span
+                      className="inline-flex items-center gap-1 text-xs font-bold text-rose-700 bg-rose-100/70 px-2 py-0.5 rounded-lg border border-rose-200"
+                      title={`Latest day (${groupedByDate[0].date}) vs previous day: -৳${Math.abs(diff).toLocaleString()}`}
+                    >
+                      <TrendingDown className="w-3.5 h-3.5 text-rose-600 stroke-[2.5]" />
+                      <span>-৳{Math.abs(diff).toLocaleString()}</span>
+                    </span>
+                  </>
+                );
+              }
+              return (
+                <>
+                  <span className="text-slate-300">•</span>
+                  <span
+                    className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 bg-slate-200/60 px-2 py-0.5 rounded-lg"
+                    title={`Same as previous day (${groupedByDate[1].date})`}
+                  >
+                    <Minus className="w-3.5 h-3.5 text-slate-400" />
+                    <span>0% vs prev</span>
+                  </span>
+                </>
+              );
+            })()}
+          </div>
         </div>
 
-        <div className="text-xs text-slate-400 font-medium">
-          Showing <strong>{reports.length}</strong> daily report(s)
+        {/* Row 2: Custom Date Range Pickers & Role / Staff Filters with Large Comfortable Buttons */}
+        <div className="flex items-center justify-between flex-wrap gap-3.5">
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Start Date */}
+            <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-600">
+              <span className="text-xs text-slate-400 font-bold uppercase">From:</span>
+              <input
+                type="date"
+                value={filterStartDate}
+                onChange={(e) => {
+                  setFilterStartDate(e.target.value);
+                  setQuickDatePreset('custom');
+                }}
+                className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54] focus:bg-white shadow-2xs"
+                placeholder="From date"
+              />
+            </div>
+
+            {/* End Date */}
+            <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-600">
+              <span className="text-xs text-slate-400 font-bold uppercase">To:</span>
+              <input
+                type="date"
+                value={filterEndDate}
+                onChange={(e) => {
+                  setFilterEndDate(e.target.value);
+                  setQuickDatePreset('custom');
+                }}
+                className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54] focus:bg-white shadow-2xs"
+                placeholder="To date"
+              />
+            </div>
+
+            {/* Role Filter (Super Admin) */}
+            {isSuperAdmin && (
+              <div className="flex items-center bg-slate-100 p-1 rounded-2xl text-xs sm:text-sm">
+                <button
+                  type="button"
+                  onClick={() => setFilterRole('all')}
+                  className={`px-4 py-2 rounded-xl font-bold transition-all cursor-pointer ${
+                    filterRole === 'all'
+                      ? 'bg-white text-[#181E54] shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  All Roles
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterRole('CRO')}
+                  className={`px-4 py-2 rounded-xl font-bold transition-all cursor-pointer ${
+                    filterRole === 'CRO'
+                      ? 'bg-purple-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  CRO
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterRole('MK')}
+                  className={`px-4 py-2 rounded-xl font-bold transition-all cursor-pointer ${
+                    filterRole === 'MK'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  MK
+                </button>
+              </div>
+            )}
+
+            {/* Staff Filter (Super Admin) */}
+            {isSuperAdmin && staffList.length > 0 && (
+              <select
+                value={filterStaffId}
+                onChange={(e) => setFilterStaffId(e.target.value)}
+                className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54] focus:bg-white cursor-pointer shadow-2xs"
+              >
+                <option value="all">All Staff Members</option>
+                {staffList.map((emp) => (
+                  <option key={emp.id} value={emp.id}>
+                    {emp.name} ({emp.role})
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {/* Reset Filter Button */}
+            {(filterStartDate || filterEndDate || filterRole !== 'all' || filterStaffId !== 'all') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterStartDate('');
+                  setFilterEndDate('');
+                  setFilterRole('all');
+                  setFilterStaffId('all');
+                  setQuickDatePreset('all');
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold text-[#D81124] bg-red-50 hover:bg-red-100 border border-red-200 transition-all cursor-pointer shadow-2xs"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset Filters</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* =========================================================
-          MAIN TABLE: DAILY PERFORMANCE REPORTS
+          MAIN SHEET: DATE-WISE TOTAL AGGREGATED DAILY REPORTS
+          Columns: Date & Staff | Attendance | Leads (Sources) | Traffic / Transfer | Paid Traffic | Selling Amount | Calls / Msgs | MK Services | Details
          ========================================================= */}
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
         {error && (
@@ -373,19 +546,19 @@ export const DailyReportPage: React.FC<DailyReportPageProps> = ({ token, user })
           </div>
         )}
 
-        <div className="overflow-x-auto overflow-y-auto max-h-[620px] scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
-          <table className="w-full text-left text-xs min-w-[950px] border-collapse">
-            <thead className="bg-[#181E54] text-white uppercase text-[10px] tracking-wider sticky top-0 z-10 shadow-xs">
+        <div className="overflow-x-auto overflow-y-auto max-h-[640px] scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+          <table className="w-full text-left text-xs sm:text-sm min-w-[980px] border-collapse">
+            <thead className="bg-[#181E54] text-white uppercase text-[11px] tracking-wider sticky top-0 z-10 shadow-xs">
               <tr>
-                <th className="py-3 px-4 font-semibold">Date &amp; Staff</th>
-                <th className="py-3 px-3.5 font-semibold">Attendance</th>
-                <th className="py-3 px-3.5 font-semibold">Leads (Sources)</th>
-                <th className="py-3 px-3.5 font-semibold">Traffic / Transfer</th>
-                <th className="py-3 px-3.5 font-semibold">Paid Traffic</th>
-                <th className="py-3 px-3.5 font-semibold">Selling Amount</th>
-                <th className="py-3 px-3.5 font-semibold">Calls / Msgs</th>
-                <th className="py-3 px-3.5 font-semibold">MK Services</th>
-                <th className="py-3 px-4 font-semibold text-right">Details</th>
+                <th className="py-4 px-5 font-bold">Date &amp; Staff</th>
+                <th className="py-4 px-4 font-bold">Attendance</th>
+                <th className="py-4 px-4 font-bold">Leads (Sources)</th>
+                <th className="py-4 px-4 font-bold">Traffic / Transfer</th>
+                <th className="py-4 px-4 font-bold">Paid Traffic</th>
+                <th className="py-4 px-4 font-bold">Selling Amount &amp; Trend</th>
+                <th className="py-4 px-4 font-bold">Calls / Msgs</th>
+                <th className="py-4 px-4 font-bold">MK Services</th>
+                <th className="py-4 px-5 font-bold text-right">Details</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -398,142 +571,190 @@ export const DailyReportPage: React.FC<DailyReportPageProps> = ({ token, user })
                     </div>
                   </td>
                 </tr>
-              ) : reports.length === 0 ? (
+              ) : groupedByDate.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-20 text-center text-slate-400">
-                    <p className="text-sm font-semibold text-slate-700 mb-1">No daily reports recorded</p>
+                    <p className="text-sm font-semibold text-slate-700 mb-1">No daily reports found</p>
                     <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                      Click the &ldquo;Daily Report&rdquo; button in the top right corner to submit today&apos;s performance summary.
+                      No reports match the selected date filter. Click the &ldquo;Daily Report&rdquo; button to submit today&apos;s summary.
                     </p>
                   </td>
                 </tr>
               ) : (
-                reports.map((row) => {
-                  const att = row.attendance || ({} as any);
-                  const metrics = row.metrics || ({} as any);
-                  const sources = metrics.leadSources || {};
-                  const topSources = Object.entries(sources)
-                    .slice(0, 2)
-                    .map(([src, count]) => `${src}: ${count}`)
-                    .join(', ');
-
-                  const isToday = row.date === todayStr;
+                groupedByDate.map((group, index) => {
+                  const isToday = group.date === todayStr;
+                  const prevDay = groupedByDate[index + 1];
+                  const diff = prevDay ? group.totalSales - prevDay.totalSales : 0;
+                  const percentChange =
+                    prevDay && prevDay.totalSales > 0
+                      ? (diff / prevDay.totalSales) * 100
+                      : group.totalSales > 0
+                      ? 100
+                      : 0;
 
                   return (
                     <tr
-                      key={row.id}
-                      onClick={() => setSelectedReportForDetails(row)}
-                      className="hover:bg-slate-50/90 transition-colors cursor-pointer group"
-                      title="Click to view full detailed report"
+                      key={group.date}
+                      className="hover:bg-slate-50/70 transition-colors"
                     >
                       {/* 1. Date & Staff */}
-                      <td className="py-3.5 px-4">
-                        <div className="space-y-0.5">
-                          <div className="flex items-center gap-1.5 font-mono font-bold text-slate-900 group-hover:text-[#D81124] transition-colors">
-                            <span>{row.date}</span>
+                      <td className="py-4 px-5">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 font-mono font-bold text-slate-900">
+                            <span className="text-sm sm:text-base">{group.date}</span>
                             {isToday && (
-                              <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.2 rounded font-sans font-bold">
+                              <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-md font-sans font-bold">
                                 Today
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                            <span className="font-semibold">{row.userName}</span>
-                            <span
-                              className={`px-1.5 py-0.2 rounded text-[9px] font-bold border ${
-                                row.userRole === 'CRO'
-                                  ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              }`}
-                            >
-                              {row.userRole}
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className="font-semibold text-slate-700">
+                              {group.staffCount} Agent{group.staffCount > 1 ? 's' : ''} Total
                             </span>
+                            <div className="flex items-center gap-1 text-[10px] font-bold">
+                              {group.croCount > 0 && (
+                                <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+                                  {group.croCount} CRO
+                                </span>
+                              )}
+                              {group.mkCount > 0 && (
+                                <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  {group.mkCount} MK
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </td>
 
                       {/* 2. Attendance Status */}
-                      <td className="py-3.5 px-3.5">
+                      <td className="py-4 px-4">
                         <div className="space-y-0.5">
-                          <span
-                            className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                              att.status?.includes('Late')
-                                ? 'bg-amber-50 text-amber-800 border-amber-300'
-                                : att.status?.includes('Present')
-                                ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                : 'bg-slate-100 text-slate-700 border-slate-200'
-                            }`}
-                          >
-                            {att.status || 'Present'}
+                          <span className="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            {group.attendancePresent + group.attendanceLate} Present
                           </span>
-                          <div className="text-[10px] font-mono text-slate-400">
-                            In: {att.inTime || '-'} · Out: {att.outTime || '-'}
-                          </div>
+                          {group.attendanceLate > 0 && (
+                            <div className="text-[10px] text-amber-700 font-semibold">
+                              ({group.attendanceLate} Late)
+                            </div>
+                          )}
                         </div>
                       </td>
 
                       {/* 3. Leads (Sources) */}
-                      <td className="py-3.5 px-3.5">
+                      <td className="py-4 px-4">
                         <div className="space-y-0.5">
-                          <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md bg-blue-50 text-blue-800 font-mono font-bold text-xs border border-blue-200">
-                            {metrics.leadsAddedCount || 0}
+                          <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 font-mono font-bold text-xs sm:text-sm border border-blue-200">
+                            {group.totalLeads}
                           </span>
-                          {topSources && (
-                            <div className="text-[10px] text-slate-400 truncate max-w-[130px]" title={topSources}>
-                              {topSources}
+                          {group.topLeadSources && (
+                            <div
+                              className="text-[10px] text-slate-400 truncate max-w-[130px]"
+                              title={group.topLeadSources}
+                            >
+                              {group.topLeadSources}
                             </div>
                           )}
                         </div>
                       </td>
 
                       {/* 4. Traffic / Transfer */}
-                      <td className="py-3.5 px-3.5">
-                        <div className="space-y-0.5">
-                          <span className="font-bold text-slate-800 font-mono">
-                            {metrics.trafficsAddedCount || 0}
+                      <td className="py-4 px-4">
+                        <div className="space-y-0.5 font-mono">
+                          <span className="font-bold text-slate-800 text-xs sm:text-sm">
+                            {group.totalTraffics}
                           </span>
-                          <div className="text-[10px] text-emerald-600 font-medium">
-                            +{metrics.leadsTransferredToTrafficCount || 0} from Lead
+                          <div className="text-[10px] text-emerald-600 font-sans font-semibold">
+                            +{group.transferredTraffics} from Lead
                           </div>
                         </div>
                       </td>
 
                       {/* 5. Paid Traffic */}
-                      <td className="py-3.5 px-3.5">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs font-mono">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                          {metrics.paidTrafficsCount || 0}
+                      <td className="py-4 px-4">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs sm:text-sm font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs font-mono">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          {group.totalPaid}
                         </span>
                       </td>
 
-                      {/* 6. Selling Amount */}
-                      <td className="py-3.5 px-3.5">
-                        <span className="font-mono font-bold text-emerald-800 text-xs">
-                          ৳ {(metrics.sellingAmount || 0).toLocaleString()}
-                        </span>
+                      {/* 6. Selling Amount & Daily Trend Indicator */}
+                      <td className="py-4 px-4 whitespace-nowrap">
+                        <div className="space-y-1">
+                          <span className="font-mono font-bold text-emerald-800 text-sm sm:text-base block">
+                            ৳ {group.totalSales.toLocaleString()}
+                          </span>
+                          {prevDay ? (
+                            <div>
+                              {diff > 0 ? (
+                                <span
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/90 shadow-2xs font-mono"
+                                  title={`Increased by ৳ ${diff.toLocaleString()} compared to previous recorded day (${prevDay.date})`}
+                                >
+                                  <TrendingUp className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
+                                  <span>+{diff.toLocaleString()}</span>
+                                  {prevDay.totalSales > 0 && (
+                                    <span className="text-[10px] font-semibold text-emerald-600">
+                                      ({percentChange > 999 ? '>999%' : `+${percentChange.toFixed(0)}%`})
+                                    </span>
+                                  )}
+                                </span>
+                              ) : diff < 0 ? (
+                                <span
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200/90 shadow-2xs font-mono"
+                                  title={`Decreased by ৳ ${Math.abs(diff).toLocaleString()} compared to previous recorded day (${prevDay.date})`}
+                                >
+                                  <TrendingDown className="w-3.5 h-3.5 text-rose-600 stroke-[2.5]" />
+                                  <span>-{Math.abs(diff).toLocaleString()}</span>
+                                  {prevDay.totalSales > 0 && (
+                                    <span className="text-[10px] font-semibold text-rose-600">
+                                      ({percentChange.toFixed(0)}%)
+                                    </span>
+                                  )}
+                                </span>
+                              ) : (
+                                <span
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-50 text-slate-500 border border-slate-200 font-mono"
+                                  title={`Equal to previous recorded day (${prevDay.date})`}
+                                >
+                                  <Minus className="w-3 h-3 text-slate-400" />
+                                  <span>0% vs prev</span>
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span
+                              className="text-[10px] text-slate-400 font-medium block"
+                              title="Baseline entry (oldest day in current filter)"
+                            >
+                              Base day
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* 7. Calls / Messages */}
-                      <td className="py-3.5 px-3.5 font-mono text-xs">
+                      <td className="py-4 px-4 font-mono text-xs sm:text-sm">
                         <div>
-                          <span className="text-slate-800 font-semibold">{row.manualInputs?.receivedCalls || 0}</span>
+                          <span className="text-slate-800 font-semibold">{group.totalCalls}</span>
                           <span className="text-[10px] text-slate-400 ml-1 font-sans">calls</span>
                         </div>
                         <div className="text-[10px] text-slate-500 font-sans">
-                          {row.manualInputs?.messagesAssigned || 0} msgs
+                          {group.totalMessages} msgs
                         </div>
                       </td>
 
                       {/* 8. MK Services */}
-                      <td className="py-3.5 px-3.5">
-                        {metrics.matchmaking ? (
+                      <td className="py-4 px-4">
+                        {group.totalServices > 0 ? (
                           <div className="space-y-0.5">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200 font-mono">
-                              <HeartHandshake className="w-3 h-3 text-[#D81124]" />
-                              {metrics.matchmaking.totalServicesCount || 0} Srv
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-900 border border-amber-200 font-mono">
+                              <HeartHandshake className="w-3.5 h-3.5 text-[#D81124]" />
+                              {group.totalServices} Srv
                             </span>
                             <div className="text-[10px] text-slate-400">
-                              {metrics.matchmaking.uniqueClientsCount || 0} clients · {metrics.matchmaking.pendingServicesCount || 0} due
+                              {group.uniqueClients} clients
                             </div>
                           </div>
                         ) : (
@@ -541,20 +762,34 @@ export const DailyReportPage: React.FC<DailyReportPageProps> = ({ token, user })
                         )}
                       </td>
 
-                      {/* 9. Action Button */}
-                      <td className="py-3.5 px-4 text-right">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedReportForDetails(row);
-                          }}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-[#181E54] text-slate-700 hover:text-white rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-2xs"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>View</span>
-                          <ChevronRight className="w-3 h-3 opacity-60" />
-                        </button>
+                      {/* 9. Action Button - Direct in-page Details Modal, no new page */}
+                      <td className="py-4 px-5 text-right">
+                        {group.reports.length === 1 ? (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedReportForDetails(group.reports[0])}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50/90 hover:bg-[#181E54] text-[#181E54] hover:text-white rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-2xs active:scale-95"
+                            title="View single submission details"
+                          >
+                            <Eye className="w-4 h-4" />
+                            <span>View Details</span>
+                          </button>
+                        ) : (
+                          <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                            {group.reports.map((r) => (
+                              <button
+                                key={r.id}
+                                type="button"
+                                onClick={() => setSelectedReportForDetails(r)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-[#181E54] text-slate-700 hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95"
+                                title={`View report for ${r.userName} (${r.userRole})`}
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>{r.userName}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );
@@ -574,7 +809,7 @@ export const DailyReportPage: React.FC<DailyReportPageProps> = ({ token, user })
         onSuccess={loadReports}
       />
 
-      {/* POPUP 2: READ-ONLY FULL DETAILED REPORT MODAL */}
+      {/* POPUP 2: READ-ONLY FULL DETAILED REPORT MODAL FOR AN INDIVIDUAL AGENT */}
       <DailyReportDetailsModal
         isOpen={!!selectedReportForDetails}
         onClose={() => setSelectedReportForDetails(null)}

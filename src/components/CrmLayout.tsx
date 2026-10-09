@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ShadikabboLogo } from './ShadikabboLogo';
 import { PWAInstallButton } from './PWAInstallButton';
+import { NotificationBell } from './NotificationBell';
 import {
   LayoutDashboard,
   Users2,
@@ -40,6 +41,7 @@ export type SidebarPage =
 
 interface CrmLayoutProps {
   user: any;
+  token?: string | null;
   activePage: SidebarPage;
   onSelectPage: (page: SidebarPage) => void;
   onLogout: () => void;
@@ -49,6 +51,7 @@ interface CrmLayoutProps {
 
 export const CrmLayout: React.FC<CrmLayoutProps> = ({
   user,
+  token,
   activePage,
   onSelectPage,
   onLogout,
@@ -166,14 +169,14 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="h-screen max-h-screen bg-slate-50 flex flex-col overflow-hidden">
       {/* ==================================================
           TOP HEADER
           TOP LEFT: Shadikabbo company logo
           TOP RIGHT: Profile picture area, specific profile name, role (Super Admin)
           IMPORTANT: Neutral profile placeholder/icon (NO demo photograph)
       ================================================== */}
-      <header className="h-16 md:h-18 bg-white border-b border-slate-200 sticky top-0 z-40 px-3 sm:px-6 md:px-8 flex items-center justify-between shadow-xs">
+      <header className="h-14 sm:h-15 bg-white border-b border-slate-200 shrink-0 z-40 px-3.5 sm:px-6 md:px-8 flex items-center justify-between shadow-2xs">
         {/* TOP LEFT */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Mobile hamburger menu toggle */}
@@ -233,6 +236,9 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
             </button>
           )}
 
+          {/* TOP RIGHT NOTIFICATION BELL */}
+          <NotificationBell token={token} onSelectPage={onSelectPage} />
+
           {/* TOP RIGHT PROFILE INFO & AVATAR (Interactive & displays real existing profile picture) */}
           <button
             type="button"
@@ -269,7 +275,7 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
       {/* ==================================================
           BODY WITH SIDEBAR & MAIN CONTENT
       ================================================== */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex min-h-0 overflow-hidden relative">
         
         {/* Mobile Sidebar Overlay */}
         {mobileMenuOpen && (
@@ -281,7 +287,7 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
 
         {/* SIDEBAR: ROCK-SOLID FIXED WIDTH & MOBILE SLIDE-OVER */}
         <aside
-          className={`fixed md:sticky top-0 md:top-18 z-50 md:z-30 h-full md:h-[calc(100vh-4.5rem)] w-64 md:w-64 lg:w-72 shrink-0 bg-white border-r border-slate-200 transition-transform duration-300 ease-in-out overflow-y-auto flex flex-col justify-between p-4 md:p-3.5 shadow-2xl md:shadow-none ${
+          className={`fixed md:static inset-y-0 left-0 z-50 md:z-auto h-full w-60 md:w-56 lg:w-60 shrink-0 bg-white border-r border-slate-200 transition-transform duration-300 ease-in-out overflow-y-auto flex flex-col justify-between p-3 shadow-2xl md:shadow-none ${
             mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
           }`}
         >
@@ -302,7 +308,7 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
           </div>
 
           {/* Top nav items */}
-          <nav className="space-y-1.5">
+          <nav className="space-y-1">
             {navItems.map((item) => {
               const isActive =
                 activePage === item.label ||
@@ -316,10 +322,10 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
                     triggerHaptic(12);
                     handleNavClick(item.label);
                   }}
-                  className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 cursor-pointer ${
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs sm:text-[13px] font-semibold transition-all duration-150 cursor-pointer ${
                     isActive
-                      ? 'bg-[#181E54] text-white shadow-sm'
-                      : 'text-slate-600 hover:text-[#181E54] hover:bg-slate-100'
+                      ? 'bg-[#181E54] text-white shadow-xs'
+                      : 'text-slate-600 hover:text-[#181E54] hover:bg-slate-100/90'
                   }`}
                 >
                   <span className={`${isActive ? 'text-[#D81124]' : 'text-slate-400 group-hover:text-slate-600'}`}>
@@ -332,11 +338,11 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
           </nav>
 
           {/* Logout */}
-          <div className="pt-3 border-t border-slate-100 mt-auto">
+          <div className="pt-2.5 border-t border-slate-100 mt-auto">
             <button
               type="button"
               onClick={onLogout}
-              className="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs sm:text-sm font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors cursor-pointer"
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs sm:text-[13px] font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors cursor-pointer"
             >
               <LogOut className="w-4 h-4 text-[#D81124]" />
               <span>Logout</span>
@@ -344,8 +350,8 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
           </div>
         </aside>
 
-        {/* MAIN CONTENT VIEWPORT: FULL WIDTH & GENEROUS DESKTOP PADDING */}
-        <main className="flex-1 min-w-0 p-3.5 sm:p-5 md:p-6 lg:p-8 w-full overflow-y-auto pb-24 md:pb-8">
+        {/* MAIN CONTENT VIEWPORT: FULL WIDTH & COMPACT SCROLLABLE WORKSPACE */}
+        <main className="flex-1 min-w-0 h-full p-3.5 sm:p-4 md:p-5 lg:p-6 w-full overflow-y-auto pb-24 md:pb-6">
           {children}
         </main>
 

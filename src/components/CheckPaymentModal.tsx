@@ -17,13 +17,13 @@ export const CheckPaymentModal: React.FC<CheckPaymentModalProps> = ({
   if (!isOpen || !traffic) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 md:p-6">
-      <div className="relative w-full max-w-3xl xl:max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-4 sm:my-6">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
+      <div className="relative w-full max-w-3xl xl:max-w-4xl max-h-[96vh] flex flex-col bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
+        <div className="flex items-center justify-between px-5 py-3.5 sm:px-6 sm:py-4 border-b border-slate-100 bg-slate-50 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#181E54] text-white flex items-center justify-center shadow-xs">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#181E54] text-white flex items-center justify-center shadow-xs">
               <DollarSign className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
@@ -45,7 +45,7 @@ export const CheckPaymentModal: React.FC<CheckPaymentModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-5 sm:p-6 space-y-4 text-xs text-slate-700">
+        <div className="p-4 sm:p-5 flex-1 min-h-0 overflow-y-auto space-y-3.5 text-xs text-slate-700">
           
           <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-2xl flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-3">
@@ -146,7 +146,7 @@ export const CheckPaymentModal: React.FC<CheckPaymentModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
+        <div className="px-5 py-3 sm:px-6 sm:py-3.5 border-t border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
           {onViewInvoice ? (
             <button
               type="button"

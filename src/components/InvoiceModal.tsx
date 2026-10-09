@@ -319,98 +319,45 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
     .banner-title { font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 700; }
     .banner-val { font-family: 'Plus Jakarta Sans', monospace; font-size: 13.5px; font-weight: 800; }
 
-    .middle-cta-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-top: 6px;
-      margin-bottom: 22px;
-    }
-    .scan-pay-lockup {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .qr-frame {
-      width: 72px;
-      height: 72px;
-      border: 2px solid #d81124;
-      border-radius: 12px;
-      padding: 3px;
-      background: #ffffff;
-    }
-    .stamp-container {
-      text-align: right;
-    }
-    .accepted-stamp-box {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      border: 2px solid #d81124;
-      border-radius: 10px;
-      padding: 6px 14px;
-      background: #ffffff;
-    }
-    .stamp-badge-circle {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: #d81124;
-      color: #ffffff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
-      font-weight: 900;
-    }
-    .stamp-text {
-      font-family: 'Outfit', sans-serif;
-      font-size: 10.5px;
-      font-weight: 800;
-      letter-spacing: 0.7px;
-      color: #181e54;
-      text-transform: uppercase;
-    }
-    .stamp-subcaption {
-      font-size: 10px;
-      color: #475569;
-      margin-top: 4px;
-      font-weight: 500;
-    }
-    .footer-row {
-      display: flex;
-      justify-content: space-between;
+    .terms-sig-row {
+      display: grid;
+      grid-template-columns: 1fr 180px;
+      gap: 16px;
       align-items: flex-end;
       position: relative;
       z-index: 10;
-      padding-top: 6px;
+      padding-top: 4px;
+      margin-top: 6px;
     }
-    .thankyou-box {
-      max-width: 320px;
+    .terms-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 3px solid #d81124;
+      border-radius: 10px;
+      padding: 10px 14px;
     }
-    .thankyou-script {
-      font-family: 'Caveat', cursive;
-      font-size: 32px;
-      font-weight: 700;
+    .terms-header {
+      font-family: 'Outfit', sans-serif;
+      font-size: 11px;
+      font-weight: 800;
       color: #181e54;
-      line-height: 1;
-      position: relative;
-      display: inline-block;
+      margin-bottom: 5px;
+      letter-spacing: 0.2px;
     }
-    .thankyou-underline {
-      display: block;
-      width: 65px;
-      height: 2.5px;
-      background: #d81124;
-      border-radius: 99px;
-      margin-top: 2px;
-      margin-bottom: 6px;
-    }
-    .thankyou-text {
-      font-size: 10.5px;
+    .terms-list {
+      list-style-type: disc;
+      padding-left: 14px;
+      margin: 0;
+      font-size: 9px;
       color: #475569;
       line-height: 1.45;
       font-weight: 500;
+    }
+    .terms-list li {
+      margin-bottom: 2px;
+    }
+    .terms-list li:last-child {
+      margin-bottom: 0;
     }
     .signature-box {
       text-align: right;
@@ -587,68 +534,19 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
         </div>
       </div>
 
-      <!-- MIDDLE ROW: BKASH QR & OFFICIAL ACCEPTED -->
-      <div class="middle-cta-row">
-        <!-- Scan & Pay QR -->
-        <div class="scan-pay-lockup">
-          <div class="qr-frame">
-            <svg viewBox="0 0 100 100" width="100%" height="100%">
-              <rect x="5" y="5" width="28" height="28" fill="#0f172a" rx="4"/>
-              <rect x="9" y="9" width="20" height="20" fill="#ffffff" rx="2"/>
-              <rect x="13" y="13" width="12" height="12" fill="#0f172a" rx="1"/>
-              <rect x="67" y="5" width="28" height="28" fill="#0f172a" rx="4"/>
-              <rect x="71" y="9" width="20" height="20" fill="#ffffff" rx="2"/>
-              <rect x="75" y="13" width="12" height="12" fill="#0f172a" rx="1"/>
-              <rect x="5" y="67" width="28" height="28" fill="#0f172a" rx="4"/>
-              <rect x="9" y="71" width="20" height="20" fill="#ffffff" rx="2"/>
-              <rect x="13" y="75" width="12" height="12" fill="#0f172a" rx="1"/>
-              <rect x="38" y="8" width="6" height="6" fill="#0f172a"/>
-              <rect x="50" y="8" width="6" height="6" fill="#d81124"/>
-              <rect x="38" y="20" width="6" height="6" fill="#d81124"/>
-              <rect x="46" y="24" width="14" height="6" fill="#0f172a"/>
-              <rect x="10" y="38" width="10" height="6" fill="#0f172a"/>
-              <rect x="26" y="42" width="8" height="12" fill="#0f172a"/>
-              <rect x="40" y="38" width="20" height="20" fill="#d81124"/>
-              <rect x="44" y="42" width="12" height="12" fill="#ffffff"/>
-              <rect x="48" y="46" width="4" height="4" fill="#d81124"/>
-              <rect x="68" y="40" width="14" height="6" fill="#0f172a"/>
-              <rect x="86" y="46" width="6" height="14" fill="#0f172a"/>
-              <rect x="38" y="68" width="8" height="8" fill="#0f172a"/>
-              <rect x="52" y="68" width="14" height="6" fill="#0f172a"/>
-              <rect x="72" y="74" width="8" height="8" fill="#d81124"/>
-              <rect x="84" y="70" width="10" height="14" fill="#0f172a"/>
-              <rect x="42" y="84" width="14" height="6" fill="#0f172a"/>
-              <rect x="62" y="86" width="10" height="6" fill="#0f172a"/>
-            </svg>
-          </div>
-          <div>
-            <div style="font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 800; color: #e2136e; letter-spacing: 0.5px;">bKash</div>
-            <div style="font-size: 11.5px; font-weight: 800; color: #181e54;">Scan &amp; Pay</div>
-            <div style="font-size: 10px; color: #475569; margin-top: 2px; line-height: 1.3;">Pay easily with bKash<br>or any mobile banking app.</div>
-          </div>
-        </div>
-
-        <!-- Official Stamp -->
-        <div class="stamp-container">
-          <div class="accepted-stamp-box">
-            <div class="stamp-badge-circle">✓</div>
-            <div class="stamp-text">OFFICIAL PAYMENT ACCEPTED</div>
-          </div>
-          <div class="stamp-subcaption">Authorized Signature: Shadikabbo Accounts</div>
-        </div>
-      </div>
-
-      <!-- FOOTER -->
-      <div class="footer-row">
-        <!-- Thank you -->
-        <div class="thankyou-box">
-          <div class="thankyou-script">Thank you!</div>
-          <span class="thankyou-underline"></span>
-          <div class="thankyou-text">
-            Thank you for placing your trust in Shadikabbo.com.<br>
-            We are committed to helping you find the right match<br>
-            and build a happy future.
-          </div>
+      <!-- TERMS & CONDITIONS & AUTHORIZED SIGNATURE -->
+      <div class="terms-sig-row">
+        <!-- Terms and Conditions -->
+        <div class="terms-card">
+          <div class="terms-header">ShadiKabbo.com – Terms &amp; Conditions</div>
+          <ul class="terms-list">
+            <li>ShadiKabbo.com tries to find suitable matches but does not guarantee marriage.</li>
+            <li>Clients are responsible for verifying the accuracy of personal and family information.</li>
+            <li>Registration fees are strictly non-refundable and non-transferable.</li>
+            <li>Registration does not guarantee a successful match or marriage.</li>
+            <li>Applicable matching fees must be paid within the specified period.</li>
+            <li>Final decisions, mutual consent, and personal information verification are the responsibility of the concerned parties.</li>
+          </ul>
         </div>
 
         <!-- Authorized Signature -->
@@ -1001,90 +899,21 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                   </div>
                 </div>
 
-                {/* 5. MIDDLE ROW: SCAN & PAY (LEFT) & OFFICIAL PAYMENT ACCEPTED STAMP (RIGHT) */}
-                <div className="flex items-center justify-between gap-3 pt-1">
-                  {/* Left: Scan & Pay with bKash QR */}
-                  <div className="flex items-center gap-3">
-                    <div className="w-[66px] h-[66px] border-2 border-[#D81124] rounded-xl p-1 bg-white shadow-xs shrink-0 flex items-center justify-center">
-                      <svg viewBox="0 0 100 100" className="w-full h-full">
-                        <rect x="5" y="5" width="28" height="28" fill="#0f172a" rx="4"/>
-                        <rect x="9" y="9" width="20" height="20" fill="#ffffff" rx="2"/>
-                        <rect x="13" y="13" width="12" height="12" fill="#0f172a" rx="1"/>
-                        <rect x="67" y="5" width="28" height="28" fill="#0f172a" rx="4"/>
-                        <rect x="71" y="9" width="20" height="20" fill="#ffffff" rx="2"/>
-                        <rect x="75" y="13" width="12" height="12" fill="#0f172a" rx="1"/>
-                        <rect x="5" y="67" width="28" height="28" fill="#0f172a" rx="4"/>
-                        <rect x="9" y="71" width="20" height="20" fill="#ffffff" rx="2"/>
-                        <rect x="13" y="75" width="12" height="12" fill="#0f172a" rx="1"/>
-                        <rect x="38" y="8" width="6" height="6" fill="#0f172a"/>
-                        <rect x="50" y="8" width="6" height="6" fill="#d81124"/>
-                        <rect x="38" y="20" width="6" height="6" fill="#d81124"/>
-                        <rect x="46" y="24" width="14" height="6" fill="#0f172a"/>
-                        <rect x="10" y="38" width="10" height="6" fill="#0f172a"/>
-                        <rect x="26" y="42" width="8" height="12" fill="#0f172a"/>
-                        <rect x="40" y="38" width="20" height="20" fill="#d81124"/>
-                        <rect x="44" y="42" width="12" height="12" fill="#ffffff"/>
-                        <rect x="48" y="46" width="4" height="4" fill="#d81124"/>
-                        <rect x="68" y="40" width="14" height="6" fill="#0f172a"/>
-                        <rect x="86" y="46" width="6" height="14" fill="#0f172a"/>
-                        <rect x="38" y="68" width="8" height="8" fill="#0f172a"/>
-                        <rect x="52" y="68" width="14" height="6" fill="#0f172a"/>
-                        <rect x="72" y="74" width="8" height="8" fill="#d81124"/>
-                        <rect x="84" y="70" width="10" height="14" fill="#0f172a"/>
-                        <rect x="42" y="84" width="14" height="6" fill="#0f172a"/>
-                        <rect x="62" y="86" width="10" height="6" fill="#0f172a"/>
-                      </svg>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-1">
-                        <svg width="18" height="18" viewBox="0 0 40 40" fill="none">
-                          <polygon points="20,2 38,14 26,22" fill="#E2136E"/>
-                          <polygon points="2,14 20,2 14,22" fill="#E2136E"/>
-                          <polygon points="14,22 26,22 20,38" fill="#C1105D"/>
-                        </svg>
-                        <span className="font-extrabold text-base text-[#E2136E] tracking-tight">bKash</span>
-                      </div>
-                      <div className="font-extrabold text-[11.5px] text-[#181E54]">Scan &amp; Pay</div>
-                      <p className="text-[10px] text-slate-500 leading-tight mt-0.5 font-medium">
-                        Pay easily with bKash<br />or any mobile banking app.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Right: Official Payment Accepted Stamp */}
-                  <div className="text-right">
-                    <div className="inline-flex items-center gap-1.5 border-2 border-[#D81124] rounded-lg px-3 py-1.5 bg-white shadow-2xs">
-                      <div className="w-4 h-4 rounded-full bg-[#D81124] text-white flex items-center justify-center shrink-0">
-                        <Check className="w-3 h-3 stroke-[3]" />
-                      </div>
-                      <span className="font-extrabold text-[10.5px] tracking-wider text-[#181E54] uppercase">
-                        OFFICIAL PAYMENT ACCEPTED
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">
-                      Authorized Signature: Shadikabbo Accounts
-                    </p>
-                  </div>
-                </div>
-
-                {/* 6. FOOTER: THANK YOU (LEFT) & AUTHORIZED SIGNATURE (RIGHT) */}
-                <div className="flex items-end justify-between gap-4 pt-2">
-                  {/* Left Thank You */}
-                  <div className="max-w-xs">
-                    <div className="relative inline-block">
-                      <span
-                        className="text-2xl sm:text-3xl font-extrabold text-[#181E54] tracking-tight block"
-                        style={{ fontFamily: "'Plus Jakarta Sans', cursive, sans-serif", fontStyle: 'italic' }}
-                      >
-                        Thank you!
-                      </span>
-                      <div className="w-16 h-0.5 bg-[#D81124] rounded-full mt-0.5"></div>
-                    </div>
-                    <p className="text-[10px] text-slate-600 font-medium leading-relaxed mt-1">
-                      Thank you for placing your trust in Shadikabbo.com.<br />
-                      We are committed to helping you find the right match and build a happy future.
-                    </p>
+                {/* 5. TERMS & CONDITIONS AND AUTHORIZED SIGNATURE */}
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px] gap-3 sm:gap-4 items-end pt-1">
+                  {/* Terms and condition */}
+                  <div className="bg-slate-50 border border-slate-200/90 border-l-[3px] border-l-[#D81124] rounded-xl p-2.5 sm:p-3 shadow-2xs">
+                    <h4 className="text-[11px] font-extrabold text-[#181E54] tracking-tight mb-1 font-sans">
+                      ShadiKabbo.com – Terms &amp; Conditions
+                    </h4>
+                    <ul className="list-disc pl-4 space-y-0.5 text-[9.5px] text-slate-600 font-medium leading-relaxed">
+                      <li>ShadiKabbo.com tries to find suitable matches but does not guarantee marriage.</li>
+                      <li>Clients are responsible for verifying the accuracy of personal and family information.</li>
+                      <li>Registration fees are strictly non-refundable and non-transferable.</li>
+                      <li>Registration does not guarantee a successful match or marriage.</li>
+                      <li>Applicable matching fees must be paid within the specified period.</li>
+                      <li>Final decisions, mutual consent, and personal information verification are the responsibility of the concerned parties.</li>
+                    </ul>
                   </div>
 
                   {/* Right Authorized Signature with exact uploaded handwriting */}

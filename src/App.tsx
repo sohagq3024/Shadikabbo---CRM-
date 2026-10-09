@@ -215,6 +215,7 @@ export default function App() {
     <CrmFieldsProvider token={token}>
       <CrmLayout
         user={user}
+        token={token}
         activePage={activePage}
         onSelectPage={(page) => setActivePage(page)}
         onLogout={handleLogout}

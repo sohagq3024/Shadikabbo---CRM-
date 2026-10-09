@@ -411,19 +411,19 @@ export function setupDailyReportRoutes(
     });
   });
 
-  // 3. Get Daily Reports List (Filterable by Date, Role, Staff)
+  // 3. Get Daily Reports List (Filterable by Date, Date Range, Role, Staff, Month)
   app.get('/api/daily-reports', authMiddleware, (req, res) => {
     const db = loadDB();
     ensureDailyReportsInitialized(db);
 
     const currentUser = (req as any).user;
-    const { date, role, userId, month } = req.query;
+    const { date, startDate, endDate, role, userId, month } = req.query;
 
     let reports: DailyReportRecord[] = [...db.dailyReports];
 
     // Access control:
     // Staff (CRO/MK) can only see their own reports.
-    // Super Admin can see all reports.
+    // Super Admin can see all reports from any agent at any time (last month, last year, all history).
     if (currentUser.role === 'CRO' || currentUser.role === 'MK') {
       reports = reports.filter((r) => r.userId === currentUser.id);
     } else if (userId && userId !== 'all') {
@@ -432,6 +432,14 @@ export function setupDailyReportRoutes(
 
     if (date) {
       reports = reports.filter((r) => r.date === date);
+    }
+
+    if (startDate) {
+      reports = reports.filter((r) => r.date >= String(startDate));
+    }
+
+    if (endDate) {
+      reports = reports.filter((r) => r.date <= String(endDate));
     }
 
     if (month) {
@@ -460,6 +468,38 @@ export function setupDailyReportRoutes(
       hasSubmittedToday,
       todayStr,
     });
+  });
+
+  // 3.5 Get All Agents dynamically from db.users (Automatically includes any newly registered account)
+  app.get('/api/daily-reports/agents', authMiddleware, (req, res) => {
+    const db = loadDB();
+    const users = db.users || [];
+    const agents = users
+      .filter((u: any) => u.role !== 'Super Admin')
+      .map((u: any) => ({
+        id: u.id,
+        name: u.name,
+        role: u.role,
+        phone: u.phone || '',
+        email: u.email || '',
+      }));
+
+    // In case any staff submitted under another role or old record, ensure distinct
+    const seenIds = new Set(agents.map((a: any) => a.id));
+    (db.dailyReports || []).forEach((r: DailyReportRecord) => {
+      if (r.userId && !seenIds.has(r.userId) && r.userRole !== 'Super Admin') {
+        seenIds.add(r.userId);
+        agents.push({
+          id: r.userId,
+          name: r.userName || 'Agent',
+          role: r.userRole || 'Agent',
+          phone: r.userPhone || '',
+          email: '',
+        });
+      }
+    });
+
+    res.json({ agents });
   });
 
   // 4. Get Single Daily Report by ID

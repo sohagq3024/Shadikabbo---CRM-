@@ -54,24 +54,24 @@ const TrafficTableRow = React.memo<TrafficTableRowProps>(
     return (
       <tr className="hover:bg-slate-50/90 transition-colors group">
         {/* 1. Serial Number */}
-        <td className="py-3 sm:py-3.5 px-3.5 sm:px-4 font-mono font-semibold text-slate-600 w-16">
-          <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 text-slate-800 text-xs font-mono font-bold">
+        <td className="py-2 sm:py-2.5 px-2.5 sm:px-3 font-mono font-semibold text-slate-600 w-14">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-slate-100 text-slate-800 text-[11px] font-mono font-bold">
             {row.serialNumber}
           </span>
         </td>
 
         {/* 2. ID & Date */}
-        <td className="py-3 sm:py-3.5 px-3.5 sm:px-4 w-36">
-          <div className="font-mono font-bold text-[#181E54] text-xs sm:text-sm">{row.id}</div>
-          <div className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5 whitespace-nowrap">
-            <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
+        <td className="py-2 sm:py-2.5 px-2.5 sm:px-3 w-32">
+          <div className="font-mono font-bold text-[#181E54] text-xs">{row.id}</div>
+          <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5 whitespace-nowrap">
+            <Calendar className="w-2.5 h-2.5 text-slate-400 shrink-0" />
             <span>{row.createdAt || 'N/A'}</span>
           </div>
         </td>
 
         {/* 3. Name with integrated Rounded Profile Picture */}
-        <td className="py-3 sm:py-3.5 px-3.5 sm:px-4">
-          <div className="flex items-center gap-3">
+        <td className="py-2 sm:py-2.5 px-2.5 sm:px-3">
+          <div className="flex items-center gap-2.5">
             {/* Rounded Thumbnail */}
             <button
               type="button"
@@ -79,7 +79,7 @@ const TrafficTableRow = React.memo<TrafficTableRowProps>(
               className="relative shrink-0 group/avatar cursor-pointer focus:outline-none"
               title={`View ${row.name}'s profile and photos`}
             >
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden border border-slate-200/90 shadow-2xs group-hover/avatar:ring-2 group-hover/avatar:ring-[#181E54]/25 transition-all bg-slate-100 flex items-center justify-center">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border border-slate-200/90 shadow-2xs group-hover/avatar:ring-2 group-hover/avatar:ring-[#181E54]/25 transition-all bg-slate-100 flex items-center justify-center">
                 {row.images && row.images.length > 0 ? (
                   <img
                     src={row.images[0]}
@@ -94,12 +94,12 @@ const TrafficTableRow = React.memo<TrafficTableRowProps>(
                         : 'bg-blue-50 text-blue-600'
                     }`}
                   >
-                    <User className="w-5 h-5 opacity-60" />
+                    <User className="w-4 h-4 opacity-60" />
                   </div>
                 )}
               </div>
               {row.images && row.images.length > 1 && (
-                <span className="absolute -bottom-0.5 -right-0.5 bg-[#181E54] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-white shadow-2xs">
+                <span className="absolute -bottom-0.5 -right-0.5 bg-[#181E54] text-white text-[8px] font-bold px-1 py-0.2 rounded-full border border-white shadow-2xs">
                   +{row.images.length - 1}
                 </span>
               )}
@@ -107,22 +107,22 @@ const TrafficTableRow = React.memo<TrafficTableRowProps>(
 
             {/* Name, Package Badge, and Qualification */}
             <div className="min-w-0">
-              <div className="font-bold text-slate-900 text-xs sm:text-sm flex items-center gap-2 flex-wrap">
+              <div className="font-bold text-slate-900 text-xs sm:text-[13px] flex items-center gap-1.5 flex-wrap">
                 <span
                   onClick={() => onView(row)}
-                  className="cursor-pointer hover:text-[#D81124] transition-colors truncate max-w-[160px] sm:max-w-[240px]"
+                  className="cursor-pointer hover:text-[#D81124] transition-colors truncate max-w-[150px] sm:max-w-[200px]"
                   title="View Profile"
                 >
                   {row.name}
                 </span>
                 {row.package && (
-                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
                     {row.package}
                   </span>
                 )}
               </div>
               {(row.profession || row.qualification) && (
-                <div className="text-xs text-slate-500 mt-0.5 truncate max-w-[180px] sm:max-w-sm">
+                <div className="text-[11px] text-slate-500 mt-0.5 truncate max-w-[160px] sm:max-w-xs">
                   {[row.profession, row.qualification].filter(Boolean).join(' • ')}
                 </div>
               )}
@@ -131,24 +131,24 @@ const TrafficTableRow = React.memo<TrafficTableRowProps>(
         </td>
 
         {/* 4. Status with Activity Transition Link */}
-        <td className="py-3 sm:py-3.5 px-3.5 sm:px-4 w-36">
+        <td className="py-2 sm:py-2.5 px-2.5 sm:px-3 w-32">
           <button
             type="button"
             onClick={() => onViewActivity(row)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all hover:scale-105 cursor-pointer shadow-2xs ${statusMeta.bg} ${statusMeta.text} ${statusMeta.border}`}
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all hover:scale-105 cursor-pointer shadow-2xs ${statusMeta.bg} ${statusMeta.text} ${statusMeta.border}`}
             title="Click to view Activity Log & record status transition"
           >
-            <StatusIcon className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate max-w-[100px]">{statusMeta.label}</span>
+            <StatusIcon className="w-3 h-3 shrink-0" />
+            <span className="truncate max-w-[90px]">{statusMeta.label}</span>
           </button>
-          <div className="text-[10px] text-slate-400 mt-1 flex items-center gap-1 pl-1">
-            <Clock className="w-3 h-3 text-slate-400" />
-            <span>{activityCount} {activityCount === 1 ? 'activity' : 'activities'}</span>
+          <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1 pl-0.5">
+            <Clock className="w-2.5 h-2.5 text-slate-400" />
+            <span>{activityCount} {activityCount === 1 ? 'act' : 'acts'}</span>
           </div>
         </td>
 
         {/* 5. Category (Quality Category selector: Normal, Average, Potential, Very potential) */}
-        <td className="py-3 sm:py-3.5 px-3.5 sm:px-4 w-36">
+        <td className="py-2 sm:py-2.5 px-2.5 sm:px-3 w-32">
           <CategoryBadgeSelector
             category={row.clientCategory || 'Normal'}
             itemId={row.id}
@@ -159,47 +159,47 @@ const TrafficTableRow = React.memo<TrafficTableRowProps>(
         </td>
 
         {/* 6. Created By (The CRM Account Person who added this candidate) */}
-        <td className="py-3 sm:py-3.5 px-3.5 sm:px-4 w-36">
-          <div className="font-bold text-[#181E54] text-xs sm:text-sm truncate">
+        <td className="py-2 sm:py-2.5 px-2.5 sm:px-3 w-32">
+          <div className="font-bold text-[#181E54] text-xs truncate">
             {row.createdBy || 'Sohag'}
           </div>
-          <div className="text-xs text-slate-500 font-medium">
+          <div className="text-[10px] text-slate-500 font-medium">
             Role: {row.creatorRole || 'Super Admin'}
           </div>
         </td>
 
         {/* 5. Gender */}
-        <td className="py-3 sm:py-3.5 px-3.5 sm:px-4 w-24">
+        <td className="py-2 sm:py-2.5 px-2.5 sm:px-3 w-20">
           <span
-            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide ${
+            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold tracking-wide ${
               row.gender?.toLowerCase() === 'female'
                 ? 'bg-rose-50 text-rose-700 border border-rose-200'
                 : 'bg-blue-50 text-blue-700 border border-blue-200'
             }`}
           >
             <span
-              className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+              className={`w-1.5 h-1.5 rounded-full mr-1 ${
                 row.gender?.toLowerCase() === 'female' ? 'bg-rose-500' : 'bg-blue-500'
               }`}
             ></span>
-            {row.gender || 'Not specified'}
+            {row.gender || 'N/A'}
           </span>
         </td>
 
         {/* 6. Phone */}
-        <td className="py-3 sm:py-3.5 px-3.5 sm:px-4 w-36">
-          <div className="flex items-center gap-1.5 font-mono text-slate-800 text-xs sm:text-sm font-semibold">
-            <CountryFlag iso={detectCountryIso(row.phone)} className="w-4 h-3" />
+        <td className="py-2 sm:py-2.5 px-2.5 sm:px-3 w-32">
+          <div className="flex items-center gap-1 font-mono text-slate-800 text-xs font-semibold">
+            <CountryFlag iso={detectCountryIso(row.phone)} className="w-3.5 h-2.5" />
             <span>{row.phone}</span>
           </div>
         </td>
 
         {/* 7. Functional 3-dot Action Menu Trigger */}
-        <td className="py-3 sm:py-3.5 px-3.5 sm:px-4 text-right w-20 relative">
+        <td className="py-2 sm:py-2.5 px-2.5 sm:px-3 text-right w-16 relative">
           <button
             type="button"
             onClick={(e) => onToggleMenu(row, e)}
-            className={`p-2 rounded-xl transition-all cursor-pointer ${
+            className={`p-1.5 rounded-lg transition-all cursor-pointer ${
               isMenuActive
                 ? 'bg-[#181E54] text-white shadow-xs'
                 : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
@@ -485,10 +485,10 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token, user }) => {
   return (
     <div className="space-y-4">
       {/* Top Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#181E54]">Traffic</h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-[#181E54]">Traffic</h1>
+          <p className="text-xs text-slate-500 mt-0.5">
             Manage matrimonial client inquiries and traffic registration
           </p>
         </div>
@@ -497,46 +497,46 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token, user }) => {
         <button
           type="button"
           onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 bg-[#D81124] hover:bg-[#B80E1C] text-white text-xs sm:text-sm font-bold rounded-xl shadow-xs transition-colors cursor-pointer self-start sm:self-auto"
+          className="flex items-center gap-1.5 px-4 py-2 sm:px-5 sm:py-2.5 bg-[#D81124] hover:bg-[#B80E1C] text-white text-xs sm:text-[13px] font-bold rounded-xl shadow-xs transition-colors cursor-pointer self-start sm:self-auto"
         >
-          <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+          <Plus className="w-4 h-4" />
           <span>Add Traffic</span>
         </button>
       </div>
 
       {/* FILTER CONTROLS: SEARCH, DATE, CRO ACCOUNT, PROFESSION, QUALIFICATION, STATUS & CATEGORY */}
-      <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
+      <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2 sm:gap-2.5">
           {/* 1. Manual search option */}
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search name, phone, ID..."
-              className="w-full pl-9 pr-3.5 py-2 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+              className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1.5 focus:ring-[#181E54]"
             />
           </div>
 
           {/* 2. By date filtering option */}
           <div className="relative">
-            <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Calendar className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="date"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="w-full pl-9 pr-3.5 py-2 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+              className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-1.5 focus:ring-[#181E54]"
             />
           </div>
 
           {/* 3. CRO Role Account based filtering option */}
           <div className="relative">
-            <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <select
               value={croFilter}
               onChange={(e) => setCroFilter(e.target.value)}
-              className="w-full pl-9 pr-3.5 py-2 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54] appearance-none"
+              className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-1.5 focus:ring-[#181E54] appearance-none"
             >
               <option value="">All CRO Accounts</option>
               {croAccounts.map((cro) => (
@@ -549,11 +549,11 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token, user }) => {
 
           {/* 4. Profession filter (Dynamic from Settings) */}
           <div className="relative">
-            <Briefcase className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Briefcase className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <select
               value={professionFilter}
               onChange={(e) => setProfessionFilter(e.target.value)}
-              className="w-full pl-9 pr-3.5 py-2 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54] appearance-none"
+              className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-1.5 focus:ring-[#181E54] appearance-none"
             >
               <option value="">All Professions</option>
               {(fields.professions || []).map((prof) => (
@@ -566,11 +566,11 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token, user }) => {
 
           {/* 5. Qualification filter (Dynamic from Settings) */}
           <div className="relative">
-            <GraduationCap className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <GraduationCap className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <select
               value={qualificationFilter}
               onChange={(e) => setQualificationFilter(e.target.value)}
-              className="w-full pl-9 pr-3.5 py-2 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54] appearance-none"
+              className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-1.5 focus:ring-[#181E54] appearance-none"
             >
               <option value="">All Qualifications</option>
               {(fields.qualifications || []).map((qual) => (
@@ -586,7 +586,7 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token, user }) => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3.5 py-2 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-1.5 focus:ring-[#181E54]"
             >
               <option value="">All Statuses</option>
               <option value="WP Connect">WP Connect</option>
@@ -603,7 +603,7 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token, user }) => {
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full px-3.5 py-2 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-1.5 focus:ring-[#181E54]"
             >
               <option value="">All Categories</option>
               <option value="Normal">Normal</option>
@@ -640,7 +640,7 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token, user }) => {
       </div>
 
       {/* TRAFFIC TABLE */}
-      <div className="-mt-1 sm:-mt-1.5 bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+      <div className="-mt-1 sm:-mt-1.5 bg-white rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
         {error && (
           <div className="p-3 bg-red-50 text-red-700 text-xs border-b border-red-100">
             {error}
@@ -648,18 +648,18 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token, user }) => {
         )}
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs sm:text-sm min-w-[720px]">
-            <thead className="bg-[#181E54] text-white uppercase text-xs font-bold tracking-wider">
+          <table className="w-full text-left text-xs min-w-[980px]">
+            <thead className="bg-[#181E54] text-white uppercase text-[10px] tracking-wider font-semibold">
               <tr>
-                <th className="py-3.5 px-3.5 sm:px-4 font-semibold w-16">Serial Number</th>
-                <th className="py-3.5 px-3.5 sm:px-4 font-semibold w-36">ID &amp; Date</th>
-                <th className="py-3.5 px-3.5 sm:px-4 font-semibold">Name</th>
-                <th className="py-3.5 px-3.5 sm:px-4 font-semibold w-36">Status</th>
-                <th className="py-3.5 px-3.5 sm:px-4 font-semibold w-36">Category</th>
-                <th className="py-3.5 px-3.5 sm:px-4 font-semibold w-36">Created By</th>
-                <th className="py-3.5 px-3.5 sm:px-4 font-semibold w-24">Gender</th>
-                <th className="py-3.5 px-3.5 sm:px-4 font-semibold w-36">Phone</th>
-                <th className="py-3.5 px-3.5 sm:px-4 font-semibold text-right w-20">Action</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-14">Serial</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-32">ID &amp; Date</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold min-w-[180px]">Name</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-32">Status</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-32">Category</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-32">Created By</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-24">Gender</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-32">Phone</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold text-right w-16">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">

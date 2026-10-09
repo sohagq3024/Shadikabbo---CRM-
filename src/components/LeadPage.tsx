@@ -87,14 +87,14 @@ const LeadTableRow = React.memo<LeadTableRowProps>(
     return (
       <tr className="hover:bg-slate-50/90 transition-colors group">
         {/* 1. Serial Number */}
-        <td className="py-2 px-3.5 font-mono font-semibold text-slate-600 w-16">
+        <td className="py-2 px-2.5 sm:px-3 font-mono font-semibold text-slate-600 w-14">
           <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-slate-100 text-slate-700 text-[11px] font-mono">
             {row.serialNumber || index + 1}
           </span>
         </td>
 
         {/* 2. ID & Date */}
-        <td className="py-2 px-3.5 w-36">
+        <td className="py-2 px-2.5 sm:px-3 w-32">
           <div className="font-mono font-bold text-[#181E54] text-xs">{row.id}</div>
           <div className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5 whitespace-nowrap">
             <Calendar className="w-2.5 h-2.5 text-slate-400 shrink-0" />
@@ -103,8 +103,8 @@ const LeadTableRow = React.memo<LeadTableRowProps>(
         </td>
 
         {/* 3. Name with Integrated Rounded Profile Picture */}
-        <td className="py-2 px-3.5">
-          <div className="flex items-center gap-3">
+        <td className="py-2 px-2.5 sm:px-3">
+          <div className="flex items-center gap-2.5">
             {/* Rounded Thumbnail */}
             <button
               type="button"
@@ -112,7 +112,7 @@ const LeadTableRow = React.memo<LeadTableRowProps>(
               className="relative shrink-0 group/avatar cursor-pointer focus:outline-none"
               title={`View ${row.name}'s lead profile`}
             >
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-slate-200/90 shadow-2xs group-hover/avatar:ring-2 group-hover/avatar:ring-[#181E54]/25 transition-all bg-slate-100 flex items-center justify-center">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border border-slate-200/90 shadow-2xs group-hover/avatar:ring-2 group-hover/avatar:ring-[#181E54]/25 transition-all bg-slate-100 flex items-center justify-center">
                 {row.images && row.images.length > 0 ? (
                   <img
                     src={row.images[0]}
@@ -157,15 +157,15 @@ const LeadTableRow = React.memo<LeadTableRowProps>(
         </td>
 
         {/* 4. Status with Activity Transition Link */}
-        <td className="py-2 px-3.5 w-36">
+        <td className="py-2 px-2.5 sm:px-3 w-32">
           <button
             type="button"
             onClick={() => onViewActivity(row)}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all hover:scale-105 cursor-pointer shadow-2xs ${statusMeta.bg} ${statusMeta.text} ${statusMeta.border}`}
+            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-all hover:scale-105 cursor-pointer shadow-2xs ${statusMeta.bg} ${statusMeta.text} ${statusMeta.border}`}
             title="Click to view Activity Log & record status transition"
           >
             <StatusIcon className="w-3 h-3 shrink-0" />
-            <span className="truncate max-w-[95px]">{statusMeta.label}</span>
+            <span className="truncate max-w-[90px]">{statusMeta.label}</span>
           </button>
           <div className="text-[9px] text-slate-400 mt-0.5 flex items-center gap-1 pl-1">
             <Clock className="w-2.5 h-2.5 text-slate-400" />
@@ -174,7 +174,7 @@ const LeadTableRow = React.memo<LeadTableRowProps>(
         </td>
 
         {/* 5. Category (Quality Category selector: Normal, Average, Potential, Very potential) */}
-        <td className="py-2 px-3.5 w-36">
+        <td className="py-2 px-2.5 sm:px-3 w-32">
           <CategoryBadgeSelector
             category={row.clientCategory || 'Normal'}
             itemId={row.id}
@@ -185,7 +185,7 @@ const LeadTableRow = React.memo<LeadTableRowProps>(
         </td>
 
         {/* 6. Created By (The CRM Account Person who added this lead) */}
-        <td className="py-2 px-3.5 w-36">
+        <td className="py-2 px-2.5 sm:px-3 w-32">
           <div className="font-semibold text-[#181E54] text-xs truncate">
             {row.createdBy || 'Sohag'}
           </div>
@@ -195,40 +195,40 @@ const LeadTableRow = React.memo<LeadTableRowProps>(
         </td>
 
         {/* 7. Source */}
-        <td className="py-2 px-3.5 w-32">
+        <td className="py-2 px-2.5 sm:px-3 w-28">
           {renderSourceBadge(row.category)}
         </td>
 
         {/* 6. Phone */}
-        <td className="py-2 px-3.5 w-36">
-          <div className="flex items-center gap-1.5 font-mono text-slate-800 text-xs font-medium">
-            <CountryFlag iso={detectCountryIso(row.phone)} className="w-4 h-3 rounded-xs" />
+        <td className="py-2 px-2.5 sm:px-3 w-32">
+          <div className="flex items-center gap-1 font-mono text-slate-800 text-xs font-medium">
+            <CountryFlag iso={detectCountryIso(row.phone)} className="w-3.5 h-2.5 rounded-xs" />
             <span>{row.phone}</span>
           </div>
         </td>
 
         {/* 7. Info Level (5 Stars & Percentage Progress Bar) */}
-        <td className="py-2 px-3.5 w-40">
+        <td className="py-2 px-2.5 sm:px-3 w-32">
           <div className="space-y-1">
             {/* Stars & Percentage Badge */}
-            <div className="flex items-center justify-between gap-1.5">
+            <div className="flex items-center justify-between gap-1">
               <div className="flex items-center gap-0.5" title={`Info Score: ${stars}/5 Stars`}>
                 {[1, 2, 3, 4, 5].map((s) => (
                   <Star
                     key={s}
-                    className={`w-3 h-3 ${
+                    className={`w-2.5 h-2.5 ${
                       s <= stars ? 'text-amber-400 fill-amber-400' : 'text-slate-200'
                     }`}
                   />
                 ))}
               </div>
-              <span className="px-1.5 py-0.5 rounded-md font-mono font-bold text-[10px] bg-slate-100 text-[#181E54] border border-slate-200/80">
+              <span className="px-1 py-0.2 rounded font-mono font-bold text-[9px] bg-slate-100 text-[#181E54] border border-slate-200/80">
                 {completeness}%
               </span>
             </div>
 
             {/* Visual Animated Progress Bar */}
-            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+            <div className="w-full bg-slate-100 rounded-full h-1 overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-300 bg-[#181E54]"
                 style={{ width: `${completeness}%` }}
@@ -238,7 +238,7 @@ const LeadTableRow = React.memo<LeadTableRowProps>(
         </td>
 
         {/* 8. Functional 3-dot Action Menu Trigger */}
-        <td className="py-2 px-3.5 text-right w-20 relative">
+        <td className="py-2 px-2.5 sm:px-3 text-right w-16 relative">
           <button
             type="button"
             onClick={(e) => onToggleMenu(row, e)}
@@ -489,7 +489,7 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token, user }) => {
 
       {/* FILTER CONTROLS: Manual search, Profession, Status, Gender, Date */}
       <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5">
           {/* 1. Manual search option */}
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -627,19 +627,19 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token, user }) => {
         )}
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs min-w-[760px]">
-            <thead className="bg-[#181E54] text-white uppercase text-[10px] tracking-wider">
+          <table className="w-full text-left text-xs min-w-[1050px]">
+            <thead className="bg-[#181E54] text-white uppercase text-[10px] tracking-wider font-semibold">
               <tr>
-                <th className="py-2.5 px-3.5 font-semibold w-16">Serial Number</th>
-                <th className="py-2.5 px-3.5 font-semibold w-36">ID &amp; Date</th>
-                <th className="py-2.5 px-3.5 font-semibold">Name</th>
-                <th className="py-2.5 px-3.5 font-semibold w-36">Status</th>
-                <th className="py-2.5 px-3.5 font-semibold w-36">Category</th>
-                <th className="py-2.5 px-3.5 font-semibold w-36">Created By</th>
-                <th className="py-2.5 px-3.5 font-semibold w-32">Source</th>
-                <th className="py-2.5 px-3.5 font-semibold w-36">Phone</th>
-                <th className="py-2.5 px-3.5 font-semibold w-40">Info Level</th>
-                <th className="py-2.5 px-3.5 font-semibold text-right w-20">Action</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-14">Serial</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-32">ID &amp; Date</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold min-w-[170px]">Name</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-32">Status</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-32">Category</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-32">Created By</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-28">Source</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-32">Phone</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-32">Info Level</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold text-right w-16">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">

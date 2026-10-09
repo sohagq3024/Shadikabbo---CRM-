@@ -21,21 +21,21 @@ const PaymentTableRow = React.memo<PaymentTableRowProps>(({ row, index, onDownlo
   return (
     <tr className="hover:bg-slate-50/90 transition-colors group">
       {/* 1. Serial Number */}
-      <td className="py-2 px-3.5 font-mono font-semibold text-slate-600 w-16">
+      <td className="py-2 px-2.5 sm:px-3 font-mono font-semibold text-slate-600 w-14">
         <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-slate-100 text-slate-700 text-[11px] font-mono">
           {row.serialNumber || index + 1}
         </span>
       </td>
 
       {/* 2. ID and date */}
-      <td className="py-2 px-3.5 w-36">
+      <td className="py-2 px-2.5 sm:px-3 w-32">
         <div className="font-mono font-bold text-[#181E54] text-xs">{row.id}</div>
         <div className="text-[10px] text-slate-500">{row.date}</div>
       </td>
 
       {/* 3. Name with Candidate Profile Picture */}
-      <td className="py-2 px-3.5">
-        <div className="flex items-center gap-3">
+      <td className="py-2 px-2.5 sm:px-3">
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={() => {
@@ -48,7 +48,7 @@ const PaymentTableRow = React.memo<PaymentTableRowProps>(({ row, index, onDownlo
                 ? 'Click to view photo in full screen & download'
                 : row.name
             }
-            className={`w-9 h-9 rounded-full overflow-hidden border border-slate-200/90 shadow-2xs bg-slate-100 flex items-center justify-center shrink-0 ${
+            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border border-slate-200/90 shadow-2xs bg-slate-100 flex items-center justify-center shrink-0 ${
               row.images && row.images.length > 0
                 ? 'cursor-pointer hover:ring-2 hover:ring-[#181E54]/40 hover:scale-105 transition-all'
                 : ''
@@ -74,8 +74,8 @@ const PaymentTableRow = React.memo<PaymentTableRowProps>(({ row, index, onDownlo
           </button>
 
           <div className="min-w-0">
-            <span className="font-bold text-slate-900 block truncate">{row.name}</span>
-            <span className="text-[11px] text-slate-500 font-mono block">
+            <span className="font-bold text-slate-900 block truncate text-xs">{row.name}</span>
+            <span className="text-[10px] text-slate-500 font-mono block truncate">
               {row.trafficId || row.phone}
             </span>
           </div>
@@ -83,7 +83,7 @@ const PaymentTableRow = React.memo<PaymentTableRowProps>(({ row, index, onDownlo
       </td>
 
       {/* 4. Created By (The CRM Account Person who added this traffic) */}
-      <td className="py-2 px-3.5 w-40">
+      <td className="py-2 px-2.5 sm:px-3 w-36">
         <div className="font-semibold text-[#181E54] text-xs truncate">
           {row.createdBy || 'Sohag'}
         </div>
@@ -93,30 +93,30 @@ const PaymentTableRow = React.memo<PaymentTableRowProps>(({ row, index, onDownlo
       </td>
 
       {/* 5. Paid Amount */}
-      <td className="py-2 px-3.5 font-mono font-bold text-emerald-600 w-28">
+      <td className="py-2 px-2.5 sm:px-3 font-mono font-bold text-emerald-600 w-28 text-xs">
         {Number(row.paidAmount || 0).toLocaleString()} BDT
       </td>
 
       {/* 6. Due Amount */}
-      <td className="py-2 px-3.5 font-mono font-bold text-red-600 w-28">
+      <td className="py-2 px-2.5 sm:px-3 font-mono font-bold text-red-600 w-28 text-xs">
         {Number(row.dueAmount || 0).toLocaleString()} BDT
       </td>
 
       {/* 7. AMA (After Marriage Amount) */}
-      <td className="py-2 px-3.5 font-mono font-bold text-[#181E54] w-24">
+      <td className="py-2 px-2.5 sm:px-3 font-mono font-bold text-[#181E54] w-24 text-xs">
         {Number(row.afterMarriageAmount || 0).toLocaleString()} BDT
       </td>
 
       {/* 8. Specific invoice download button */}
-      <td className="py-2 px-3.5 text-center w-36">
+      <td className="py-2 px-2.5 sm:px-3 text-center w-32">
         <button
           type="button"
           onClick={() => onDownloadInvoice(row)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#181E54]/10 hover:bg-[#181E54] text-[#181E54] hover:text-white rounded-xl text-xs font-semibold transition-all cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-[#181E54]/10 hover:bg-[#181E54] text-[#181E54] hover:text-white rounded-lg text-xs font-semibold transition-all cursor-pointer"
           title="Download specific invoice"
         >
           <Download className="w-3.5 h-3.5 text-[#D81124]" />
-          <span>Download Invoice</span>
+          <span>Invoice</span>
         </button>
       </td>
     </tr>
@@ -400,17 +400,17 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({ token, user }) => {
         )}
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs min-w-[760px]">
-            <thead className="bg-[#181E54] text-white uppercase text-[10px] tracking-wider">
+          <table className="w-full text-left text-xs min-w-[960px]">
+            <thead className="bg-[#181E54] text-white uppercase text-[10px] tracking-wider font-semibold">
               <tr>
-                <th className="py-2.5 px-3.5 font-semibold w-16">Serial Number</th>
-                <th className="py-2.5 px-3.5 font-semibold w-36">ID and date</th>
-                <th className="py-2.5 px-3.5 font-semibold">Name</th>
-                <th className="py-2.5 px-3.5 font-semibold w-40">Created By</th>
-                <th className="py-2.5 px-3.5 font-semibold font-mono w-28">Paid Amount</th>
-                <th className="py-2.5 px-3.5 font-semibold font-mono w-28">Due Amount</th>
-                <th className="py-2.5 px-3.5 font-semibold font-mono w-24" title="After Marriage Amount (AMA)">AMA</th>
-                <th className="py-2.5 px-3.5 font-semibold text-center w-36">Action / Invoice</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-14">Serial</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-32">ID and date</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold min-w-[170px]">Name</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold w-36">Created By</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold font-mono w-28">Paid Amount</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold font-mono w-28">Due Amount</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold font-mono w-24" title="After Marriage Amount (AMA)">AMA</th>
+                <th className="py-2.5 px-2.5 sm:px-3 font-semibold text-center w-32">Action / Invoice</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">

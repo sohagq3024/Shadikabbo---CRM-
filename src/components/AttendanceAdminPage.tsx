@@ -110,26 +110,26 @@ export const AttendanceAdminPage: React.FC<AttendanceAdminPageProps> = ({
   return (
     <div className="space-y-5 pb-16 max-w-full overflow-y-auto">
       {/* TOP BANNER & REAL WORKFLOW ACTION BAR */}
-      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-xs flex items-center justify-between flex-wrap gap-4">
+      <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs flex items-center justify-between flex-wrap gap-3">
         <div>
-          <div className="flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <h1 className="text-xl sm:text-2xl font-bold text-[#181E54]">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <h1 className="text-lg sm:text-xl font-bold text-[#181E54]">
               Staff Attendance Management
             </h1>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 mt-0.5">
             Real-time QR Attendance · Counting MK &amp; CRO staff ({totalEmployees} Total Staff · Super Admin excluded)
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Requirement 5: Specific Person Monthly Report Select Dropdown */}
-          <div className="relative min-w-[210px]">
+          <div className="relative min-w-[200px]">
             <select
               value={selectedStaffId}
               onChange={handleSelectEmployee}
-              className="w-full pl-3 pr-8 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-[#181E54] focus:outline-none focus:ring-2 focus:ring-[#181E54] cursor-pointer shadow-2xs hover:bg-slate-100 transition-colors"
+              className="w-full pl-3 pr-8 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-[#181E54] focus:outline-none focus:ring-1.5 focus:ring-[#181E54] cursor-pointer shadow-2xs hover:bg-slate-100 transition-colors"
             >
               <option value="">Select Employee Monthly Log...</option>
               {staffList.map((emp) => (
@@ -144,10 +144,10 @@ export const AttendanceAdminPage: React.FC<AttendanceAdminPageProps> = ({
           <button
             type="button"
             onClick={() => setIsDayOffModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-2xs"
             title="Manage individual weekly day-off for CRO and MK staff"
           >
-            <CalendarOff className="w-4 h-4 text-amber-400" />
+            <CalendarOff className="w-3.5 h-3.5 text-amber-400" />
             <span>Staff Day-Off</span>
           </button>
 
@@ -155,10 +155,10 @@ export const AttendanceAdminPage: React.FC<AttendanceAdminPageProps> = ({
           <button
             type="button"
             onClick={() => setIsManualModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-2xs"
             title="Record manual attendance or official leave"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3.5 h-3.5" />
             <span>Manual Entry</span>
           </button>
 
@@ -166,10 +166,10 @@ export const AttendanceAdminPage: React.FC<AttendanceAdminPageProps> = ({
           <button
             type="button"
             onClick={() => setIsQrModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#181E54] text-white rounded-xl text-xs font-bold hover:bg-[#121742] transition-colors cursor-pointer shadow-xs"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#181E54] text-white rounded-lg text-xs font-bold hover:bg-[#121742] transition-colors cursor-pointer shadow-2xs"
             title="Display and print official office QR code"
           >
-            <QrCode className="w-4 h-4 text-white" />
+            <QrCode className="w-3.5 h-3.5 text-white" />
             <span>Office QR Code</span>
           </button>
 
@@ -178,10 +178,10 @@ export const AttendanceAdminPage: React.FC<AttendanceAdminPageProps> = ({
             <button
               type="button"
               onClick={onOpenScanner}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-[#D81124] to-[#B50E1D] text-white rounded-xl text-xs font-bold hover:shadow-md transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-[#D81124] to-[#B50E1D] text-white rounded-lg text-xs font-bold hover:shadow-xs transition-all cursor-pointer"
               title="Launch full-screen attendance scanner"
             >
-              <Camera className="w-4 h-4 text-white" />
+              <Camera className="w-3.5 h-3.5 text-white" />
               <span>Open Scanner</span>
             </button>
           )}
@@ -308,7 +308,7 @@ export const AttendanceAdminPage: React.FC<AttendanceAdminPageProps> = ({
 
         {/* Scrollable Table Viewport: Horizontal & Vertical Scrolling system with Sticky Header */}
         <div className="overflow-x-auto overflow-y-auto max-h-[580px] scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
-          <table className="w-full text-left text-xs min-w-[700px] border-collapse">
+          <table className="w-full text-left text-xs min-w-[800px] border-collapse">
             <thead className="bg-[#181E54] text-white uppercase text-[10px] tracking-wider sticky top-0 z-10 shadow-xs">
               <tr>
                 <th className="py-3 px-4 font-semibold">Date</th>

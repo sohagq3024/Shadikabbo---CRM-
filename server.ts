@@ -270,6 +270,8 @@ function authMiddleware(req: express.Request, res: express.Response, next: expre
   next();
 }
 
+const DEFAULT_AVATARS: Record<string, string> = {};
+
 function sanitizeUser(u: SystemUser) {
   return {
     id: u.id,
@@ -2903,6 +2905,224 @@ app.post('/api/trash/empty', authMiddleware, (req, res) => {
 
   saveDB(db);
   res.json({ success: true, message: `Permanently deleted ${purgedCount} item(s) from database.`, purgedCount });
+});
+
+// ============================================================
+// NOTIFICATIONS & ALERTS CENTER API
+// Live alerts for:
+// 1. New leads
+// 2. Upcoming follow-ups (leads & traffics)
+// 3. Payment reminders (pending approval requests & due balances)
+// ============================================================
+app.get('/api/notifications', authMiddleware, (req, res) => {
+  const db = loadDB();
+  const actor = (req as any).user;
+  const now = Date.now();
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+  const notifications: any[] = [];
+
+  // --- 1. NEW LEADS ALERTS ---
+  let leadCandidates = (db.leads || []).filter((l: any) => l.status !== 'trash' && l.status !== 'converted');
+  if (actor.role === 'CRO' || actor.role === 'MK') {
+    leadCandidates = leadCandidates.filter((l: any) => {
+      return (l.creatorId && l.creatorId === actor.id) || l.createdBy === actor.name;
+    });
+  }
+
+  leadCandidates.forEach((lead: any) => {
+    const createdTime = lead.createdTimestamp || (lead.createdAt ? new Date(lead.createdAt).getTime() : 0);
+    const isRecent = createdTime > 0 && (now - createdTime) < SEVEN_DAYS_MS;
+    const isNewStatus = ['Pending', 'active', 'wp-connect', 'cv-collect', 'new'].includes(lead.status) || !lead.status;
+
+    if (isRecent || isNewStatus) {
+      notifications.push({
+        id: `notif_lead_${lead.id}`,
+        type: 'new_lead',
+        category: 'New Lead',
+        title: `New Lead: ${lead.name}`,
+        message: `ID ${lead.id} • ${lead.category || 'General'} • Phone: ${lead.phone || 'N/A'} • Added by ${lead.createdBy || 'Staff'}`,
+        timestamp: createdTime || now,
+        targetPage: 'Lead',
+        targetId: lead.id,
+        priority: isRecent ? 'high' : 'normal',
+        entity: {
+          id: lead.id,
+          name: lead.name,
+          phone: lead.phone,
+          category: lead.category,
+          status: lead.status,
+          createdBy: lead.createdBy,
+        },
+      });
+    }
+  });
+
+  // --- 2. UPCOMING FOLLOW-UPS ALERTS ---
+  // A. Leads with follow-up status
+  leadCandidates.forEach((lead: any) => {
+    const statusLower = (lead.status || '').toLowerCase();
+    const isFollowUp = statusLower.includes('follow up') || statusLower.includes('follow-up');
+
+    if (isFollowUp) {
+      notifications.push({
+        id: `notif_followup_lead_${lead.id}`,
+        type: 'follow_up',
+        category: 'Upcoming Follow-up',
+        title: `Follow-up Due: ${lead.name}`,
+        message: `Lead ${lead.id} is marked as "${lead.status || 'Follow up'}". Follow-up outreach needed for phone: ${lead.phone || 'No phone'}.`,
+        timestamp: lead.updatedAt || lead.createdTimestamp || now,
+        targetPage: 'Lead',
+        targetId: lead.id,
+        priority: 'high',
+        entity: {
+          id: lead.id,
+          name: lead.name,
+          phone: lead.phone,
+          status: lead.status,
+          officer: lead.createdBy || 'Assigned Officer',
+        },
+      });
+    }
+  });
+
+  // B. Traffics with follow-up status
+  let trafficCandidates = (db.traffics || []).filter((t: any) => t.status !== 'trash');
+  if (actor.role === 'CRO') {
+    trafficCandidates = trafficCandidates.filter((t: any) => (t.creatorId && t.creatorId === actor.id) || t.createdBy === actor.name);
+  } else if (actor.role === 'MK') {
+    trafficCandidates = trafficCandidates.filter((t: any) => {
+      return (t.creatorId && t.creatorId === actor.id) || t.createdBy === actor.name ||
+             (t.assignedTo?.id && t.assignedTo?.id === actor.id) || (t.assignedTo?.name && t.assignedTo?.name === actor.name);
+    });
+  }
+
+  trafficCandidates.forEach((traffic: any) => {
+    const statusLower = (traffic.status || '').toLowerCase();
+    const isFollowUp = statusLower.includes('follow up') || statusLower.includes('follow-up');
+    if (isFollowUp) {
+      const targetPage = traffic.paymentStatus === 'accepted' ? 'Paid Traffic' : 'Traffic';
+      notifications.push({
+        id: `notif_followup_traffic_${traffic.id}`,
+        type: 'follow_up',
+        category: 'Upcoming Follow-up',
+        title: `Follow-up Due: ${traffic.name}`,
+        message: `Candidate ${traffic.id} is in "${traffic.status}". Scheduled for follow-up communication (${traffic.phone || 'N/A'}).`,
+        timestamp: traffic.updatedAt || traffic.createdTimestamp || now,
+        targetPage,
+        targetId: traffic.id,
+        priority: 'high',
+        entity: {
+          id: traffic.id,
+          name: traffic.name,
+          phone: traffic.phone,
+          status: traffic.status,
+          officer: traffic.assignedTo?.name || traffic.createdBy || 'Staff',
+        },
+      });
+    }
+  });
+
+  // --- 3. PAYMENT REMINDERS ---
+  // A. Pending Payment Verification Requests
+  const pendingRequests = (db.paymentRequests || []).filter((pr: any) => pr.status === 'pending');
+  pendingRequests.forEach((pr: any) => {
+    const isRelevant = actor.role === 'Super Admin' ||
+      pr.creatorId === actor.id ||
+      pr.createdBy === actor.name;
+
+    if (isRelevant) {
+      notifications.push({
+        id: `notif_payreq_${pr.id}`,
+        type: 'payment_reminder',
+        category: 'Payment Reminder',
+        title: `Pending Payment Approval: ${pr.trafficName || 'Candidate'}`,
+        message: `Payment ticket ${pr.id} for ৳${Number(pr.paidAmount || 0).toLocaleString()} BDT via ${pr.paymentMethod || 'bKash'} requires verification.`,
+        timestamp: pr.createdTimestamp || now,
+        targetPage: 'Payment',
+        targetId: pr.id,
+        priority: 'high',
+        entity: {
+          id: pr.id,
+          name: pr.trafficName,
+          paidAmount: pr.paidAmount,
+          dueAmount: pr.dueAmount,
+          method: pr.paymentMethod,
+          sender: pr.createdBy,
+        },
+      });
+    }
+  });
+
+  // B. Outstanding Due Balances from Accepted Payments
+  const duePayments = (db.payments || []).filter((p: any) => Number(p.dueAmount || 0) > 0);
+  duePayments.forEach((p: any) => {
+    const isRelevant = actor.role === 'Super Admin' ||
+      p.createdBy === actor.name ||
+      p.creatorId === actor.id;
+
+    if (isRelevant) {
+      notifications.push({
+        id: `notif_paydue_${p.id || p.trafficId || Math.random()}`,
+        type: 'payment_reminder',
+        category: 'Payment Reminder',
+        title: `Due Balance Reminder: ${p.name || 'Candidate'}`,
+        message: `Outstanding due of ৳${Number(p.dueAmount || 0).toLocaleString()} BDT pending collection. Total paid: ৳${Number(p.paidAmount || 0).toLocaleString()} BDT.`,
+        timestamp: p.acceptedAt ? new Date(p.acceptedAt).getTime() : now,
+        targetPage: 'Payment',
+        targetId: p.id,
+        priority: 'medium',
+        entity: {
+          id: p.id,
+          name: p.name,
+          dueAmount: p.dueAmount,
+          paidAmount: p.paidAmount,
+          phone: p.phone,
+        },
+      });
+    }
+  });
+
+  // Also check paid traffics where dueAmount > 0 that might not be in db.payments
+  trafficCandidates.forEach((t: any) => {
+    if (t.paymentStatus === 'accepted' && Number(t.dueAmount || 0) > 0) {
+      const alreadyIncluded = duePayments.some((p: any) => p.trafficId === t.id || (p.phone && p.phone === t.phone));
+      if (!alreadyIncluded) {
+        notifications.push({
+          id: `notif_paydue_traffic_${t.id}`,
+          type: 'payment_reminder',
+          category: 'Payment Reminder',
+          title: `Due Balance Reminder: ${t.name}`,
+          message: `Candidate ${t.id} has remaining due balance of ৳${Number(t.dueAmount || 0).toLocaleString()} BDT.`,
+          timestamp: t.updatedAt || t.createdTimestamp || now,
+          targetPage: 'Payment',
+          targetId: t.id,
+          priority: 'medium',
+          entity: {
+            id: t.id,
+            name: t.name,
+            dueAmount: t.dueAmount,
+            phone: t.phone,
+          },
+        });
+      }
+    }
+  });
+
+  // Sort latest first
+  notifications.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+  const counts = {
+    total: notifications.length,
+    newLeads: notifications.filter(n => n.type === 'new_lead').length,
+    followUps: notifications.filter(n => n.type === 'follow_up').length,
+    paymentReminders: notifications.filter(n => n.type === 'payment_reminder').length,
+  };
+
+  res.json({
+    counts,
+    notifications,
+  });
 });
 
 // ============================================================

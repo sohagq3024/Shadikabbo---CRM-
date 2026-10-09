@@ -16,6 +16,9 @@
 
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    color: #1e293b;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
@@ -117,12 +120,44 @@ ul li.cursor-pointer:active,
   .interactive-tactile,
   .tactile-press,
   table tbody tr.cursor-pointer,
-  ul li.cursor-pointer {
+  ul li.cursor-pointer,
+  .animate-card-fade-in {
     transition: none !important;
     transform: none !important;
+    animation: none !important;
   }
   .app-ripple-circle {
     display: none !important;
   }
 }
+
+/* ==========================================================================
+   PREMIUM LUXURY CARD FADE-IN & ENTRANCE ANIMATIONS
+   ========================================================================== */
+@keyframes cardFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.995);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-card-fade-in {
+  animation: cardFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  will-change: transform, opacity;
+}
+
+.stagger-0 { animation-delay: 0ms; }
+.stagger-1 { animation-delay: 50ms; }
+.stagger-2 { animation-delay: 90ms; }
+.stagger-3 { animation-delay: 130ms; }
+.stagger-4 { animation-delay: 170ms; }
+.stagger-5 { animation-delay: 210ms; }
+.stagger-6 { animation-delay: 250ms; }
+.stagger-7 { animation-delay: 290ms; }
+.stagger-8 { animation-delay: 330ms; }
+
 

@@ -212,7 +212,7 @@ export const PaymentRequestsModal: React.FC<PaymentRequestsModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2.5 sm:p-4 md:p-6 transition-all duration-200">
-      <div className="relative w-full max-w-6xl 2xl:max-w-7xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col h-[94vh] max-h-[94vh]">
+      <div className="relative w-full max-w-5xl xl:max-w-6xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col h-[94vh] max-h-[94vh]">
         
         {/* ============================================================
             1. MODAL TOP HEADER
