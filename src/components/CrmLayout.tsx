@@ -173,7 +173,7 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
           TOP RIGHT: Profile picture area, specific profile name, role (Super Admin)
           IMPORTANT: Neutral profile placeholder/icon (NO demo photograph)
       ================================================== */}
-      <header className="h-14 sm:h-16 bg-white border-b border-slate-200 sticky top-0 z-40 px-2.5 sm:px-4 md:px-8 flex items-center justify-between shadow-xs">
+      <header className="h-16 md:h-18 bg-white border-b border-slate-200 sticky top-0 z-40 px-3 sm:px-6 md:px-8 flex items-center justify-between shadow-xs">
         {/* TOP LEFT */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Mobile hamburger menu toggle */}
@@ -281,7 +281,7 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
 
         {/* SIDEBAR: ROCK-SOLID FIXED WIDTH & MOBILE SLIDE-OVER */}
         <aside
-          className={`fixed md:sticky top-0 md:top-16 z-50 md:z-30 h-full md:h-[calc(100vh-4rem)] w-64 md:w-60 min-w-[15rem] max-w-[16rem] md:max-w-[15rem] shrink-0 bg-white border-r border-slate-200 transition-transform duration-300 ease-in-out overflow-y-auto flex flex-col justify-between p-3.5 md:p-3 shadow-2xl md:shadow-none ${
+          className={`fixed md:sticky top-0 md:top-18 z-50 md:z-30 h-full md:h-[calc(100vh-4.5rem)] w-64 md:w-64 lg:w-72 shrink-0 bg-white border-r border-slate-200 transition-transform duration-300 ease-in-out overflow-y-auto flex flex-col justify-between p-4 md:p-3.5 shadow-2xl md:shadow-none ${
             mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
           }`}
         >
@@ -302,7 +302,7 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
           </div>
 
           {/* Top nav items */}
-          <nav className="space-y-1">
+          <nav className="space-y-1.5">
             {navItems.map((item) => {
               const isActive =
                 activePage === item.label ||
@@ -316,7 +316,7 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
                     triggerHaptic(12);
                     handleNavClick(item.label);
                   }}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 cursor-pointer ${
+                  className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 cursor-pointer ${
                     isActive
                       ? 'bg-[#181E54] text-white shadow-sm'
                       : 'text-slate-600 hover:text-[#181E54] hover:bg-slate-100'
@@ -336,7 +336,7 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
             <button
               type="button"
               onClick={onLogout}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors cursor-pointer"
+              className="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs sm:text-sm font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors cursor-pointer"
             >
               <LogOut className="w-4 h-4 text-[#D81124]" />
               <span>Logout</span>
@@ -344,8 +344,8 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
           </div>
         </aside>
 
-        {/* MAIN CONTENT VIEWPORT: FULL WIDTH & COMPACT PADDING WITH BOTTOM BAR CLEARANCE */}
-        <main className="flex-1 min-w-0 p-2.5 sm:p-3.5 md:px-5 md:py-3 w-full overflow-y-auto pb-24 md:pb-4">
+        {/* MAIN CONTENT VIEWPORT: FULL WIDTH & GENEROUS DESKTOP PADDING */}
+        <main className="flex-1 min-w-0 p-3.5 sm:p-5 md:p-6 lg:p-8 w-full overflow-y-auto pb-24 md:pb-8">
           {children}
         </main>
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Calendar, Users, CheckCircle2, XCircle, Clock, AlertTriangle, Briefcase, Phone } from 'lucide-react';
+import { X, Calendar, Users, CheckCircle2, CheckCircle, XCircle, Clock, AlertTriangle, Briefcase, Phone, HardDrive } from 'lucide-react';
 
 interface AttendanceDailyModalProps {
   isOpen: boolean;
@@ -185,8 +185,9 @@ export const AttendanceDailyModal: React.FC<AttendanceDailyModalProps> = ({
                               </span>
                             )}
                             {emp.scanMethod === 'offline_synced' && (
-                              <span className="text-[9px] font-sans font-medium text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200" title="Recorded while offline and synced via Service Worker">
-                                💾 Offline Synced
+                              <span className="text-[9px] font-sans font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 inline-flex items-center gap-1" title="Recorded while offline and synced via Service Worker">
+                                <HardDrive className="w-2.5 h-2.5" />
+                                Offline Synced
                               </span>
                             )}
                           </div>
@@ -211,8 +212,9 @@ export const AttendanceDailyModal: React.FC<AttendanceDailyModalProps> = ({
                 </div>
 
                 {data.absentList?.length === 0 ? (
-                  <p className="text-xs text-emerald-700 font-medium py-1">
-                    ✓ 100% Attendance! No staff were absent on this working date.
+                  <p className="text-xs text-emerald-700 font-medium py-1 flex items-center gap-1.5">
+                    <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                    100% Attendance. No staff were absent on this working date.
                   </p>
                 ) : (
                   <div className="space-y-2">

@@ -19,6 +19,7 @@ import {
   Mail,
   ArrowRight,
   RefreshCw,
+  X,
 } from 'lucide-react';
 import { CountryFlag, detectCountryIso } from './CountryFlag';
 
@@ -322,9 +323,10 @@ export const TrashBinPage: React.FC<TrashBinPageProps> = ({ token }) => {
           <button
             type="button"
             onClick={() => setActionToast(null)}
-            className="text-slate-400 hover:text-slate-700 ml-4 font-bold"
+            className="text-slate-400 hover:text-slate-700 ml-4 p-1 rounded-md cursor-pointer"
+            aria-label="Dismiss toast"
           >
-            ✕
+            <X className="w-4 h-4" />
           </button>
         </div>
       )}
@@ -412,9 +414,10 @@ export const TrashBinPage: React.FC<TrashBinPageProps> = ({ token }) => {
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer"
+                aria-label="Clear search"
               >
-                ✕
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
@@ -650,8 +653,9 @@ export const TrashBinPage: React.FC<TrashBinPageProps> = ({ token }) => {
               </div>
             </div>
 
-            <p className="text-[11px] text-rose-600 font-semibold mb-4">
-              ⚠️ Warning: This action CANNOT be undone. The record will be permanently purged from the database immediately.
+            <p className="text-[11px] text-rose-600 font-semibold mb-4 flex items-center justify-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+              <span>Warning: This action cannot be undone. The record will be permanently purged immediately.</span>
             </p>
 
             <div className="flex items-center justify-end gap-2.5">
@@ -693,8 +697,9 @@ export const TrashBinPage: React.FC<TrashBinPageProps> = ({ token }) => {
               <strong className="text-slate-800 font-semibold">{activeCategory === 'All' ? 'Trash Bin' : activeCategory}</strong> section without waiting for the 10-day retention countdown.
             </p>
 
-            <p className="text-[11px] text-rose-600 font-semibold my-4">
-              ⚠️ This will remove all selected items from the database permanently.
+            <p className="text-[11px] text-rose-600 font-semibold my-4 flex items-center justify-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+              <span>This will remove all selected items from the database permanently.</span>
             </p>
 
             <div className="flex items-center justify-end gap-2.5">

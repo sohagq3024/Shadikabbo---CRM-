@@ -656,9 +656,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ token }) => {
                 {currentCategoryMeta.connectedSections.map((sec, idx) => (
                   <span
                     key={idx}
-                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-[#181E54] border border-indigo-100"
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-[#181E54] border border-indigo-100"
                   >
-                    ✓ {sec}
+                    <Check className="w-2.5 h-2.5" />
+                    <span>{sec}</span>
                   </span>
                 ))}
               </div>

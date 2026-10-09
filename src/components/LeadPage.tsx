@@ -14,6 +14,7 @@ import {
   Sparkles,
   Zap,
   Clock,
+  X,
 } from 'lucide-react';
 import { AddLeadModal, PROFESSIONS } from './AddLeadModal';
 import { ConvertTrafficModal } from './ConvertTrafficModal';
@@ -584,9 +585,10 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token, user }) => {
               <button
                 type="button"
                 onClick={() => setDateFilter('')}
-                className="absolute right-7 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                className="absolute right-7 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer"
+                aria-label="Clear date filter"
               >
-                ✕
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
@@ -823,8 +825,9 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token, user }) => {
               type="button"
               onClick={() => setActionToast(null)}
               className="ml-2 text-slate-400 hover:text-white p-0.5 rounded cursor-pointer"
+              aria-label="Dismiss notification"
             >
-              ✕
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>

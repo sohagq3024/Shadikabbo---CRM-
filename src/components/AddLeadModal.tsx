@@ -430,7 +430,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                 {initialData ? 'Edit Matrimonial Lead' : 'Add New Lead'}
               </h2>
               <p className="text-xs text-slate-500">
-                Primary stage inquiry registration (Lead ➔ Traffic ➔ Payment ➔ Paid Traffic)
+                Primary stage inquiry registration (Lead → Traffic → Payment → Paid Traffic)
               </p>
             </div>
           </div>

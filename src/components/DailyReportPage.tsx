@@ -333,7 +333,7 @@ export const DailyReportPage: React.FC<DailyReportPageProps> = ({ token, user })
               onChange={(e) => setFilterStaffId(e.target.value)}
               className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54] cursor-pointer"
             >
-              <option value="all">👥 All Staff Members</option>
+              <option value="all">All Staff Members</option>
               {staffList.map((emp) => (
                 <option key={emp.id} value={emp.id}>
                   {emp.name} ({emp.role})

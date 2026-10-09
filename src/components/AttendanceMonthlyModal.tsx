@@ -13,6 +13,7 @@ import {
   Briefcase,
   Phone,
   FileSpreadsheet,
+  HardDrive,
 } from 'lucide-react';
 
 interface AttendanceMonthlyModalProps {
@@ -261,8 +262,8 @@ export const AttendanceMonthlyModal: React.FC<AttendanceMonthlyModalProps> = ({
                                 <div className="flex items-center gap-1">
                                   <span className="text-emerald-700">{log.inTime}</span>
                                   {log.scanMethod === 'offline_synced' && (
-                                    <span className="text-[9px] font-sans font-medium text-amber-700 bg-amber-50 px-1 py-0.2 rounded border border-amber-200" title="Synced from offline scan">
-                                      💾 Offline
+                                    <span className="text-[9px] font-sans font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 inline-flex items-center gap-1" title="Synced from offline scan">
+                                      <HardDrive className="w-2.5 h-2.5" /> Offline
                                     </span>
                                   )}
                                 </div>

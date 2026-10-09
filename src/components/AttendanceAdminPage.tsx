@@ -131,7 +131,7 @@ export const AttendanceAdminPage: React.FC<AttendanceAdminPageProps> = ({
               onChange={handleSelectEmployee}
               className="w-full pl-3 pr-8 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-[#181E54] focus:outline-none focus:ring-2 focus:ring-[#181E54] cursor-pointer shadow-2xs hover:bg-slate-100 transition-colors"
             >
-              <option value="">👤 Select Employee Monthly Log...</option>
+              <option value="">Select Employee Monthly Log...</option>
               {staffList.map((emp) => (
                 <option key={emp.id} value={emp.id}>
                   {emp.name} ({emp.role})

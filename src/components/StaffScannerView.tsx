@@ -25,6 +25,7 @@ import {
   Check,
   X,
   Vibrate,
+  Calendar,
 } from 'lucide-react';
 import { ShadikabboLogo } from './ShadikabboLogo';
 import { PWAInstallButton } from './PWAInstallButton';
@@ -844,8 +845,8 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
                 )}
               </span>
             ) : todayStatus?.isDayOffToday ? (
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200 flex items-center gap-1">
-                <span>🌴</span>
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200 flex items-center gap-1.5">
+                <Calendar className="w-3 h-3 text-purple-600" />
                 <span>Weekly Day-Off (ছুটি)</span>
               </span>
             ) : (
@@ -1249,8 +1250,12 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
             </div>
 
             <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between gap-2">
-              <span className="text-[11px] text-slate-500 font-medium">
-                Network: {isOnline ? '🟢 Online' : '🟠 Offline'}
+              <span className="text-[11px] text-slate-500 font-medium inline-flex items-center gap-1.5">
+                Network:
+                <span className={`inline-block w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                <span className={isOnline ? 'text-emerald-700 font-semibold' : 'text-amber-700 font-semibold'}>
+                  {isOnline ? 'Online' : 'Offline'}
+                </span>
               </span>
 
               <div className="flex items-center gap-2">

@@ -78,19 +78,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   }, [token]);
 
   return (
-    <div className="space-y-3 sm:space-y-4 max-w-6xl mx-auto pb-6 sm:pb-8">
+    <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto space-y-5 sm:space-y-6 pb-8">
       {/* Welcome Hero Banner */}
-      <div className="bg-gradient-to-r from-[#181E54] to-[#252E7D] rounded-2xl p-4 sm:p-5 md:p-6 text-white shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+      <div className="bg-gradient-to-r from-[#181E54] via-[#1F2768] to-[#252E7D] rounded-3xl p-6 sm:p-7 md:p-8 text-white shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-white/90 text-[10px] sm:text-[11px] font-semibold mb-1.5 sm:mb-2">
-              <Shield className="w-3 h-3 text-[#D81124]" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-white/90 text-xs font-semibold mb-2 sm:mb-2.5">
+              <Shield className="w-3.5 h-3.5 text-[#D81124]" />
               <span>Shadikabbo CRM · {user?.role || 'Staff'}</span>
             </div>
-            <h1 className="text-lg sm:text-2xl font-bold tracking-tight">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight">
               Welcome back, {user?.name || 'User'}!
             </h1>
-            <p className="text-[11px] sm:text-xs text-white/80 mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <p className="text-xs sm:text-sm text-white/80 mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
               <span>Official Branch: <strong className="text-white font-semibold">{user?.branch || 'Uttara'}</strong></span>
               <span>·</span>
               <span>Official ID: <strong className="text-white font-mono">{user?.phone}</strong></span>
@@ -102,9 +102,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             <button
               type="button"
               onClick={onOpenScanner}
-              className="flex items-center justify-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 bg-white text-[#181E54] hover:bg-slate-100 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer min-h-[42px] touch-manipulation active:scale-[0.98] w-full sm:w-auto shrink-0"
+              className="flex items-center justify-center gap-2.5 px-5 py-3 sm:px-6 sm:py-3.5 bg-white text-[#181E54] hover:bg-slate-100 rounded-2xl text-xs sm:text-sm font-bold transition-all shadow-sm cursor-pointer min-h-[46px] touch-manipulation active:scale-[0.98] w-full sm:w-auto shrink-0"
             >
-              <Camera className="w-4 h-4 text-[#D81124]" />
+              <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-[#D81124]" />
               <span>Daily Attendance Scanner</span>
             </button>
           )}
@@ -112,121 +112,121 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       </div>
 
       {/* KPI Cards Overview */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
         {/* Leads */}
         <div
           onClick={() => onSelectPage('Lead')}
-          className="bg-white rounded-xl sm:rounded-2xl border border-slate-200/90 p-3 sm:p-4 shadow-xs hover:border-[#181E54]/30 transition-all cursor-pointer group active:scale-[0.98] touch-manipulation min-h-[105px] flex flex-col justify-between"
+          className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 p-4 sm:p-5 md:p-6 shadow-xs hover:border-[#181E54]/30 hover:shadow-md transition-all cursor-pointer group active:scale-[0.98] touch-manipulation min-h-[140px] sm:min-h-[155px] flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-            <span className="text-[11px] sm:text-xs font-semibold text-slate-500 truncate mr-1">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs sm:text-sm font-bold text-slate-600 truncate mr-1">
               {isSuperAdmin ? 'Total Leads' : 'My Leads'}
             </span>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
-              <Users2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+              <Users2 className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-bold text-[#181E54] font-mono leading-none">
+          <div className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#181E54] font-mono leading-none my-1.5">
             {loading ? '-' : stats.leadsCount}
           </div>
-          <div className="mt-2 text-[10px] sm:text-[11px] text-purple-600 font-semibold flex items-center gap-1 group-hover:underline">
+          <div className="mt-2 text-xs sm:text-sm text-purple-600 font-bold flex items-center gap-1.5 group-hover:underline">
             <span>View Leads</span>
-            <ArrowRight className="w-3 h-3" />
+            <ArrowRight className="w-3.5 h-3.5" />
           </div>
         </div>
 
         {/* Traffic */}
         <div
           onClick={() => onSelectPage('Traffic')}
-          className="bg-white rounded-xl sm:rounded-2xl border border-slate-200/90 p-3 sm:p-4 shadow-xs hover:border-[#181E54]/30 transition-all cursor-pointer group active:scale-[0.98] touch-manipulation min-h-[105px] flex flex-col justify-between"
+          className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 p-4 sm:p-5 md:p-6 shadow-xs hover:border-[#181E54]/30 hover:shadow-md transition-all cursor-pointer group active:scale-[0.98] touch-manipulation min-h-[140px] sm:min-h-[155px] flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-            <span className="text-[11px] sm:text-xs font-semibold text-slate-500 truncate mr-1">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs sm:text-sm font-bold text-slate-600 truncate mr-1">
               {isSuperAdmin ? 'Active Traffic' : 'My Traffic'}
             </span>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
-              <GitFork className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+              <GitFork className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-bold text-[#181E54] font-mono leading-none">
+          <div className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#181E54] font-mono leading-none my-1.5">
             {loading ? '-' : stats.trafficCount}
           </div>
-          <div className="mt-2 text-[10px] sm:text-[11px] text-blue-600 font-semibold flex items-center gap-1 group-hover:underline">
+          <div className="mt-2 text-xs sm:text-sm text-blue-600 font-bold flex items-center gap-1.5 group-hover:underline">
             <span>View Traffic</span>
-            <ArrowRight className="w-3 h-3" />
+            <ArrowRight className="w-3.5 h-3.5" />
           </div>
         </div>
 
         {/* Paid Traffic / Matchmaking */}
         <div
           onClick={() => onSelectPage(isMK ? 'Matchmaking' : 'Paid Traffic')}
-          className="bg-white rounded-xl sm:rounded-2xl border border-slate-200/90 p-3 sm:p-4 shadow-xs hover:border-[#181E54]/30 transition-all cursor-pointer group active:scale-[0.98] touch-manipulation min-h-[105px] flex flex-col justify-between"
+          className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 p-4 sm:p-5 md:p-6 shadow-xs hover:border-[#181E54]/30 hover:shadow-md transition-all cursor-pointer group active:scale-[0.98] touch-manipulation min-h-[140px] sm:min-h-[155px] flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-            <span className="text-[11px] sm:text-xs font-semibold text-slate-500 truncate mr-1">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs sm:text-sm font-bold text-slate-600 truncate mr-1">
               {isMK ? 'Matchmaking Pool' : isSuperAdmin ? 'Paid Traffic' : 'My Paid Clients'}
             </span>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
-              {isMK ? <HeartHandshake className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#D81124]" /> : <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+              {isMK ? <HeartHandshake className="w-4 h-4 sm:w-5 sm:h-5 text-[#D81124]" /> : <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />}
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-bold text-[#181E54] font-mono leading-none">
+          <div className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#181E54] font-mono leading-none my-1.5">
             {loading ? '-' : stats.paidCount}
           </div>
-          <div className="mt-2 text-[10px] sm:text-[11px] text-emerald-600 font-semibold flex items-center gap-1 group-hover:underline truncate">
+          <div className="mt-2 text-xs sm:text-sm text-emerald-600 font-bold flex items-center gap-1.5 group-hover:underline truncate">
             <span>{isMK ? 'Open Pool' : 'View Clients'}</span>
-            <ArrowRight className="w-3 h-3 shrink-0" />
+            <ArrowRight className="w-3.5 h-3.5 shrink-0" />
           </div>
         </div>
 
         {/* Attendance Status */}
         <div
           onClick={() => onSelectPage('Attendance')}
-          className="bg-white rounded-xl sm:rounded-2xl border border-slate-200/90 p-3 sm:p-4 shadow-xs hover:border-[#181E54]/30 transition-all cursor-pointer group active:scale-[0.98] touch-manipulation min-h-[105px] flex flex-col justify-between"
+          className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 p-4 sm:p-5 md:p-6 shadow-xs hover:border-[#181E54]/30 hover:shadow-md transition-all cursor-pointer group active:scale-[0.98] touch-manipulation min-h-[140px] sm:min-h-[155px] flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-            <span className="text-[11px] sm:text-xs font-semibold text-slate-500 truncate mr-1">Today Attendance</span>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
-              <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs sm:text-sm font-bold text-slate-600 truncate mr-1">Today Attendance</span>
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
-          <div className="text-xs sm:text-sm font-bold text-[#181E54] leading-tight truncate">
+          <div className="text-sm sm:text-base font-bold text-[#181E54] leading-tight truncate my-1.5">
             {stats.todayAttendance?.hasCheckedIn ? (
               <span className="text-emerald-700 font-bold truncate">In: {stats.todayAttendance.record?.inTime || 'Present'}</span>
             ) : (
               <span className="text-amber-600 font-bold">Not Checked In</span>
             )}
           </div>
-          <div className="mt-2 text-[10px] sm:text-[11px] text-amber-600 font-semibold flex items-center gap-1 group-hover:underline">
+          <div className="mt-2 text-xs sm:text-sm text-amber-600 font-bold flex items-center gap-1.5 group-hover:underline">
             <span>Attendance Log</span>
-            <ArrowRight className="w-3 h-3" />
+            <ArrowRight className="w-3.5 h-3.5" />
           </div>
         </div>
 
         {/* Daily Report Status */}
         <div
           onClick={() => onSelectPage('Daily Report')}
-          className="bg-white rounded-xl sm:rounded-2xl border border-slate-200/90 p-3 sm:p-4 shadow-xs hover:border-[#181E54]/30 transition-all cursor-pointer group active:scale-[0.98] touch-manipulation min-h-[105px] flex flex-col justify-between col-span-2 sm:col-span-1"
+          className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 p-4 sm:p-5 md:p-6 shadow-xs hover:border-[#181E54]/30 hover:shadow-md transition-all cursor-pointer group active:scale-[0.98] touch-manipulation min-h-[140px] sm:min-h-[155px] flex flex-col justify-between col-span-2 sm:col-span-1"
         >
-          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-            <span className="text-[11px] sm:text-xs font-semibold text-slate-500 truncate mr-1">Daily Report</span>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
-              <ClipboardList className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#D81124]" />
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs sm:text-sm font-bold text-slate-600 truncate mr-1">Daily Report</span>
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+              <ClipboardList className="w-4 h-4 sm:w-5 sm:h-5 text-[#D81124]" />
             </div>
           </div>
-          <div className="text-xs sm:text-sm font-bold leading-tight truncate">
+          <div className="text-sm sm:text-base font-bold leading-tight truncate my-1.5">
             {stats.hasSubmittedDailyReport ? (
-              <span className="text-emerald-700 font-bold flex items-center gap-1">
-                <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span className="text-emerald-700 font-bold flex items-center gap-1.5">
+                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
                 Submitted
               </span>
             ) : (
               <span className="text-amber-600 font-bold">Pending Today</span>
             )}
           </div>
-          <div className="mt-2 text-[10px] sm:text-[11px] text-rose-600 font-semibold flex items-center gap-1 group-hover:underline">
+          <div className="mt-2 text-xs sm:text-sm text-rose-600 font-bold flex items-center gap-1.5 group-hover:underline">
             <span>Open Report</span>
-            <ArrowRight className="w-3 h-3" />
+            <ArrowRight className="w-3.5 h-3.5" />
           </div>
         </div>
       </div>

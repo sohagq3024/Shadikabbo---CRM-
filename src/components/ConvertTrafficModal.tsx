@@ -525,8 +525,8 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 shrink-0">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-bold uppercase tracking-wider border border-amber-200">
-                Pipeline: Lead ➔ Traffic
+              <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-bold uppercase tracking-wider border border-amber-200 inline-flex items-center gap-1">
+                Pipeline: Lead <ArrowRight className="w-2.5 h-2.5 inline" /> Traffic
               </span>
               <h2 className="text-lg md:text-xl font-bold text-[#181E54]">Convert Lead to Traffic</h2>
               {(() => {
@@ -1747,8 +1747,9 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                   All Traffic requirements fulfilled. Ready for pipeline promotion!
                 </span>
               ) : (
-                <span className="text-amber-700 font-medium">
-                  ⚠️ Complete remaining ({totalCount - fulfilledCount}) requirements above to convert to Traffic.
+                <span className="text-amber-700 font-medium inline-flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Complete remaining ({totalCount - fulfilledCount}) requirements above to convert to Traffic.</span>
                 </span>
               )}
             </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Calendar, Filter, Download, DollarSign, Bell, User, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Search, Calendar, Filter, Download, DollarSign, Bell, User, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { PaymentRequestsModal } from './PaymentRequestsModal';
 import { InvoiceModal } from './InvoiceModal';
 import { ErrorBoundary } from './ErrorBoundary';
@@ -502,9 +502,10 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({ token, user }) => {
             <button
               type="button"
               onClick={() => setToast(null)}
-              className="ml-2 text-white/60 hover:text-white cursor-pointer"
+              className="ml-2 text-white/60 hover:text-white p-0.5 rounded cursor-pointer"
+              aria-label="Dismiss toast"
             >
-              ✕
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
