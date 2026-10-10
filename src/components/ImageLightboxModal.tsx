@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Download,
@@ -205,7 +206,7 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
     }
   };
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -409,6 +410,7 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 };

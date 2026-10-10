@@ -226,9 +226,9 @@ export const PaidTrafficPage: React.FC<PaidTrafficPageProps> = ({ token, user })
     };
   }, []);
 
-  // Remove from Paid Traffic (moves to Trash Bin)
+  // Remove from Paid Client (moves to Trash Bin)
   const handleRemove = async (id: string) => {
-    if (!confirm('Remove this client from Paid Traffic? It will be moved to Trash Bin.')) {
+    if (!confirm('Remove this client from Paid Client? It will be moved to Trash Bin.')) {
       return;
     }
 
@@ -323,7 +323,7 @@ export const PaidTrafficPage: React.FC<PaidTrafficPageProps> = ({ token, user })
       {/* Top Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-[#181E54]">Paid Traffic</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-[#181E54]">Paid Client</h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Confirmed matrimonial clients with approved payment clearance
           </p>
@@ -446,16 +446,16 @@ export const PaidTrafficPage: React.FC<PaidTrafficPageProps> = ({ token, user })
                   <td colSpan={8} className="py-10 text-center text-slate-400">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <div className="w-6 h-6 border-2 border-[#181E54] border-t-transparent rounded-full animate-spin"></div>
-                      <span className="text-xs font-medium">Loading paid traffic records...</span>
+                      <span className="text-xs font-medium">Loading paid client records...</span>
                     </div>
                   </td>
                 </tr>
               ) : filteredPaidTraffics.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-slate-400">
-                    <p className="font-semibold text-slate-600 mb-1">No paid traffic records</p>
+                    <p className="font-semibold text-slate-600 mb-1">No paid client records</p>
                     <p className="text-[11px] text-slate-400">
-                      When a Traffic is added, accept its pending request in the &ldquo;Payment&rdquo; section to verify it as Paid Traffic.
+                      When a Client is added, accept its pending request in the &ldquo;Payment&rdquo; section to verify it as Paid Client.
                     </p>
                   </td>
                 </tr>
@@ -535,6 +535,8 @@ export const PaidTrafficPage: React.FC<PaidTrafficPageProps> = ({ token, user })
         traffic={viewingProfile}
         canEdit={isSuperAdmin}
         onEdit={(trafficToEdit) => setEditingTraffic(trafficToEdit)}
+        token={token}
+        showPaymentInfo={true}
       />
 
       {/* Edit Traffic Modal (Super Admin only) */}

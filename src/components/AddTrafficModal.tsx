@@ -193,7 +193,7 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
         .then((data) => {
           if (Array.isArray(data) && data.length > 0) {
             setMkAccounts(data);
-            setAssignBy((prev) => prev || (initialData?.assignBy ?? data[0].name));
+            setAssignBy((prev) => prev || (initialData?.assignBy ?? ''));
           }
         })
         .catch((err) => console.error('Failed to load MK accounts:', err));
@@ -468,6 +468,13 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
       return;
     }
 
+    if (numericPaid > 0 && !assignBy.trim()) {
+      setGeneralError('Assign By (MK Role Account) is mandatory when converting to Paid Client. Please select an MK officer in Step 2.');
+      setDirection('backward');
+      setCurrentStep(2);
+      return;
+    }
+
     setLoading(true);
     setGeneralError(null);
 
@@ -484,7 +491,7 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
         email,
         createdByName: currentUser?.name,
         createdByRole: currentUser?.role,
-        assignBy: assignBy || (mkAccounts[0]?.name ?? 'MK Official'),
+        assignBy: assignBy.trim(),
         profession,
         jobType,
         dateOfBirth,
@@ -556,7 +563,7 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
             </div>
             <div>
               <h2 className="text-lg sm:text-xl font-bold text-[#181E54]">
-                {initialData ? 'Edit Candidate Profile' : 'Add New Traffic'}
+                {initialData ? 'Edit Candidate Profile' : 'Add New Client'}
               </h2>
               <p className="text-xs text-slate-500">
                 Matrimonial client onboarding &amp; record creation
@@ -870,9 +877,9 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
                     {/* Candidate Preview Card */}
                     <div className="p-3.5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-2">
                       <div className="flex items-center justify-between text-xs font-bold text-[#181E54]">
-                        <span>Traffic Candidate Preview</span>
+                        <span>Client Candidate Preview</span>
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          Active Traffic
+                          Active Client
                         </span>
                       </div>
                       <div className="text-xs text-slate-600 space-y-1">
@@ -894,30 +901,37 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
             <motion.div key="step-2" custom={direction} variants={STEP_VARIANTS} initial="enter" animate="center" exit="exit" className="space-y-6 min-h-[440px]">
               
               {/* Top Banner: Assign By MK Role accounts */}
-              <div className="bg-amber-50/60 p-4 rounded-2xl border border-amber-200/80">
+              <div className="bg-slate-50/90 p-4 rounded-2xl border border-slate-200/90">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-amber-900 uppercase tracking-wider mb-0.5">
-                      Assign By (MK Role Accounts) <span className="text-[#D81124]">*</span>
+                    <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-0.5">
+                      Assign By (MK Role Accounts){' '}
+                      {numericPaid > 0 ? (
+                        <span className="text-[#D81124] font-bold">* (Mandatory for Paid Client)</span>
+                      ) : (
+                        <span className="text-emerald-700 font-semibold lowercase bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 text-[10px]">
+                          optional for client
+                        </span>
+                      )}
                     </label>
-                    <p className="text-[11px] text-amber-700">
-                      Select which Marketing officer (MK) created or manages this candidate
+                    <p className="text-[11px] text-slate-500">
+                      Select which Marketing officer (MK) created or manages this candidate (optional for Client, mandatory when promoting to Paid Client)
                     </p>
                   </div>
                   <div className="w-full sm:w-72">
                     <select
                       value={assignBy}
                       onChange={(e) => setAssignBy(e.target.value)}
-                      className="w-full px-3.5 py-2 bg-white border border-amber-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
+                      className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                     >
-                      {mkAccounts.length === 0 ? (
-                        <option value="MK General Queue">MK Official Staff</option>
-                      ) : (
-                        mkAccounts.map((mk) => (
-                          <option key={mk.id} value={mk.name}>
-                            {mk.name} ({mk.phone})
-                          </option>
-                        ))
+                      <option value="">{numericPaid > 0 ? 'Select MK Officer (Mandatory)...' : 'Unassigned (Optional for Client)...'}</option>
+                      {mkAccounts.map((mk) => (
+                        <option key={mk.id} value={mk.name}>
+                          {mk.name} ({mk.phone || mk.role})
+                        </option>
+                      ))}
+                      {mkAccounts.length === 0 && (
+                        <option value="MK Staff Officer">MK Staff Officer</option>
                       )}
                     </select>
                   </div>
@@ -1672,7 +1686,7 @@ export const AddTrafficModal: React.FC<AddTrafficModalProps> = ({
                     ? 'Submitting...'
                     : initialData
                     ? (numericPaid > 0 ? 'Update & Send Payment Request' : 'Update Profile')
-                    : (numericPaid > 0 ? 'Add Traffic & Request Payment' : 'Add Traffic')}
+                    : (numericPaid > 0 ? 'Add Client & Request Payment' : 'Add Client')}
                 </span>
               </button>
             )}

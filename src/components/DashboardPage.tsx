@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Users2,
   GitFork,
@@ -9,13 +9,7 @@ import {
   Camera,
   ArrowRight,
   Shield,
-  UserCheck,
   ClipboardList,
-  Copy,
-  Check,
-  Crown,
-  Sparkles,
-  Award,
 } from 'lucide-react';
 import { SidebarPage } from './CrmLayout';
 
@@ -46,24 +40,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   });
   const [loading, setLoading] = useState(true);
 
-  // Specific Account Owner profiles for luxury dashboard card
-  const [accounts, setAccounts] = useState<any[]>([]);
-  const [selectedAccountId, setSelectedAccountId] = useState<string>(user?.id || '');
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-  const [copiedPhone, setCopiedPhone] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   useEffect(() => {
     const fetchStats = async () => {
       setLoading(true);
       try {
-        const [leadsRes, trafficRes, paidRes, attRes, dailyRes, accsRes] = await Promise.all([
+        const [leadsRes, trafficRes, paidRes, attRes, dailyRes] = await Promise.all([
           fetch('/api/leads', { headers: { Authorization: `Bearer ${token}` } }),
           fetch('/api/traffic', { headers: { Authorization: `Bearer ${token}` } }),
           fetch('/api/paid-traffic', { headers: { Authorization: `Bearer ${token}` } }),
           fetch('/api/attendance/my-status', { headers: { Authorization: `Bearer ${token}` } }),
           fetch('/api/daily-reports', { headers: { Authorization: `Bearer ${token}` } }),
-          fetch('/api/accounts', { headers: { Authorization: `Bearer ${token}` } }),
         ]);
 
         const leads = leadsRes.ok ? await leadsRes.json() : [];
@@ -71,7 +57,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         const paid = paidRes.ok ? await paidRes.json() : [];
         const att = attRes.ok ? await attRes.json() : null;
         const dailyData = dailyRes.ok ? await dailyRes.json() : null;
-        const accsData = accsRes.ok ? await accsRes.json() : [];
 
         setStats({
           leadsCount: Array.isArray(leads) ? leads.length : 0,
@@ -81,10 +66,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           todayAttendance: att,
           hasSubmittedDailyReport: !!dailyData?.hasSubmittedToday,
         });
-
-        if (Array.isArray(accsData)) {
-          setAccounts(accsData);
-        }
       } catch (err) {
         console.error('Error fetching dashboard stats', err);
       } finally {
@@ -94,63 +75,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
     fetchStats();
   }, [token]);
-
-  // Specific account owner currently active/selected in the dashboard
-  const selectedAccount = useMemo(() => {
-    return accounts.find((a) => a.id === selectedAccountId) || accounts.find((a) => a.id === user?.id) || user;
-  }, [accounts, selectedAccountId, user]);
-
-  // Quick photo upload directly from dashboard card
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const base64 = reader.result as string;
-      try {
-        setIsUploadingPhoto(true);
-        const targetId = selectedAccount?.id || user?.id;
-        const res = await fetch(`/api/accounts/${targetId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            profilePicture: base64,
-          }),
-        });
-
-        if (res.ok) {
-          setAccounts((prev) =>
-            prev.map((a) => (a.id === targetId ? { ...a, profilePicture: base64 } : a))
-          );
-          if (targetId === user?.id) {
-            const cached = localStorage.getItem('shadikabbo_user');
-            if (cached) {
-              const parsed = JSON.parse(cached);
-              parsed.profilePicture = base64;
-              localStorage.setItem('shadikabbo_user', JSON.stringify(parsed));
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Photo upload failed', err);
-      } finally {
-        setIsUploadingPhoto(false);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleCopyPhone = () => {
-    if (selectedAccount?.phone) {
-      navigator.clipboard.writeText(selectedAccount.phone);
-      setCopiedPhone(true);
-      setTimeout(() => setCopiedPhone(false), 2000);
-    }
-  };
 
   return (
     <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto space-y-4 sm:space-y-5 pb-8">
@@ -240,14 +164,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </div>
         </div>
 
-        {/* Traffic */}
+        {/* Client */}
         <div
-          onClick={() => onSelectPage('Traffic')}
+          onClick={() => onSelectPage('Client')}
           className="animate-card-fade-in stagger-2 bg-white rounded-xl sm:rounded-2xl border border-slate-200/90 p-3.5 sm:p-4 shadow-2xs hover:border-[#181E54]/30 hover:shadow-xs transition-all cursor-pointer group active:scale-[0.98] touch-manipulation min-h-[110px] sm:min-h-[120px] flex flex-col justify-between"
         >
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-xs sm:text-[13px] font-bold text-slate-600 truncate mr-1">
-              {isSuperAdmin ? 'Active Traffic' : 'My Traffic'}
+              {isSuperAdmin ? 'Active Clients' : 'My Clients'}
             </span>
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
               <GitFork className="w-4 h-4" />
@@ -257,19 +181,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             {loading ? '-' : stats.trafficCount}
           </div>
           <div className="mt-1 text-[11px] sm:text-xs text-blue-600 font-bold flex items-center gap-1 group-hover:underline">
-            <span>View Traffic</span>
+            <span>View Clients</span>
             <ArrowRight className="w-3 h-3" />
           </div>
         </div>
 
-        {/* Paid Traffic / Matchmaking */}
+        {/* Paid Client / Matchmaking */}
         <div
-          onClick={() => onSelectPage(isMK ? 'Matchmaking' : 'Paid Traffic')}
+          onClick={() => onSelectPage(isMK ? 'Matchmaking' : 'Paid Client')}
           className="animate-card-fade-in stagger-3 bg-white rounded-xl sm:rounded-2xl border border-slate-200/90 p-3.5 sm:p-4 shadow-2xs hover:border-[#181E54]/30 hover:shadow-xs transition-all cursor-pointer group active:scale-[0.98] touch-manipulation min-h-[110px] sm:min-h-[120px] flex flex-col justify-between"
         >
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-xs sm:text-[13px] font-bold text-slate-600 truncate mr-1">
-              {isMK ? 'Matchmaking Pool' : isSuperAdmin ? 'Paid Traffic' : 'My Paid Clients'}
+              {isMK ? 'Matchmaking Pool' : isSuperAdmin ? 'Paid Client' : 'My Paid Clients'}
             </span>
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
               {isMK ? <HeartHandshake className="w-4 h-4 text-[#D81124]" /> : <CheckCircle className="w-4 h-4" />}
@@ -336,322 +260,227 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
       </div>
 
-      {/* Quick Navigation and Workflow Hub for Desktop */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-        {/* Core Pipeline Navigation Card */}
-        <div className="animate-card-fade-in stagger-6 bg-white rounded-xl border border-slate-200/90 p-4 shadow-2xs">
-          <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">Pipeline Flow</h2>
-            <span className="text-[10px] font-semibold text-[#181E54] bg-[#181E54]/10 px-2 py-0.5 rounded-full">Matrimonial</span>
+      {/* Quick Navigation & Operational Workflow Hub (Balanced 50/50 2-Column Split) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+        {/* Core Pipeline Navigation Card (Left) */}
+        <div className="animate-card-fade-in stagger-6 bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 md:p-6 shadow-2xs hover:shadow-xs transition-shadow">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center font-bold text-sm">
+                <GitFork className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800">Pipeline Flow</h2>
+                <p className="text-[11px] text-slate-400">Core client progression journey</p>
+              </div>
+            </div>
+            <span className="text-[11px] font-bold text-[#181E54] bg-[#181E54]/8 px-2.5 py-1 rounded-full border border-[#181E54]/10">
+              Matrimonial Funnel
+            </span>
           </div>
-          <div className="space-y-2">
+
+          <div className="space-y-2.5 sm:space-y-3">
+            {/* Step 1: Leads */}
             <button
               type="button"
               onClick={() => onSelectPage('Lead')}
-              className="w-full flex items-center justify-between p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100/90 transition-colors cursor-pointer text-left group"
+              className="w-full flex items-center justify-between p-3.5 sm:p-4 rounded-xl bg-slate-50/80 hover:bg-purple-50/40 border border-slate-200/70 hover:border-purple-200 transition-all cursor-pointer text-left group"
             >
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-md bg-purple-100 text-purple-800 flex items-center justify-center font-bold text-xs">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-100/90 text-purple-800 flex items-center justify-center font-extrabold text-sm shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
                   1
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-800 group-hover:text-[#181E54]">Leads Registry</p>
-                  <p className="text-[10px] text-slate-500">Initial client registration & qualification</p>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-purple-900 truncate">
+                      Leads Registry
+                    </p>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-700 font-mono">
+                      {loading ? '...' : `${stats.leadsCount} Leads`}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                    Initial client inquiry registration &amp; qualification stage
+                  </p>
                 </div>
               </div>
-              <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#181E54] group-hover:translate-x-0.5 transition-all" />
+              <div className="w-8 h-8 rounded-lg bg-white border border-slate-200/80 flex items-center justify-center text-slate-400 group-hover:text-purple-700 group-hover:border-purple-300 group-hover:translate-x-0.5 transition-all shrink-0 ml-2 shadow-2xs">
+                <ArrowRight className="w-4 h-4" />
+              </div>
             </button>
 
+            {/* Step 2: Clients */}
             <button
               type="button"
-              onClick={() => onSelectPage('Traffic')}
-              className="w-full flex items-center justify-between p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100/90 transition-colors cursor-pointer text-left group"
+              onClick={() => onSelectPage('Client')}
+              className="w-full flex items-center justify-between p-3.5 sm:p-4 rounded-xl bg-slate-50/80 hover:bg-blue-50/40 border border-slate-200/70 hover:border-blue-200 transition-all cursor-pointer text-left group"
             >
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-md bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-100/90 text-blue-800 flex items-center justify-center font-extrabold text-sm shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
                   2
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-800 group-hover:text-[#181E54]">Traffic Active Pipeline</p>
-                  <p className="text-[10px] text-slate-500">Counseling, follow-ups & assignment</p>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-blue-900 truncate">
+                      Client Active Pipeline
+                    </p>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 font-mono">
+                      {loading ? '...' : `${stats.trafficCount} Active`}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                    Direct counseling, biodata collection &amp; staff assignment
+                  </p>
                 </div>
               </div>
-              <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#181E54] group-hover:translate-x-0.5 transition-all" />
+              <div className="w-8 h-8 rounded-lg bg-white border border-slate-200/80 flex items-center justify-center text-slate-400 group-hover:text-blue-700 group-hover:border-blue-300 group-hover:translate-x-0.5 transition-all shrink-0 ml-2 shadow-2xs">
+                <ArrowRight className="w-4 h-4" />
+              </div>
             </button>
 
+            {/* Step 3: Paid Clients */}
             <button
               type="button"
-              onClick={() => onSelectPage('Paid Traffic')}
-              className="w-full flex items-center justify-between p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100/90 transition-colors cursor-pointer text-left group"
+              onClick={() => onSelectPage('Paid Client')}
+              className="w-full flex items-center justify-between p-3.5 sm:p-4 rounded-xl bg-slate-50/80 hover:bg-emerald-50/40 border border-slate-200/70 hover:border-emerald-200 transition-all cursor-pointer text-left group"
             >
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-md bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-100/90 text-emerald-800 flex items-center justify-center font-extrabold text-sm shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
                   3
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-800 group-hover:text-[#181E54]">Paid Traffic Candidates</p>
-                  <p className="text-[10px] text-slate-500">Subscribed candidates receiving matchmaking</p>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-emerald-900 truncate">
+                      Paid Client Candidates
+                    </p>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 font-mono">
+                      {loading ? '...' : `${stats.paidCount} Paid`}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                    Verified subscribers receiving premium matchmaking services
+                  </p>
                 </div>
               </div>
-              <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#181E54] group-hover:translate-x-0.5 transition-all" />
+              <div className="w-8 h-8 rounded-lg bg-white border border-slate-200/80 flex items-center justify-center text-slate-400 group-hover:text-emerald-700 group-hover:border-emerald-300 group-hover:translate-x-0.5 transition-all shrink-0 ml-2 shadow-2xs">
+                <ArrowRight className="w-4 h-4" />
+              </div>
             </button>
           </div>
         </div>
 
-        {/* Office Routine & Reports Card */}
-        <div className="animate-card-fade-in stagger-7 bg-white rounded-xl border border-slate-200/90 p-4 shadow-2xs">
-          <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">Office Operations</h2>
-            <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Daily</span>
+        {/* Office Operations Card (Right) */}
+        <div className="animate-card-fade-in stagger-7 bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 md:p-6 shadow-2xs hover:shadow-xs transition-shadow">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-sm">
+                <ClipboardList className="w-4 h-4 text-[#D81124]" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800">Office Operations</h2>
+                <p className="text-[11px] text-slate-400">Daily management &amp; office workflow</p>
+              </div>
+            </div>
+            <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+              Daily Routines
+            </span>
           </div>
-          <div className="space-y-2">
+
+          <div className="space-y-2.5 sm:space-y-3">
+            {/* Op 1: Staff Attendance */}
             <button
               type="button"
               onClick={() => onSelectPage('Attendance')}
-              className="w-full flex items-center justify-between p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100/90 transition-colors cursor-pointer text-left group"
+              className="w-full flex items-center justify-between p-3.5 sm:p-4 rounded-xl bg-slate-50/80 hover:bg-amber-50/40 border border-slate-200/70 hover:border-amber-200 transition-all cursor-pointer text-left group"
             >
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-md bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-xs">
-                  <Clock className="w-3.5 h-3.5" />
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-100/90 text-amber-800 flex items-center justify-center font-extrabold shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                  <Clock className="w-4.5 h-4.5" />
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-800 group-hover:text-[#181E54]">Staff Attendance</p>
-                  <p className="text-[10px] text-slate-500">QR scanning, daily punch & monthly logs</p>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-amber-900 truncate">
+                      Staff Attendance System
+                    </p>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                      stats.todayAttendance?.hasCheckedIn
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      {stats.todayAttendance?.hasCheckedIn ? 'Checked In Today' : 'Pending Check-In'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                    QR code scanner, daily punch-in, time records &amp; logs
+                  </p>
                 </div>
               </div>
-              <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#181E54] group-hover:translate-x-0.5 transition-all" />
+              <div className="w-8 h-8 rounded-lg bg-white border border-slate-200/80 flex items-center justify-center text-slate-400 group-hover:text-amber-700 group-hover:border-amber-300 group-hover:translate-x-0.5 transition-all shrink-0 ml-2 shadow-2xs">
+                <ArrowRight className="w-4 h-4" />
+              </div>
             </button>
 
+            {/* Op 2: Daily Report */}
             <button
               type="button"
               onClick={() => onSelectPage('Daily Report')}
-              className="w-full flex items-center justify-between p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100/90 transition-colors cursor-pointer text-left group"
+              className="w-full flex items-center justify-between p-3.5 sm:p-4 rounded-xl bg-slate-50/80 hover:bg-rose-50/40 border border-slate-200/70 hover:border-rose-200 transition-all cursor-pointer text-left group"
             >
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-md bg-rose-100 text-rose-800 flex items-center justify-center font-bold text-xs">
-                  <ClipboardList className="w-3.5 h-3.5 text-[#D81124]" />
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-rose-100/90 text-rose-800 flex items-center justify-center font-extrabold shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                  <ClipboardList className="w-4.5 h-4.5 text-[#D81124]" />
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-800 group-hover:text-[#181E54]">Daily Performance Report</p>
-                  <p className="text-[10px] text-slate-500">Daily calling, messaging & collection stats</p>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-rose-900 truncate">
+                      Daily Performance Report
+                    </p>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                      stats.hasSubmittedDailyReport
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-rose-100 text-rose-800'
+                    }`}>
+                      {stats.hasSubmittedDailyReport ? 'Report Submitted' : 'Pending Today'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                    Calling records, messaging summaries &amp; team performance
+                  </p>
                 </div>
               </div>
-              <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#181E54] group-hover:translate-x-0.5 transition-all" />
+              <div className="w-8 h-8 rounded-lg bg-white border border-slate-200/80 flex items-center justify-center text-slate-400 group-hover:text-rose-700 group-hover:border-rose-300 group-hover:translate-x-0.5 transition-all shrink-0 ml-2 shadow-2xs">
+                <ArrowRight className="w-4 h-4" />
+              </div>
             </button>
 
+            {/* Op 3: Payment & Receipts */}
             <button
               type="button"
               onClick={() => onSelectPage('Payment')}
-              className="w-full flex items-center justify-between p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100/90 transition-colors cursor-pointer text-left group"
+              className="w-full flex items-center justify-between p-3.5 sm:p-4 rounded-xl bg-slate-50/80 hover:bg-teal-50/40 border border-slate-200/70 hover:border-teal-200 transition-all cursor-pointer text-left group"
             >
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-md bg-teal-100 text-teal-800 flex items-center justify-center font-bold text-xs">
-                  <CreditCard className="w-3.5 h-3.5" />
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-teal-100/90 text-teal-800 flex items-center justify-center font-extrabold shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                  <CreditCard className="w-4.5 h-4.5 text-teal-700" />
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-800 group-hover:text-[#181E54]">Payment & Receipts</p>
-                  <p className="text-[10px] text-slate-500">Official invoice generation & receipts</p>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-teal-900 truncate">
+                      Payment &amp; Receipts
+                    </p>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-teal-100 text-teal-800">
+                      Accounts Clearance
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                    Official billing clearance, invoice creation &amp; payment receipts
+                  </p>
                 </div>
               </div>
-              <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#181E54] group-hover:translate-x-0.5 transition-all" />
+              <div className="w-8 h-8 rounded-lg bg-white border border-slate-200/80 flex items-center justify-center text-slate-400 group-hover:text-teal-700 group-hover:border-teal-300 group-hover:translate-x-0.5 transition-all shrink-0 ml-2 shadow-2xs">
+                <ArrowRight className="w-4 h-4" />
+              </div>
             </button>
-          </div>
-        </div>
-
-        {/* System & Account Details Card (Executive Luxury Account Owner Card) */}
-        <div className="animate-card-fade-in stagger-8 bg-gradient-to-br from-white via-[#FCFDFE] to-amber-50/25 rounded-2xl border-2 border-amber-300/70 p-4 sm:p-5 shadow-lg shadow-amber-950/5 ring-1 ring-amber-400/30 col-span-1 md:col-span-2 lg:col-span-1 relative overflow-hidden group">
-          {/* Subtle luxury glow accents */}
-          <div className="absolute -top-12 -right-12 w-36 h-36 bg-gradient-to-br from-amber-400/20 via-rose-500/10 to-transparent rounded-full blur-xl pointer-events-none" />
-          <div className="absolute -bottom-10 -left-10 w-28 h-28 bg-gradient-to-tr from-[#181E54]/10 via-amber-400/10 to-transparent rounded-full blur-lg pointer-events-none" />
-
-          {/* Luxury Executive Top Bar */}
-          <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-amber-200/50 relative z-10">
-            <div className="flex items-center gap-1.5">
-              <div className="w-5 h-5 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white shadow-xs">
-                <Crown className="w-3 h-3 text-white" />
-              </div>
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 flex items-center gap-1">
-                  Executive Account Owner
-                  <Sparkles className="w-2.5 h-2.5 text-amber-500" />
-                </span>
-              </div>
-            </div>
-
-            {/* Account Switcher for Super Admin / Luxury Pill */}
-            {isSuperAdmin && accounts.length > 1 ? (
-              <select
-                value={selectedAccountId}
-                onChange={(e) => setSelectedAccountId(e.target.value)}
-                className="text-[10.5px] font-extrabold text-[#181E54] bg-white border border-amber-300 rounded-lg px-2 py-0.5 cursor-pointer focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-2xs"
-                title="Switch account owner view"
-              >
-                {accounts.map((acc) => (
-                  <option key={acc.id} value={acc.id}>
-                    {acc.name} ({acc.role})
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <span className="inline-flex items-center gap-1 text-[9.5px] font-black uppercase tracking-wider text-amber-900 bg-amber-100/90 border border-amber-300/80 px-2 py-0.5 rounded-full shadow-2xs">
-                <Award className="w-3 h-3 text-amber-700" />
-                {selectedAccount?.role || user?.role || 'Staff'}
-              </span>
-            )}
-          </div>
-
-          {/* Interactive Account Owner Selector Chips for Super Admin */}
-          {isSuperAdmin && accounts.length > 1 && (
-            <div className="mb-3.5 relative z-10 flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-              <span className="text-[10px] font-bold text-slate-500 shrink-0">Owners:</span>
-              {accounts.map((acc) => {
-                const isSelected = (selectedAccount?.id || user?.id) === acc.id;
-                return (
-                  <button
-                    key={acc.id}
-                    type="button"
-                    onClick={() => setSelectedAccountId(acc.id)}
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-xl text-[10px] font-bold transition-all shrink-0 cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#181E54] text-white shadow-xs ring-2 ring-amber-400'
-                        : 'bg-white/80 hover:bg-slate-100 text-slate-700 border border-slate-200'
-                    }`}
-                    title={`View ${acc.name} (${acc.role})`}
-                  >
-                    <div className="w-4 h-4 rounded-full overflow-hidden bg-slate-200 shrink-0 ring-1 ring-white/50">
-                      {acc.profilePicture ? (
-                        <img src={acc.profilePicture} alt={acc.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-[8px] flex items-center justify-center h-full font-bold">
-                          {acc.name.charAt(0)}
-                        </span>
-                      )}
-                    </div>
-                    <span className="truncate max-w-[75px]">{acc.name.replace(/^(MK|CRO)\s*-\s*/, '')}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Centerpiece: Ultra-Luxury Executive Profile Picture */}
-          <div className="flex items-center gap-3.5 mb-3.5 relative z-10">
-            <div className="relative group/pic shrink-0">
-              {/* Gold Ring Framing for High-End Expensive Look */}
-              <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 border-white ring-4 ring-amber-400/80 ring-offset-2 ring-offset-white shadow-xl bg-gradient-to-tr from-[#181E54] via-[#242D7C] to-[#D81124] flex items-center justify-center text-white font-extrabold text-2xl relative transition-transform group-hover/pic:scale-[1.03]">
-                {selectedAccount?.profilePicture ? (
-                  <img
-                    src={selectedAccount.profilePicture}
-                    alt={selectedAccount.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="font-mono">
-                    {(selectedAccount?.name || 'User')
-                      .split(' ')
-                      .map((n: string) => n[0])
-                      .slice(0, 2)
-                      .join('')
-                      .toUpperCase()}
-                  </span>
-                )}
-
-                {/* Quick Photo Upload Overlay */}
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute inset-0 bg-black/55 text-white flex flex-col items-center justify-center opacity-0 group-hover/pic:opacity-100 transition-opacity cursor-pointer text-[9px] font-extrabold backdrop-blur-2xs"
-                  title="Upload / Change Profile Picture"
-                >
-                  <Camera className="w-4 h-4 mb-0.5 text-amber-300" />
-                  <span>{isUploadingPhoto ? 'Saving...' : 'Update Photo'}</span>
-                </button>
-              </div>
-
-              {/* Online / Active Verified Badge */}
-              <span
-                className="absolute -bottom-1 -right-1 w-4.5 h-4.5 rounded-full bg-emerald-500 border-2 border-white shadow-md flex items-center justify-center"
-                title="Account Status: Active & Online"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-              </span>
-            </div>
-
-            {/* Hidden File Input for quick upload */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handlePhotoUpload}
-            />
-
-            {/* Owner Details */}
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <h3 className="text-sm sm:text-base font-black text-[#181E54] tracking-tight truncate">
-                  {selectedAccount?.name || 'Account Officer'}
-                </h3>
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs">
-                  <Sparkles className="w-2.5 h-2.5 text-amber-600" />
-                  VERIFIED
-                </span>
-              </div>
-              <p className="text-[11px] font-extrabold text-[#D81124] mt-0.5 tracking-wide">
-                ★ {selectedAccount?.role === 'Super Admin' ? 'CHIEF EXECUTIVE OFFICER' : selectedAccount?.role || 'Executive Officer'}
-              </p>
-              <p className="text-[10.5px] text-slate-500 truncate mt-0.5">
-                Branch: <strong className="text-slate-800 font-bold">{selectedAccount?.branch || 'Uttara HQ'} · Corporate Suite</strong>
-              </p>
-            </div>
-          </div>
-
-          {/* Metadata Specs Rows */}
-          <div className="space-y-1.5 text-xs relative z-10">
-            <div className="p-2 rounded-xl bg-white/95 border border-amber-200/60 shadow-2xs flex items-center justify-between">
-              <span className="text-slate-500 text-[11px] font-medium">Official Phone:</span>
-              <div className="flex items-center gap-1.5">
-                <span className="font-mono font-black text-[#181E54] text-[11.5px]">
-                  {selectedAccount?.phone}
-                </span>
-                <button
-                  type="button"
-                  onClick={handleCopyPhone}
-                  className="p-1 text-slate-400 hover:text-[#181E54] hover:bg-slate-100 rounded-md cursor-pointer transition-colors"
-                  title="Copy official phone"
-                >
-                  {copiedPhone ? <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
-                </button>
-              </div>
-            </div>
-
-            <div className="p-2 rounded-xl bg-white/95 border border-amber-200/60 shadow-2xs flex items-center justify-between">
-              <span className="text-slate-500 text-[11px] font-medium">Account Status:</span>
-              <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-emerald-700">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Active Verified Executive
-              </span>
-            </div>
-
-            {selectedAccount?.joiningDate && (
-              <div className="p-2 rounded-xl bg-white/95 border border-amber-200/60 shadow-2xs flex items-center justify-between">
-                <span className="text-slate-500 text-[11px] font-medium">Official Joining:</span>
-                <span className="font-bold text-slate-700 text-[11px]">
-                  {selectedAccount.joiningDate}
-                </span>
-              </div>
-            )}
-
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => onSelectPage('Account')}
-                className="w-full py-2 bg-gradient-to-r from-[#181E54] via-[#1D2569] to-[#252E7D] text-white hover:brightness-110 rounded-xl text-xs font-black transition-all shadow-md cursor-pointer text-center flex items-center justify-center gap-1.5 border border-amber-400/40"
-              >
-                <UserCheck className="w-3.5 h-3.5 text-amber-300" />
-                <span>Manage Profile &amp; Photo</span>
-              </button>
-            </div>
           </div>
         </div>
       </div>

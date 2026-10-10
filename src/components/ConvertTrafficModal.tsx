@@ -99,12 +99,9 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
       .then((res) => (res.ok ? res.json() : []))
       .then((data) => {
         setMkAccounts(data);
-        if (data.length > 0 && !assignBy) {
-          setAssignBy(data[0].name);
-        }
       })
       .catch((err) => console.error('Error fetching MK accounts:', err));
-  }, [isOpen, token, assignBy]);
+  }, [isOpen, token]);
 
   // Sync lead details when modal opens
   useEffect(() => {
@@ -112,6 +109,7 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
       setName(lead.name || '');
       setPhone(lead.phone || '');
       setEmail(lead.email || '');
+      setAssignBy(lead.assignBy || '');
       setProfession(lead.profession || '');
       setJobType(lead.jobType || '');
       setDateOfBirth(lead.dateOfBirth || '');
@@ -197,7 +195,7 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
         label: 'Candidate Name',
         section: 'Part 1',
         fulfilled: Boolean(name.trim()),
-        errorMessage: 'Candidate full name is required for Traffic profile registration.',
+        errorMessage: 'Candidate full name is required for Client profile registration.',
       },
       {
         key: 'phone',
@@ -205,7 +203,7 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
         label: 'Phone Number',
         section: 'Part 1',
         fulfilled: Boolean(phone.trim()),
-        errorMessage: 'Valid official phone number is mandatory for Traffic onboarding.',
+        errorMessage: 'Valid official phone number is mandatory for Client onboarding.',
       },
       {
         key: 'email',
@@ -213,15 +211,7 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
         label: 'Email Address',
         section: 'Part 1',
         fulfilled: Boolean(email.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())),
-        errorMessage: 'Valid email address (e.g. candidate@domain.com) is mandatory for Traffic onboarding.',
-      },
-      {
-        key: 'assignBy',
-        fieldId: 'field-assignBy',
-        label: 'Assign By (MK)',
-        section: 'Part 2',
-        fulfilled: Boolean(assignBy.trim()),
-        errorMessage: 'Please select an MK Marketing Officer account from the selection menu.',
+        errorMessage: 'Valid email address (e.g. candidate@domain.com) is mandatory for Client onboarding.',
       },
       {
         key: 'profession',
@@ -253,7 +243,7 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
         label: 'Marital Status',
         section: 'Part 2',
         fulfilled: Boolean(maritalStatus.trim()),
-        errorMessage: 'Marital status must be specified before transferring to Traffic.',
+        errorMessage: 'Marital status must be specified before transferring to Client.',
       },
       {
         key: 'gender',
@@ -317,7 +307,7 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
         label: 'Present Address',
         section: 'Part 2',
         fulfilled: Boolean(presentCity.trim() && presentCountry.trim()),
-        errorMessage: 'Present city and country are mandatory for Traffic verification.',
+        errorMessage: 'Present city and country are mandatory for Client verification.',
       },
       {
         key: 'permanentAddress',
@@ -325,7 +315,7 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
         label: 'Permanent Address',
         section: 'Part 2',
         fulfilled: Boolean(permanentCity.trim() && permanentCountry.trim()),
-        errorMessage: 'Permanent city and country are mandatory for Traffic verification.',
+        errorMessage: 'Permanent city and country are mandatory for Client verification.',
       },
       {
         key: 'images',
@@ -391,19 +381,19 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
   };
 
   const isFieldMissing = (key: string) => attemptedSubmit && !requirementsList.find((r) => r.key === key)?.fulfilled;
-  const getFieldError = (key: string) => requirementsList.find((r) => r.key === key)?.errorMessage || 'This field is required for Traffic.';
+  const getFieldError = (key: string) => requirementsList.find((r) => r.key === key)?.errorMessage || 'This field is required for Client.';
 
   // Form Submit Handler
   const handleConvert = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!lead) return;
 
-    // Validate ALL Mandatory Traffic Requirements
+    // Validate ALL Mandatory Client Requirements
     const missing = requirementsList.filter((r) => !r.fulfilled);
 
     if (missing.length > 0) {
       setAttemptedSubmit(true);
-      setError(`Transfer Blocked: ${missing.length} mandatory requirement(s) are missing. Please complete the highlighted fields below before converting to Traffic.`);
+      setError(`Transfer Blocked: ${missing.length} mandatory requirement(s) are missing. Please complete the highlighted fields below before converting to Client.`);
       scrollToField(missing[0].fieldId);
       return;
     }
@@ -490,9 +480,9 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                     <CheckCircle className="w-9 h-9" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold">Successfully Converted to Traffic!</h3>
+                    <h3 className="text-xl font-bold">Successfully Converted to Client!</h3>
                     <p className="text-xs text-slate-300 mt-1">
-                      Promoted from Lead <span className="font-mono text-amber-300">{lead.id}</span> to Traffic Candidate{' '}
+                      Promoted from Lead <span className="font-mono text-amber-300">{lead.id}</span> to Client Candidate{' '}
                       <span className="font-mono text-emerald-300 font-bold">{conversionDone.id}</span>.
                     </p>
                     <p className="text-xs text-emerald-300 font-medium mt-1">
@@ -500,7 +490,7 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                     </p>
                   </div>
                   <div className="p-3 bg-white/10 rounded-2xl border border-white/10 text-xs text-slate-200">
-                    Removed from Lead section and transferred directly into the <strong>Traffic</strong> section.
+                    Removed from Lead section and transferred directly into the <strong>Client</strong> section.
                   </div>
                 </motion.div>
               ) : (
@@ -510,7 +500,7 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                     <Sparkles className="w-6 h-6 text-amber-400 absolute inset-0 m-auto animate-pulse" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold">Promoting Lead to Traffic...</h3>
+                    <h3 className="text-lg font-bold">Promoting Lead to Client...</h3>
                     <p className="text-xs text-slate-300 mt-1">
                       Validating mandatory requirements and registering MK account assignment.
                     </p>
@@ -526,16 +516,16 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-bold uppercase tracking-wider border border-amber-200 inline-flex items-center gap-1">
-                Pipeline: Lead <ArrowRight className="w-2.5 h-2.5 inline" /> Traffic
+                Pipeline: Lead <ArrowRight className="w-2.5 h-2.5 inline" /> Client
               </span>
-              <h2 className="text-lg md:text-xl font-bold text-[#181E54]">Convert Lead to Traffic</h2>
+              <h2 className="text-lg md:text-xl font-bold text-[#181E54]">Convert Lead to Client</h2>
               {(() => {
                 const meta = getStatusMeta(lead.status || 'WP Connect');
                 const Icon = meta.icon;
                 return (
                   <span
                     className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border shadow-2xs ${meta.bg} ${meta.text} ${meta.border}`}
-                    title="This status station and complete activity history will be retained in Traffic"
+                    title="This status station and complete activity history will be retained in Client"
                   >
                     <Icon className="w-3 h-3 shrink-0" />
                     <span>Station: {meta.label} (Maintained)</span>
@@ -544,7 +534,7 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
               })()}
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Fulfill all mandatory requirements to promote candidate <strong className="text-slate-800">{lead.name}</strong> from preliminary inquiry into full Traffic with their current status station retained.
+              Fulfill all mandatory requirements to promote candidate <strong className="text-slate-800">{lead.name}</strong> from preliminary inquiry into full Client with their current status station retained.
             </p>
           </div>
 
@@ -563,7 +553,7 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
           <div className="flex items-center justify-between text-xs mb-1.5">
             <span className="font-semibold text-slate-700 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-[#181E54]" />
-              Mandatory Traffic Requirements Status:
+              Mandatory Client Requirements Status:
             </span>
             <span
               className={`font-mono font-bold px-2 py-0.5 rounded-full text-[11px] ${
@@ -600,14 +590,14 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <h4 className="font-bold text-xs text-red-900 uppercase tracking-wider flex items-center gap-1.5">
                       <ShieldAlert className="w-4 h-4 text-[#D81124]" />
-                      Transfer to Traffic Blocked — Incomplete Lead Information
+                      Transfer to Client Blocked — Incomplete Lead Information
                     </h4>
                     <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-200 text-red-800 border border-red-300">
                       {requirementsList.filter((r) => !r.fulfilled).length} Mandatory Requirement(s) Missing
                     </span>
                   </div>
                   <p className="text-[11px] text-red-700 mt-1 leading-relaxed">
-                    Preliminary leads cannot be transferred to the active Traffic pipeline until all mandatory attributes, MK assignment, photo upload, and PDF biodata are completed. Click any missing item below to jump directly to it:
+                    Preliminary leads cannot be transferred to the active Client pipeline until all mandatory attributes, MK assignment, photo upload, and PDF biodata are completed. Click any missing item below to jump directly to it:
                   </p>
                 </div>
               </div>
@@ -654,7 +644,7 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                   Part 1 — Basic Information (Mandatory)
                 </h3>
               </div>
-              <span className="text-[10px] text-slate-500 font-medium">All 3 fields required for Traffic</span>
+              <span className="text-[10px] text-slate-500 font-medium">All 3 fields required for Client</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
@@ -765,7 +755,7 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                     </span>
                   ) : (
                     <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 font-bold border border-amber-300">
-                      Required for Traffic
+                      Required for Client
                     </span>
                   )}
                 </div>
@@ -806,52 +796,42 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                   Part 2 — Additional Information (Mandatory)
                 </h3>
               </div>
-              <span className="text-[10px] text-slate-500 font-medium">All attributes required to become Traffic</span>
+              <span className="text-[10px] text-slate-500 font-medium">All attributes required to become Client</span>
             </div>
 
-            {/* 1. Assign By - Selection menu with all MK Accounts */}
+            {/* 1. Assign By - Selection menu with all MK Accounts (Optional for Client, Mandatory for Paid Client) */}
             <div
               id="field-assignBy"
               className={`p-3.5 rounded-xl border transition-all ${
                 activeFieldHighlight === 'field-assignBy' ? 'ring-4 ring-amber-400 ring-offset-2' : ''
-              } ${
-                isFieldMissing('assignBy')
-                  ? 'bg-red-50/60 border-red-300 ring-1 ring-red-200'
-                  : 'bg-amber-50/70 border-amber-200'
-              }`}
+              } bg-slate-50/80 border-slate-200`}
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2 mb-0.5">
-                    <label className="block text-xs font-bold text-amber-900 uppercase tracking-wider">
-                      Assign By (MK Role Accounts) <span className="text-[#D81124]">*</span>
-                    </label>
-                    {isFieldMissing('assignBy') && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold border border-red-200">
-                        Missing
+                    <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
+                      Assign By (MK Role Accounts){' '}
+                      <span className="text-emerald-700 font-semibold lowercase bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 text-[10px]">
+                        optional for client
                       </span>
-                    )}
+                    </label>
                   </div>
-                  <p className="text-[11px] text-amber-700">
-                    Select which Marketing officer (MK) created or manages this candidate
+                  <p className="text-[11px] text-slate-500">
+                    Select which Marketing officer (MK) created or manages this candidate (optional when converting to Client; mandatory when converting to Paid Client)
                   </p>
                 </div>
                 <div className="w-full sm:w-72">
                   <div className="relative">
-                    <UserCheck className="w-4 h-4 text-amber-600 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <UserCheck className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <select
                       value={assignBy}
                       onChange={(e) => {
                         setAssignBy(e.target.value);
                         if (error) setError(null);
                       }}
-                      className={`w-full pl-9 pr-3 py-2 bg-white border rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 ${
-                        isFieldMissing('assignBy')
-                          ? 'border-red-500 bg-red-50/30 focus:ring-red-500 ring-1 ring-red-200'
-                          : 'border-amber-300 focus:ring-[#181E54]'
-                      }`}
+                      className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
                     >
-                      <option value="">Select MK Officer...</option>
+                      <option value="">Unassigned (Optional for Client)...</option>
                       {mkAccounts.map((acc) => (
                         <option key={acc.id} value={acc.name}>
                           {acc.name} ({acc.role})
@@ -862,12 +842,6 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                       )}
                     </select>
                   </div>
-                  {isFieldMissing('assignBy') && (
-                    <p className="text-red-600 text-[10px] mt-1 flex items-center gap-1 font-medium">
-                      <AlertCircle className="w-3 h-3 shrink-0" />
-                      {getFieldError('assignBy')}
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
@@ -1353,7 +1327,7 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                     </span>
                   ) : !requirement.trim() ? (
                     <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 font-bold border border-amber-300">
-                      Required for Traffic
+                      Required for Client
                     </span>
                   ) : null}
                 </div>
@@ -1653,7 +1627,7 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                     </span>
                   ) : !pdfFile ? (
                     <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
-                      Required for Traffic
+                      Required for Client
                     </span>
                   ) : (
                     <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -1744,12 +1718,12 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
               {isAllFulfilled ? (
                 <span className="text-emerald-700 font-semibold flex items-center gap-1">
                   <CheckCircle className="w-3.5 h-3.5" />
-                  All Traffic requirements fulfilled. Ready for pipeline promotion!
+                  All Client requirements fulfilled. Ready for pipeline promotion!
                 </span>
               ) : (
                 <span className="text-amber-700 font-medium inline-flex items-center gap-1.5">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                  <span>Complete remaining ({totalCount - fulfilledCount}) requirements above to convert to Traffic.</span>
+                  <span>Complete remaining ({totalCount - fulfilledCount}) requirements above to convert to Client.</span>
                 </span>
               )}
             </div>
@@ -1771,7 +1745,7 @@ export const ConvertTrafficModal: React.FC<ConvertTrafficModalProps> = ({
                     : 'bg-amber-600 hover:bg-amber-700 text-white'
                 }`}
               >
-                <span>Convert to Traffic</span>
+                <span>Convert to Client</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform text-[#D81124]" />
               </button>
             </div>

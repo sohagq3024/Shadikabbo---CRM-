@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Edit3,
@@ -19,6 +20,11 @@ import {
   Maximize2,
   Eye,
   User,
+  Briefcase,
+  GraduationCap,
+  Sparkles,
+  Activity,
+  CheckCircle,
 } from 'lucide-react';
 import { CountryFlag, detectCountryIso } from './CountryFlag';
 import { ImageLightboxModal, downloadCandidateImage } from './ImageLightboxModal';
@@ -35,6 +41,7 @@ interface TrafficProfileModalProps {
   initialTab?: 'overview' | 'activity';
   onStatusUpdated?: (traffic: any) => void;
   canEdit?: boolean;
+  showPaymentInfo?: boolean;
 }
 
 export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
@@ -47,6 +54,7 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
   initialTab = 'overview',
   onStatusUpdated,
   canEdit = true,
+  showPaymentInfo = false,
 }) => {
   const [currentTraffic, setCurrentTraffic] = useState<any>(traffic);
   const [activeTab, setActiveTab] = useState<'overview' | 'activity'>(initialTab);
@@ -60,11 +68,35 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
     if (initialTab) setActiveTab(initialTab);
   }, [traffic, initialTab]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen || !currentTraffic) return null;
 
   const statusMeta = getStatusMeta(currentTraffic.status || 'WP Connect');
   const StatusIcon = statusMeta.icon;
   const activityCount = Array.isArray(currentTraffic.activityLog) ? currentTraffic.activityLog.length : 1;
+
+  const calculateAge = (dobString?: string) => {
+    if (!dobString) return null;
+    const birthDate = new Date(dobString);
+    if (isNaN(birthDate.getTime())) return null;
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age > 0 && age < 120 ? `${age} yrs` : null;
+  };
 
   const handleOpenPhoto = (index: number) => {
     setLightboxIndex(index);
@@ -73,6 +105,10 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
 
   const handleSendPaymentRequest = async () => {
     if (!token) return;
+    if (!currentTraffic?.assignBy) {
+      setRequestMessage('Assign By (MK Role Account) is mandatory before converting to Paid Client. Please edit candidate profile and assign an MK officer first.');
+      return;
+    }
     setIsSendingRequest(true);
     setRequestMessage(null);
     try {
@@ -83,14 +119,15 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          trafficId: traffic.id,
-          trafficName: traffic.name,
-          phone: traffic.phone,
-          paidAmount: traffic.paidAmount,
-          dueAmount: traffic.dueAmount,
-          afterMarriageFee: traffic.afterMarriageFee,
-          package: traffic.package,
-          paymentMethod: traffic.paymentMethod,
+          trafficId: currentTraffic.id,
+          trafficName: currentTraffic.name,
+          phone: currentTraffic.phone,
+          paidAmount: currentTraffic.paidAmount,
+          dueAmount: currentTraffic.dueAmount,
+          afterMarriageFee: currentTraffic.afterMarriageFee,
+          package: currentTraffic.package,
+          paymentMethod: currentTraffic.paymentMethod,
+          assignBy: currentTraffic.assignBy,
         }),
       });
 
@@ -108,9 +145,15 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-3 md:p-4 transition-opacity duration-150">
-      <div className="relative w-full max-w-5xl xl:max-w-6xl 2xl:max-w-7xl max-h-[96vh] flex flex-col bg-white rounded-2xl shadow-2xl border border-slate-200/90 overflow-hidden">
+  return createPortal(
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-3 md:p-4 transition-opacity duration-150"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-5xl xl:max-w-6xl 2xl:max-w-7xl max-h-[96vh] flex flex-col bg-white rounded-2xl shadow-2xl border border-slate-200/90 overflow-hidden"
+      >
         
         {/* ==================================================
             COMPACT HEADER (Pinned inside viewport)
@@ -196,7 +239,7 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
 
           {/* Right Header Actions */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {currentTraffic.package && (
+            {showPaymentInfo && currentTraffic.package && (
               <span className="hidden sm:inline-flex px-2 py-0.5 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200">
                 {currentTraffic.package}
               </span>
@@ -299,9 +342,10 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3.5 items-stretch">
               
               {/* ==================================================
-                  COLUMN 1 (lg:col-span-4): Candidate Photo, Contact & Residence
+                  COLUMN 1: Candidate Photo, Contact & Residence
+                  (lg:col-span-4 when payment is visible; lg:col-span-5 xl:col-span-4 when in Client section)
               ================================================== */}
-              <div className="lg:col-span-4 flex flex-col gap-3">
+              <div className={`${showPaymentInfo ? 'lg:col-span-4' : 'lg:col-span-5 xl:col-span-4'} flex flex-col gap-3`}>
                 
                 {/* Candidate Photo & Gallery Showcase */}
                 <div className="bg-slate-50/90 p-3 rounded-xl border border-slate-200/80 shadow-2xs">
@@ -327,7 +371,7 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
                       {/* Featured Main Photo */}
                       <div
                         onClick={() => handleOpenPhoto(0)}
-                        className="group relative h-44 sm:h-48 w-full rounded-xl overflow-hidden border border-slate-200 hover:border-[#181E54] bg-slate-900 shadow-xs transition-all cursor-pointer"
+                        className={`group relative ${showPaymentInfo ? 'h-44 sm:h-48' : 'h-48 sm:h-56'} w-full rounded-xl overflow-hidden border border-slate-200 hover:border-[#181E54] bg-slate-900 shadow-xs transition-all cursor-pointer`}
                       >
                         <img
                           src={traffic.images[0]}
@@ -384,7 +428,7 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
                       )}
                     </div>
                   ) : (
-                    <div className="h-40 bg-white rounded-xl text-slate-400 border border-dashed border-slate-200 flex flex-col items-center justify-center gap-1.5 text-[11px]">
+                    <div className={`${showPaymentInfo ? 'h-40' : 'h-48'} bg-white rounded-xl text-slate-400 border border-dashed border-slate-200 flex flex-col items-center justify-center gap-1.5 text-[11px]`}>
                       <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
                         <User className="w-6 h-6" />
                       </div>
@@ -394,90 +438,101 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
                 </div>
 
                 {/* Contact & Assignment Card */}
-                <div className="bg-slate-50/90 p-3 rounded-xl border border-slate-200/80 shadow-2xs space-y-2 flex-1">
-                  <div className="flex items-center justify-between border-b border-slate-200/70 pb-1.5">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#D81124] flex items-center gap-1.5">
-                      <Phone className="w-3.5 h-3.5" />
-                      Contact &amp; Assignment
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-mono">ID: {traffic.id}</span>
-                  </div>
-
-                  <div className="space-y-1.5 pt-0.5">
-                    <div className="flex items-center justify-between py-1 px-2 rounded-lg bg-white border border-slate-200/60 text-[11px]">
-                      <span className="text-slate-400 font-medium">Name:</span>
-                      <span className="font-bold text-slate-900 truncate max-w-[170px]">{traffic.name}</span>
+                <div className="bg-slate-50/90 p-3 rounded-xl border border-slate-200/80 shadow-2xs space-y-2 flex-1 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between border-b border-slate-200/70 pb-1.5 mb-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-[#D81124] flex items-center gap-1.5">
+                        <Phone className="w-3.5 h-3.5" />
+                        Contact &amp; Assignment
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">ID: {traffic.id}</span>
                     </div>
 
-                    <div className="flex items-center justify-between py-1 px-2 rounded-lg bg-white border border-slate-200/60 text-[11px]">
-                      <span className="text-slate-400 font-medium">Phone:</span>
-                      <div className="flex items-center gap-1.5 font-bold text-slate-900">
-                        <CountryFlag iso={detectCountryIso(traffic.phone)} className="w-3.5 h-2.5 rounded-2xs" />
-                        <span className="font-mono text-[11px]">{traffic.phone}</span>
+                    <div className="space-y-1.5 pt-0.5">
+                      <div className="flex items-center justify-between py-1 px-2 rounded-lg bg-white border border-slate-200/60 text-[11px]">
+                        <span className="text-slate-400 font-medium">Name:</span>
+                        <span className="font-bold text-slate-900 truncate max-w-[190px]">{traffic.name}</span>
                       </div>
-                    </div>
 
-                    <div className="flex items-center justify-between py-1 px-2 rounded-lg bg-white border border-slate-200/60 text-[11px]">
-                      <span className="text-slate-400 font-medium">Email:</span>
-                      <span className="font-semibold text-slate-800 truncate max-w-[170px]">{traffic.email || '—'}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between py-1 px-2 rounded-lg bg-white border border-slate-200/60 text-[11px]">
-                      <span className="text-slate-400 font-medium">Assigned Staff:</span>
-                      <span className="font-bold text-[#181E54] truncate max-w-[170px]">{traffic.assignBy || 'MK Unassigned'}</span>
-                    </div>
-
-                    {/* Address Fields */}
-                    <div className="pt-1 space-y-1.5">
-                      <div className="flex items-start gap-2 p-2 rounded-lg bg-white border border-slate-200/60 text-[11px]">
-                        <MapPin className="w-3.5 h-3.5 text-[#181E54] shrink-0 mt-0.5" />
-                        <div className="min-w-0 flex-1">
-                          <span className="text-slate-400 text-[9px] block uppercase font-bold">Present Address</span>
-                          <span className="font-semibold text-slate-800 truncate block">
-                            {[traffic.presentCity, traffic.presentCountry].filter(Boolean).join(', ') || 'Dhaka, Bangladesh'}
-                          </span>
+                      <div className="flex items-center justify-between py-1 px-2 rounded-lg bg-white border border-slate-200/60 text-[11px]">
+                        <span className="text-slate-400 font-medium">Phone:</span>
+                        <div className="flex items-center gap-1.5 font-bold text-slate-900">
+                          <CountryFlag iso={detectCountryIso(traffic.phone)} className="w-3.5 h-2.5 rounded-2xs" />
+                          <span className="font-mono text-[11px]">{traffic.phone}</span>
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-2 p-2 rounded-lg bg-white border border-slate-200/60 text-[11px]">
-                        <MapPin className="w-3.5 h-3.5 text-[#D81124] shrink-0 mt-0.5" />
-                        <div className="min-w-0 flex-1">
-                          <span className="text-slate-400 text-[9px] block uppercase font-bold">Permanent Address</span>
-                          <span className="font-semibold text-slate-800 truncate block">
-                            {[traffic.permanentCity, traffic.permanentCountry].filter(Boolean).join(', ') || 'Chittagong, Bangladesh'}
-                          </span>
-                        </div>
+                      <div className="flex items-center justify-between py-1 px-2 rounded-lg bg-white border border-slate-200/60 text-[11px]">
+                        <span className="text-slate-400 font-medium">Email:</span>
+                        <span className="font-semibold text-slate-800 truncate max-w-[190px]">{traffic.email || '—'}</span>
                       </div>
-                    </div>
 
-                    {/* Biodata Document (PDF) if present */}
-                    {traffic.pdf && (
-                      <div className="flex items-center justify-between p-2 bg-indigo-50/50 rounded-lg border border-indigo-200/80 text-[11px]">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <FileText className="w-4 h-4 text-[#D81124] shrink-0" />
-                          <div className="min-w-0">
-                            <p className="font-bold text-slate-800 truncate max-w-[130px] text-[10.5px]">{traffic.pdf.name}</p>
-                            <p className="text-[9px] text-slate-400">{(traffic.pdf.size / 1024).toFixed(0)} KB · PDF</p>
+                      <div className="flex items-center justify-between py-1 px-2 rounded-lg bg-white border border-slate-200/60 text-[11px]">
+                        <span className="text-slate-400 font-medium">Assigned Staff:</span>
+                        <span className="font-bold text-[#181E54] truncate max-w-[190px]">{traffic.assignBy || 'MK Unassigned'}</span>
+                      </div>
+
+                      {/* Address Fields */}
+                      <div className="pt-1 space-y-1.5">
+                        <div className="flex items-start gap-2 p-2 rounded-lg bg-white border border-slate-200/60 text-[11px]">
+                          <MapPin className="w-3.5 h-3.5 text-[#181E54] shrink-0 mt-0.5" />
+                          <div className="min-w-0 flex-1">
+                            <span className="text-slate-400 text-[9px] block uppercase font-bold">Present Address</span>
+                            <span className="font-semibold text-slate-800 truncate block">
+                              {[traffic.presentCity, traffic.presentCountry].filter(Boolean).join(', ') || 'Dhaka, Bangladesh'}
+                            </span>
                           </div>
                         </div>
-                        <a
-                          href={traffic.pdf.dataUrl}
-                          download={traffic.pdf.name}
-                          className="px-2.5 py-1 bg-[#181E54] hover:bg-[#121642] text-white rounded text-[10px] font-semibold transition-colors shrink-0"
-                        >
-                          Download
-                        </a>
+
+                        <div className="flex items-start gap-2 p-2 rounded-lg bg-white border border-slate-200/60 text-[11px]">
+                          <MapPin className="w-3.5 h-3.5 text-[#D81124] shrink-0 mt-0.5" />
+                          <div className="min-w-0 flex-1">
+                            <span className="text-slate-400 text-[9px] block uppercase font-bold">Permanent Address</span>
+                            <span className="font-semibold text-slate-800 truncate block">
+                              {[traffic.permanentCity, traffic.permanentCountry].filter(Boolean).join(', ') || 'Chittagong, Bangladesh'}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    )}
+
+                      {/* Biodata Document (PDF) if present */}
+                      {traffic.pdf && (
+                        <div className="flex items-center justify-between p-2 bg-indigo-50/50 rounded-lg border border-indigo-200/80 text-[11px]">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <FileText className="w-4 h-4 text-[#D81124] shrink-0" />
+                            <div className="min-w-0">
+                              <p className="font-bold text-slate-800 truncate max-w-[130px] text-[10.5px]">{traffic.pdf.name}</p>
+                              <p className="text-[9px] text-slate-400">{(traffic.pdf.size / 1024).toFixed(0)} KB · PDF</p>
+                            </div>
+                          </div>
+                          <a
+                            href={traffic.pdf.dataUrl}
+                            download={traffic.pdf.name}
+                            className="px-2.5 py-1 bg-[#181E54] hover:bg-[#121642] text-white rounded text-[10px] font-semibold transition-colors shrink-0"
+                          >
+                            Download
+                          </a>
+                        </div>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Clean Registration Metadata footer for Client section */}
+                  {!showPaymentInfo && (
+                    <div className="pt-2 mt-2 border-t border-slate-200/70 flex items-center justify-between text-[10.5px] text-slate-500">
+                      <span>Created: <strong className="text-slate-800 font-semibold">{traffic.createdAt || 'Recent'}</strong></span>
+                      <span>By: <strong className="text-[#181E54] font-semibold">{traffic.createdBy || 'Sohag'}</strong></span>
+                    </div>
+                  )}
                 </div>
 
               </div>
 
               {/* ==================================================
-                  COLUMN 2 (lg:col-span-5): Bio-Data & Personal Background
+                  COLUMN 2: Bio-Data & Personal Background
+                  (lg:col-span-5 when payment is visible; lg:col-span-7 xl:col-span-8 when in Client section)
               ================================================== */}
-              <div className="lg:col-span-5 flex flex-col gap-3">
+              <div className={`${showPaymentInfo ? 'lg:col-span-5' : 'lg:col-span-7 xl:col-span-8'} flex flex-col gap-3.5`}>
                 <div className="bg-slate-50/90 p-3 sm:p-3.5 rounded-xl border border-slate-200/80 shadow-2xs flex-1 flex flex-col">
                   <div className="flex items-center justify-between border-b border-slate-200/70 pb-2 mb-2.5">
                     <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#D81124] flex items-center gap-1.5">
@@ -490,9 +545,12 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
                   </div>
                   
                   {/* Grid of Attributes */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <div className={`grid ${showPaymentInfo ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2 sm:grid-cols-3 xl:grid-cols-4'} gap-2.5`}>
                     <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 shadow-2xs">
-                      <span className="text-slate-400 block text-[9.5px] uppercase font-bold mb-0.5">Profession</span>
+                      <span className="text-slate-400 block text-[9.5px] uppercase font-bold mb-0.5 flex items-center gap-1">
+                        <Briefcase className="w-2.5 h-2.5 text-slate-400" />
+                        Profession
+                      </span>
                       <span className="font-bold text-slate-900 truncate block text-[11.5px]">{traffic.profession || '—'}</span>
                     </div>
 
@@ -502,8 +560,20 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
                     </div>
 
                     <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 shadow-2xs">
-                      <span className="text-slate-400 block text-[9.5px] uppercase font-bold mb-0.5">Date of Birth</span>
-                      <span className="font-bold text-slate-900 truncate block text-[11.5px]">{traffic.dateOfBirth || '—'}</span>
+                      <span className="text-slate-400 block text-[9.5px] uppercase font-bold mb-0.5 flex items-center gap-1">
+                        <Calendar className="w-2.5 h-2.5 text-slate-400" />
+                        Date of Birth
+                      </span>
+                      <span className="font-bold text-slate-900 truncate block text-[11.5px]">
+                        {traffic.dateOfBirth ? (
+                          <>
+                            {traffic.dateOfBirth}
+                            {calculateAge(traffic.dateOfBirth) && (
+                              <span className="text-slate-500 font-normal ml-1">({calculateAge(traffic.dateOfBirth)})</span>
+                            )}
+                          </>
+                        ) : '—'}
+                      </span>
                     </div>
 
                     <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 shadow-2xs">
@@ -536,8 +606,11 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
                       <span className="font-bold text-slate-900 truncate block text-[11.5px]">{traffic.bloodGroup || '—'}</span>
                     </div>
 
-                    <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 shadow-2xs col-span-2 sm:col-span-3">
-                      <span className="text-slate-400 block text-[9.5px] uppercase font-bold mb-0.5">Educational Qualification</span>
+                    <div className={`bg-white p-2.5 rounded-lg border border-slate-200/80 shadow-2xs ${showPaymentInfo ? 'col-span-2 sm:col-span-3' : 'col-span-2 sm:col-span-3 xl:col-span-3'}`}>
+                      <span className="text-slate-400 block text-[9.5px] uppercase font-bold mb-0.5 flex items-center gap-1">
+                        <GraduationCap className="w-3 h-3 text-indigo-600" />
+                        Educational Qualification
+                      </span>
                       <span className="font-bold text-slate-900 block text-[11.5px]">{traffic.qualification || 'Not Specified'}</span>
                     </div>
                   </div>
@@ -545,126 +618,178 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
                   {/* Partner Requirement */}
                   <div className="mt-3 bg-white p-3 rounded-lg border border-slate-200/80 shadow-2xs flex-1 flex flex-col justify-start">
                     <span className="text-slate-400 block mb-1 text-[9.5px] uppercase font-bold flex items-center gap-1">
-                      <Heart className="w-3 h-3 text-[#D81124]" />
+                      <Heart className="w-3.5 h-3.5 text-[#D81124]" />
                       Partner Expectation &amp; Requirements
                     </span>
                     <p className="text-slate-800 leading-relaxed text-[11.5px]">
-                      {traffic.requirement || 'Standard family expectations. No special conditions recorded.'}
+                      {traffic.requirement || 'Standard matrimonial preferences and family expectations. No special conditions recorded.'}
                     </p>
                   </div>
                 </div>
+
+                {/* Client Engagement & Pipeline Status Card (Shown when payment is omitted in Client section) */}
+                {!showPaymentInfo && (
+                  <div className="bg-gradient-to-br from-slate-50 via-white to-indigo-50/25 p-3 sm:p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                    <div className="flex items-center justify-between border-b border-slate-200/70 pb-2 mb-2.5">
+                      <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#181E54] flex items-center gap-1.5">
+                        <Activity className="w-3.5 h-3.5 text-blue-600" />
+                        Client Engagement &amp; Pipeline Status
+                      </h3>
+                      <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
+                        Client Dossier
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                      <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 shadow-2xs">
+                        <span className="text-slate-400 block text-[9.5px] uppercase font-bold mb-0.5">Pipeline State</span>
+                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10.5px] font-bold ${statusMeta.bg} ${statusMeta.text}`}>
+                          <StatusIcon className="w-2.5 h-2.5" />
+                          {statusMeta.label}
+                        </span>
+                      </div>
+
+                      <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 shadow-2xs">
+                        <span className="text-slate-400 block text-[9.5px] uppercase font-bold mb-0.5">Priority Tier</span>
+                        <span className="font-bold text-[#181E54] text-[11.5px]">{currentTraffic.clientCategory || 'Normal'}</span>
+                      </div>
+
+                      <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 shadow-2xs">
+                        <span className="text-slate-400 block text-[9.5px] uppercase font-bold mb-0.5">Matchmaking Tier</span>
+                        <span className="font-bold text-indigo-700 text-[11.5px]">
+                          {currentTraffic.matchmakingLevel ? `Level ${currentTraffic.matchmakingLevel}` : 'Standard'}
+                        </span>
+                      </div>
+
+                      <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 shadow-2xs">
+                        <span className="text-slate-400 block text-[9.5px] uppercase font-bold mb-0.5">Activity Records</span>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('activity')}
+                          className="text-[#181E54] font-bold hover:text-[#D81124] flex items-center gap-1 transition-colors cursor-pointer text-[11px]"
+                        >
+                          <span>{activityCount} Logs recorded</span>
+                          <Clock className="w-3 h-3 text-slate-400" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* ==================================================
                   COLUMN 3 (lg:col-span-3): Financial Clearance & Actions
+                  (Rendered only when showPaymentInfo is TRUE in Paid Client section)
               ================================================== */}
-              <div className="lg:col-span-3 flex flex-col gap-3">
-                <div className="bg-slate-50/90 p-3 sm:p-3.5 rounded-xl border border-slate-200/80 shadow-2xs flex-1 flex flex-col">
-                  <div className="flex items-center justify-between border-b border-slate-200/70 pb-2 mb-2.5">
-                    <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#D81124] flex items-center gap-1.5">
-                      <CreditCard className="w-3.5 h-3.5" />
-                      Payment Summary
-                    </h3>
-                    <div>
-                      {traffic.paymentStatus === 'accepted' ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <CheckCircle2 className="w-3 h-3" />
-                          Cleared
-                        </span>
-                      ) : traffic.paidAmount > 0 ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                          <Clock className="w-3 h-3" />
-                          Pending
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
-                          Unpaid
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 shadow-2xs flex items-center justify-between">
-                      <span className="text-slate-500 font-medium text-[11px]">Package</span>
-                      <span className="font-bold text-[#181E54] text-[11.5px] uppercase">{traffic.package || 'Standard'}</span>
-                    </div>
-
-                    <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 shadow-2xs flex items-center justify-between">
-                      <span className="text-slate-500 font-medium text-[11px]">Package Price</span>
-                      <span className="font-mono font-bold text-slate-900 text-[11.5px]">৳ {Number(traffic.price || 0).toLocaleString()}</span>
-                    </div>
-
-                    <div className="bg-emerald-50/70 p-2.5 rounded-lg border border-emerald-200/80 shadow-2xs flex items-center justify-between">
-                      <span className="text-emerald-800 font-bold text-[11px]">Paid Amount</span>
-                      <span className="font-mono font-bold text-emerald-700 text-[12px]">৳ {Number(traffic.paidAmount || 0).toLocaleString()}</span>
-                    </div>
-
-                    <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 shadow-2xs flex items-center justify-between">
-                      <span className="text-slate-500 font-medium text-[11px]">Due Balance</span>
-                      <span className={`font-mono font-bold text-[11.5px] ${Number(traffic.dueAmount || 0) > 0 ? 'text-red-600' : 'text-slate-700'}`}>
-                        ৳ {Number(traffic.dueAmount || 0).toLocaleString()}
-                      </span>
-                    </div>
-
-                    <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 shadow-2xs flex items-center justify-between">
-                      <span className="text-slate-500 font-medium text-[11px]">Payment Method</span>
-                      <span className="font-bold text-slate-900 text-[11px]">{traffic.paymentMethod || 'bKash'}</span>
-                    </div>
-
-                    <div className="bg-indigo-50/70 p-2.5 rounded-lg border border-indigo-200/80 shadow-2xs flex items-center justify-between">
-                      <span className="text-[#181E54] font-bold text-[11px]">After Marriage Fee</span>
-                      <span className="font-mono font-bold text-[#181E54] text-[12px]">৳ {Number(traffic.afterMarriageFee || 0).toLocaleString()}</span>
-                    </div>
-                  </div>
-
-                  {/* Payment Action Row */}
-                  {traffic.paymentStatus !== 'accepted' && (
-                    <div className="mt-3 p-2.5 bg-white rounded-lg border border-slate-200/80 space-y-2">
-                      <div className="text-[10px] text-slate-500">
-                        {Number(traffic.paidAmount || 0) > 0 ? (
-                          <span>Payment recorded. Ready for Accounts verification.</span>
+              {showPaymentInfo && (
+                <div className="lg:col-span-3 flex flex-col gap-3">
+                  <div className="bg-slate-50/90 p-3 sm:p-3.5 rounded-xl border border-slate-200/80 shadow-2xs flex-1 flex flex-col">
+                    <div className="flex items-center justify-between border-b border-slate-200/70 pb-2 mb-2.5">
+                      <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#D81124] flex items-center gap-1.5">
+                        <CreditCard className="w-3.5 h-3.5" />
+                        Payment Summary
+                      </h3>
+                      <div>
+                        {traffic.paymentStatus === 'accepted' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Cleared
+                          </span>
+                        ) : traffic.paidAmount > 0 ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            <Clock className="w-3 h-3" />
+                            Pending
+                          </span>
                         ) : (
-                          <span>Payment pending. Add package details to send request.</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {canEdit && onEdit && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              onClose();
-                              onEdit(traffic, 3);
-                            }}
-                            className="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-md text-[10.5px] font-semibold transition-colors cursor-pointer flex items-center gap-1"
-                          >
-                            <Edit3 className="w-3 h-3 text-[#D81124]" />
-                            <span>Edit Payment</span>
-                          </button>
-                        )}
-
-                        {Number(traffic.paidAmount || 0) > 0 && token && (
-                          <button
-                            type="button"
-                            onClick={handleSendPaymentRequest}
-                            disabled={isSendingRequest}
-                            className="px-3 py-1.5 bg-[#181E54] hover:bg-[#121642] text-white rounded-md text-[10.5px] font-semibold transition-colors cursor-pointer flex items-center gap-1 disabled:opacity-50"
-                          >
-                            <Send className="w-3 h-3 text-emerald-400" />
-                            <span>{isSendingRequest ? 'Sending...' : 'Send Request'}</span>
-                          </button>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                            Unpaid
+                          </span>
                         )}
                       </div>
                     </div>
-                  )}
 
-                  {requestMessage && (
-                    <p className="mt-2 text-[10px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded p-1.5 text-center">
-                      {requestMessage}
-                    </p>
-                  )}
+                    <div className="space-y-2">
+                      <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 shadow-2xs flex items-center justify-between">
+                        <span className="text-slate-500 font-medium text-[11px]">Package</span>
+                        <span className="font-bold text-[#181E54] text-[11.5px] uppercase">{traffic.package || 'Standard'}</span>
+                      </div>
+
+                      <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 shadow-2xs flex items-center justify-between">
+                        <span className="text-slate-500 font-medium text-[11px]">Package Price</span>
+                        <span className="font-mono font-bold text-slate-900 text-[11.5px]">৳ {Number(traffic.price || 0).toLocaleString()}</span>
+                      </div>
+
+                      <div className="bg-emerald-50/70 p-2.5 rounded-lg border border-emerald-200/80 shadow-2xs flex items-center justify-between">
+                        <span className="text-emerald-800 font-bold text-[11px]">Paid Amount</span>
+                        <span className="font-mono font-bold text-emerald-700 text-[12px]">৳ {Number(traffic.paidAmount || 0).toLocaleString()}</span>
+                      </div>
+
+                      <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 shadow-2xs flex items-center justify-between">
+                        <span className="text-slate-500 font-medium text-[11px]">Due Balance</span>
+                        <span className={`font-mono font-bold text-[11.5px] ${Number(traffic.dueAmount || 0) > 0 ? 'text-red-600' : 'text-slate-700'}`}>
+                          ৳ {Number(traffic.dueAmount || 0).toLocaleString()}
+                        </span>
+                      </div>
+
+                      <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 shadow-2xs flex items-center justify-between">
+                        <span className="text-slate-500 font-medium text-[11px]">Payment Method</span>
+                        <span className="font-bold text-slate-900 text-[11px]">{traffic.paymentMethod || 'bKash'}</span>
+                      </div>
+
+                      <div className="bg-indigo-50/70 p-2.5 rounded-lg border border-indigo-200/80 shadow-2xs flex items-center justify-between">
+                        <span className="text-[#181E54] font-bold text-[11px]">After Marriage Fee</span>
+                        <span className="font-mono font-bold text-[#181E54] text-[12px]">৳ {Number(traffic.afterMarriageFee || 0).toLocaleString()}</span>
+                      </div>
+                    </div>
+
+                    {/* Payment Action Row */}
+                    {traffic.paymentStatus !== 'accepted' && (
+                      <div className="mt-3 p-2.5 bg-white rounded-lg border border-slate-200/80 space-y-2">
+                        <div className="text-[10px] text-slate-500">
+                          {Number(traffic.paidAmount || 0) > 0 ? (
+                            <span>Payment recorded. Ready for Accounts verification.</span>
+                          ) : (
+                            <span>Payment pending. Add package details to send request.</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {canEdit && onEdit && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onClose();
+                                onEdit(traffic, 3);
+                              }}
+                              className="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-md text-[10.5px] font-semibold transition-colors cursor-pointer flex items-center gap-1"
+                            >
+                              <Edit3 className="w-3 h-3 text-[#D81124]" />
+                              <span>Edit Payment</span>
+                            </button>
+                          )}
+
+                          {Number(traffic.paidAmount || 0) > 0 && token && (
+                            <button
+                              type="button"
+                              onClick={handleSendPaymentRequest}
+                              disabled={isSendingRequest}
+                              className="px-3 py-1.5 bg-[#181E54] hover:bg-[#121642] text-white rounded-md text-[10.5px] font-semibold transition-colors cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                            >
+                              <Send className="w-3 h-3 text-emerald-400" />
+                              <span>{isSendingRequest ? 'Sending...' : 'Send Request'}</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {requestMessage && (
+                      <p className="mt-2 text-[10px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded p-1.5 text-center">
+                        {requestMessage}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
             </div>
           </div>
@@ -677,7 +802,7 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
           <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
             <span className="font-mono font-semibold text-[#181E54]">{traffic.id}</span>
             <span>•</span>
-            <span>Registered Paid Traffic Profile</span>
+            <span>{showPaymentInfo ? 'Registered Paid Client Profile' : 'Registered Client Profile'}</span>
           </div>
           <button
             type="button"
@@ -699,6 +824,7 @@ export const TrafficProfileModal: React.FC<TrafficProfileModalProps> = ({
         title={traffic.name}
         candidateId={traffic.id}
       />
-    </div>
+    </div>,
+    document.body
   );
 };

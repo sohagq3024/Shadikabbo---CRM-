@@ -146,8 +146,7 @@ ul li.cursor-pointer:active,
 }
 
 .animate-card-fade-in {
-  animation: cardFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
-  will-change: transform, opacity;
+  animation: cardFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
 .stagger-0 { animation-delay: 0ms; }

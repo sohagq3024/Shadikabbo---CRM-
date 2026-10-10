@@ -232,7 +232,7 @@ export const PaymentRequestsModal: React.FC<PaymentRequestsModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Review candidate payment tickets, accept financial clearance to automatically move candidate to Paid Traffic, and generate official invoice.
+                Review candidate payment tickets, accept financial clearance to automatically move candidate to Paid Client, and generate official invoice.
               </p>
             </div>
           </div>
@@ -635,7 +635,7 @@ export const PaymentRequestsModal: React.FC<PaymentRequestsModalProps> = ({
                                   onClick={() => handleAction(req.id, 'accept')}
                                   disabled={isItemProcessing}
                                   className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50"
-                                  title="Approve payment clearance, issue invoice, and automatically move candidate to Paid Traffic"
+                                  title="Approve payment clearance, issue invoice, and automatically move candidate to Paid Client"
                                 >
                                   {isAccepting ? (
                                     <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" />

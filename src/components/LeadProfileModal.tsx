@@ -196,7 +196,7 @@ export const LeadProfileModal: React.FC<LeadProfileModalProps> = ({
               }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#D81124] hover:bg-[#B80E1C] text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
             >
-              <span>Convert to Traffic</span>
+              <span>Convert to Client</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -445,7 +445,7 @@ export const LeadProfileModal: React.FC<LeadProfileModalProps> = ({
                   <div>
                     <h4 className="font-bold text-[#181E54] text-xs">Ready to advance this candidate?</h4>
                     <p className="text-[11px] text-slate-500">
-                      Promote this lead to a Traffic Profile with full matrimonial bio-data fields &amp; package billing.
+                      Promote this lead to a Client Profile with full matrimonial bio-data fields &amp; package billing.
                     </p>
                   </div>
                   <button
@@ -456,7 +456,7 @@ export const LeadProfileModal: React.FC<LeadProfileModalProps> = ({
                     }}
                     className="px-4 py-2 bg-[#D81124] hover:bg-[#B80E1C] text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer shrink-0"
                   >
-                    <span>Promote to Traffic</span>
+                    <span>Promote to Client</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -500,7 +500,7 @@ export const LeadProfileModal: React.FC<LeadProfileModalProps> = ({
               }}
               className="px-5 py-2 bg-[#D81124] hover:bg-[#B80E1C] text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
             >
-              <span>Convert to Traffic</span>
+              <span>Convert to Client</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>

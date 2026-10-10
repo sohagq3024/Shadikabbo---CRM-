@@ -133,15 +133,15 @@ export const DailyReportDetailsModal: React.FC<DailyReportDetailsModalProps> = (
               <span className="text-2xl font-bold text-[#181E54]">{metrics.leadsAddedCount}</span>
             </div>
             <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
-              <span className="text-[10px] text-slate-400 font-bold block uppercase">Traffic Added</span>
+              <span className="text-[10px] text-slate-400 font-bold block uppercase">Client Added</span>
               <span className="text-2xl font-bold text-indigo-700">{metrics.trafficsAddedCount}</span>
             </div>
             <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
-              <span className="text-[10px] text-slate-400 font-bold block uppercase">Lead → Traffic</span>
+              <span className="text-[10px] text-slate-400 font-bold block uppercase">Lead → Client</span>
               <span className="text-2xl font-bold text-emerald-700">{metrics.leadsTransferredToTrafficCount}</span>
             </div>
             <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
-              <span className="text-[10px] text-slate-400 font-bold block uppercase">Paid Traffic</span>
+              <span className="text-[10px] text-slate-400 font-bold block uppercase">Paid Client</span>
               <span className="text-2xl font-bold text-emerald-600">{metrics.paidTrafficsCount}</span>
             </div>
             <div className="bg-emerald-50/70 p-3 rounded-2xl border border-emerald-200 shadow-2xs sm:col-span-2">

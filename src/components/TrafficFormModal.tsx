@@ -266,6 +266,11 @@ export const TrafficFormModal: React.FC<TrafficFormModalProps> = ({
       return;
     }
 
+    if (!assignBy.trim()) {
+      setGeneralError('Assign By (MK Role Account) is mandatory for Paid Client. Please select an MK officer.');
+      return;
+    }
+
     setLoading(true);
     try {
       const payload = {
@@ -334,10 +339,10 @@ export const TrafficFormModal: React.FC<TrafficFormModalProps> = ({
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 shrink-0">
           <div>
             <h2 className="text-xl font-bold text-[#181E54]">
-              {initialData ? 'Edit Traffic Profile' : 'Add Traffic'}
+              {initialData ? 'Edit Client Profile' : 'Add Client'}
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Fill in the required information to register customer traffic
+              Fill in the required information to register client
             </p>
           </div>
           <button
@@ -579,8 +584,8 @@ export const TrafficFormModal: React.FC<TrafficFormModalProps> = ({
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {/* Assign By: Selection menu. It must show all MK role accounts. */}
                     <div className="col-span-2 sm:col-span-3">
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        Assign By (MK Role Accounts)
+                      <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                        Assign By (MK Role Accounts) <span className="text-[#D81124] font-bold">* (Mandatory for Paid Client)</span>
                       </label>
                       <select
                         value={assignBy}
@@ -1058,7 +1063,7 @@ export const TrafficFormModal: React.FC<TrafficFormModalProps> = ({
           {/* Modal Footer / Submit Button (Always Pinned at Bottom) */}
           <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
             <span className="text-[11px] text-slate-400 hidden sm:inline">
-              All mandatory fields (*) must be provided before registering traffic.
+              All mandatory fields (*) must be provided before registering client.
             </span>
             <div className="flex items-center gap-3 ml-auto">
               <button
@@ -1074,7 +1079,7 @@ export const TrafficFormModal: React.FC<TrafficFormModalProps> = ({
                 className="px-6 py-2.5 bg-[#D81124] hover:bg-[#B80E1C] text-white text-xs font-semibold rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-70 flex items-center gap-1.5"
               >
                 <CheckCircle className="w-4 h-4" />
-                <span>{loading ? 'Saving...' : initialData ? 'Update Profile' : 'Add Traffic'}</span>
+                <span>{loading ? 'Saving...' : initialData ? 'Update Profile' : 'Add Client'}</span>
               </button>
             </div>
           </div>

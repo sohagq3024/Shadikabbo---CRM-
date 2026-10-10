@@ -282,22 +282,22 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
                     <div className="text-[10px] text-slate-400">Created today by you</div>
                   </div>
 
-                  {/* Added Traffics */}
+                  {/* Added Clients */}
                   <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-semibold text-slate-500">Add Traffic</span>
+                      <span className="text-[11px] font-semibold text-slate-500">Add Client</span>
                       <GitFork className="w-3.5 h-3.5 text-indigo-600" />
                     </div>
                     <div className="text-xl font-bold text-indigo-900">
                       {metrics.trafficsAddedCount || 0}
                     </div>
-                    <div className="text-[10px] text-slate-400">Total traffics today</div>
+                    <div className="text-[10px] text-slate-400">Total clients today</div>
                   </div>
 
-                  {/* Lead to Transfer Traffic */}
+                  {/* Lead to Transfer Client */}
                   <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-semibold text-slate-500">Lead → Traffic</span>
+                      <span className="text-[11px] font-semibold text-slate-500">Lead → Client</span>
                       <ArrowRight className="w-3.5 h-3.5 text-emerald-600" />
                     </div>
                     <div className="text-xl font-bold text-emerald-800">
@@ -306,10 +306,10 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
                     <div className="text-[10px] text-slate-400">Transferred from lead</div>
                   </div>
 
-                  {/* Paid Traffic */}
+                  {/* Paid Client */}
                   <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-semibold text-slate-500">Paid Traffic</span>
+                      <span className="text-[11px] font-semibold text-slate-500">Paid Client</span>
                       <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
                     </div>
                     <div className="text-xl font-bold text-emerald-700">

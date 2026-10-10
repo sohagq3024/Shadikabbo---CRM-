@@ -27,8 +27,11 @@ import {
 export type SidebarPage =
   | 'Dashboard'
   | 'Lead'
+  | 'Client'
+  | 'Paid Client'
   | 'Traffic'
   | 'Paid Traffic'
+  | 'Paid Clent'
   | 'Payment'
   | 'Matchmaking'
   | 'Account'
@@ -84,14 +87,14 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
   const role = user?.role || 'Super Admin';
 
   // Role-based sidebar navigation items:
-  // - CRO: Dashboard, Lead, Traffic, Paid Traffic, Payment, Account, Attendance
-  // - MK: Dashboard, Lead, Traffic, Paid Traffic, Payment, Matchmaking, Account, Attendance
-  // - Super Admin: Dashboard, Lead, Traffic, Paid Traffic, Payment, Matchmaking, Account, Tracking, Attendance, Settings, Trush bin
+  // - CRO: Dashboard, Lead, Client, Paid Client, Payment, Account, Attendance
+  // - MK: Dashboard, Lead, Client, Paid Client, Payment, Matchmaking, Account, Attendance
+  // - Super Admin: Dashboard, Lead, Client, Paid Client, Payment, Matchmaking, Account, Tracking, Attendance, Settings, Trash bin
   const navItems: { label: SidebarPage; icon: React.ReactNode }[] = [
     { label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
     { label: 'Lead', icon: <Users2 className="w-4 h-4" /> },
-    { label: 'Traffic', icon: <GitFork className="w-4 h-4" /> },
-    { label: 'Paid Traffic', icon: <CheckCircle className="w-4 h-4" /> },
+    { label: 'Client', icon: <GitFork className="w-4 h-4" /> },
+    { label: 'Paid Client', icon: <CheckCircle className="w-4 h-4" /> },
     { label: 'Payment', icon: <CreditCard className="w-4 h-4" /> },
     ...(role === 'MK' || role === 'Super Admin'
       ? [{ label: 'Matchmaking' as SidebarPage, icon: <HeartHandshake className="w-4 h-4" /> }]
@@ -117,11 +120,11 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
 
   // Primary workflow page for mobile bottom bar based on role:
   // - MK and Super Admin: Matchmaking (routine 3-day client services)
-  // - CRO: Paid Traffic (pipeline review)
+  // - CRO: Paid Client (pipeline review)
   const primaryWorkflowPage: SidebarPage =
-    role === 'MK' || role === 'Super Admin' ? 'Matchmaking' : 'Paid Traffic';
+    role === 'MK' || role === 'Super Admin' ? 'Matchmaking' : 'Paid Client';
   const primaryWorkflowLabel =
-    role === 'MK' || role === 'Super Admin' ? 'Match' : 'Traffic';
+    role === 'MK' || role === 'Super Admin' ? 'Match' : 'Paid Client';
   const primaryWorkflowIcon =
     role === 'MK' || role === 'Super Admin' ? (
       <HeartHandshake className="w-5 h-5" />
@@ -129,7 +132,12 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
       <CheckCircle className="w-5 h-5" />
     );
 
-  const directTabPages: SidebarPage[] = ['Dashboard', 'Lead', primaryWorkflowPage];
+  const directTabPages: SidebarPage[] = [
+    'Dashboard',
+    'Lead',
+    primaryWorkflowPage,
+    ...(primaryWorkflowPage === 'Paid Client' ? (['Paid Traffic', 'Paid Clent'] as SidebarPage[]) : []),
+  ];
   const isMoreActive = !directTabPages.includes(activePage);
 
   // Robust haptic feedback function for mobile touch and click interactions
@@ -312,6 +320,8 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
             {navItems.map((item) => {
               const isActive =
                 activePage === item.label ||
+                (item.label === 'Client' && activePage === 'Traffic') ||
+                (item.label === 'Paid Client' && (activePage === 'Paid Traffic' || activePage === 'Paid Clent')) ||
                 (item.label === 'Trash Bin' && activePage === 'Trush bin');
               return (
                 <button
@@ -443,36 +453,44 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
             </span>
           </div>
 
-          {/* Tab 4: Matchmaking (MK / Admin) or Paid Traffic (CRO) */}
-          <button
-            type="button"
-            onTouchStart={() => triggerHaptic(15)}
-            onClick={() => handleMobileNavClick(primaryWorkflowPage)}
-            className={`group flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all duration-100 ease-out select-none touch-manipulation cursor-pointer active:scale-[0.88] active:translate-y-0.5 active:opacity-90 ${
-              activePage === primaryWorkflowPage
-                ? 'text-[#181E54]'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <div
-              className={`p-1.5 rounded-xl transition-all duration-100 ease-out ${
-                activePage === primaryWorkflowPage
-                  ? 'bg-[#181E54]/10 text-[#181E54] shadow-2xs group-active:scale-95'
-                  : 'text-slate-400 group-hover:text-slate-600 group-active:bg-slate-100 group-active:scale-90'
-              }`}
-            >
-              {primaryWorkflowIcon}
-            </div>
-            <span
-              className={`text-[10px] tracking-tight transition-transform duration-100 group-active:scale-95 ${
-                activePage === primaryWorkflowPage
-                  ? 'font-bold text-[#181E54]'
-                  : 'font-medium text-slate-500'
-              }`}
-            >
-              {primaryWorkflowLabel}
-            </span>
-          </button>
+          {/* Tab 4: Matchmaking (MK / Admin) or Paid Client (CRO) */}
+          {(() => {
+            const isWorkflowActive =
+              activePage === primaryWorkflowPage ||
+              (primaryWorkflowPage === 'Paid Client' &&
+                (activePage === 'Paid Traffic' || activePage === 'Paid Clent'));
+            return (
+              <button
+                type="button"
+                onTouchStart={() => triggerHaptic(15)}
+                onClick={() => handleMobileNavClick(primaryWorkflowPage)}
+                className={`group flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all duration-100 ease-out select-none touch-manipulation cursor-pointer active:scale-[0.88] active:translate-y-0.5 active:opacity-90 ${
+                  isWorkflowActive
+                    ? 'text-[#181E54]'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <div
+                  className={`p-1.5 rounded-xl transition-all duration-100 ease-out ${
+                    isWorkflowActive
+                      ? 'bg-[#181E54]/10 text-[#181E54] shadow-2xs group-active:scale-95'
+                      : 'text-slate-400 group-hover:text-slate-600 group-active:bg-slate-100 group-active:scale-90'
+                  }`}
+                >
+                  {primaryWorkflowIcon}
+                </div>
+                <span
+                  className={`text-[10px] tracking-tight transition-transform duration-100 group-active:scale-95 ${
+                    isWorkflowActive
+                      ? 'font-bold text-[#181E54]'
+                      : 'font-medium text-slate-500'
+                  }`}
+                >
+                  {primaryWorkflowLabel}
+                </span>
+              </button>
+            );
+          })()}
 
           {/* Tab 5: More Menu Drawer */}
           <button

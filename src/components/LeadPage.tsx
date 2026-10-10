@@ -706,8 +706,8 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token, user }) => {
             onClick: () => handleOpenActivityLog(activeMenuRow),
           },
           {
-            label: 'Convert Traffic',
-            sublabel: 'Promote lead to full Traffic candidate',
+            label: 'Convert to Client',
+            sublabel: 'Promote lead to full Client candidate',
             icon: <Sparkles className="w-4 h-4 text-amber-600" />,
             onClick: () => handleConvertLead(activeMenuRow),
           },
@@ -757,7 +757,7 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token, user }) => {
         onConvert={(leadToConvert) => setConvertingLead(leadToConvert)}
       />
 
-      {/* Convert to Traffic Modal */}
+      {/* Convert to Client Modal */}
       <ConvertTrafficModal
         isOpen={!!convertingLead}
         onClose={() => setConvertingLead(null)}
@@ -767,7 +767,7 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token, user }) => {
           loadLeads();
           setActionToast({
             type: 'success',
-            message: `Lead successfully promoted into Traffic Candidate (${newTraffic.id})!`,
+            message: `Lead successfully promoted into Client Candidate (${newTraffic.id})!`,
           });
         }}
       />

@@ -1237,7 +1237,6 @@ app.post('/api/leads/:id/convert-traffic', authMiddleware, (req, res) => {
   if (!finalName) missingRequirements.push('Candidate Name');
   if (!finalPhone) missingRequirements.push('Phone Number');
   if (!finalEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(finalEmail)) missingRequirements.push('Valid Email Address');
-  if (!finalAssignBy) missingRequirements.push('Assign By (MK Role Account)');
   if (!finalProfession) missingRequirements.push('Profession');
   if (!finalJobType) missingRequirements.push('Job Type');
   if (!finalDateOfBirth) missingRequirements.push('Date of Birth');
@@ -1490,6 +1489,10 @@ app.post('/api/traffic', authMiddleware, (req, res) => {
   const dueAmount = Math.max(0, price - discount - paidAmount);
   const afterMarriageFee = Number(data.afterMarriageFee) || 0;
 
+  if (paidAmount > 0 && !data.assignBy?.trim()) {
+    return res.status(400).json({ error: 'Assign By (MK Role Account) is mandatory when registering as Paid Client.' });
+  }
+
   // The creator is the exact authenticated user account who submitted this traffic into CRM
   const creator = (req as any).user;
   const creatorName = creator?.name || data.createdByName || 'Sohag';
@@ -1619,6 +1622,10 @@ app.put('/api/traffic/:id', authMiddleware, (req, res) => {
   const paidAmount = updates.paidAmount !== undefined ? Number(updates.paidAmount) : existing.paidAmount;
   const dueAmount = Math.max(0, price - discount - paidAmount);
   const afterMarriageFee = updates.afterMarriageFee !== undefined ? Number(updates.afterMarriageFee) : (existing.afterMarriageFee || 0);
+
+  if (paidAmount > 0 && !updates.assignBy?.trim() && !existing.assignBy?.trim()) {
+    return res.status(400).json({ error: 'Assign By (MK Role Account) is mandatory when converting client to Paid Client.' });
+  }
 
   const actorName = actor?.name || updates.createdByName || existing.createdBy || 'Sohag';
   const actorRole = actor?.role || updates.createdByRole || existing.creatorRole || 'Super Admin';
@@ -2031,6 +2038,11 @@ app.post('/api/payments/requests', authMiddleware, (req, res) => {
     t => (trafficId && t.id === trafficId) || (phone && t.phone === phone) || (trafficName && t.name === trafficName)
   );
 
+  const assignedByOfficer = req.body.assignBy?.trim() || req.body.assignedBy?.trim() || matched?.assignBy?.trim();
+  if (!assignedByOfficer) {
+    return res.status(400).json({ error: 'Assign By (MK Role Account) is mandatory to convert client to Paid Client. Please assign an MK officer.' });
+  }
+
   const now = new Date();
   const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const formattedTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -2047,6 +2059,10 @@ app.post('/api/payments/requests', authMiddleware, (req, res) => {
     matched.package = pkgName;
     matched.paymentMethod = method;
     matched.afterMarriageFee = marriageFee;
+    if (!matched.assignBy) {
+      matched.assignBy = assignedByOfficer;
+      matched.assignedTo = { name: assignedByOfficer, role: 'MK' };
+    }
   }
 
   if (!db.paymentRequests) db.paymentRequests = [];
@@ -2147,7 +2163,12 @@ app.post('/api/payments/requests/:id/accept', authMiddleware, (req, res) => {
     db.traffics.find(t => (t.phone && paymentReq.phone && t.phone === paymentReq.phone)) ||
     db.traffics.find(t => (t.name && paymentReq.trafficName && t.name === paymentReq.trafficName));
 
-  const creatorName = paymentReq.createdBy || paymentReq.assignedBy || traffic?.createdBy || traffic?.assignBy || 'Sohag';
+  const assignedByOfficer = paymentReq.assignedBy || traffic?.assignBy || (req.body && req.body.assignBy);
+  if (!assignedByOfficer) {
+    return res.status(400).json({ error: 'Assign By (MK Role Account) is mandatory to convert client to Paid Client. Please assign an MK officer.' });
+  }
+
+  const creatorName = paymentReq.createdBy || assignedByOfficer || traffic?.createdBy || 'Sohag';
   const creatorRole = paymentReq.creatorRole || paymentReq.role || traffic?.creatorRole || 'Super Admin';
   const candidateImages = (traffic?.images && traffic.images.length > 0)
     ? traffic.images
@@ -2157,6 +2178,8 @@ app.post('/api/payments/requests/:id/accept', authMiddleware, (req, res) => {
     // Move from Traffic section to Paid Traffic section automatically
     traffic.paymentStatus = 'accepted';
     traffic.status = 'active';
+    traffic.assignBy = assignedByOfficer;
+    traffic.assignedTo = { name: assignedByOfficer, role: 'MK' };
     traffic.paidAmount = Math.max(Number(traffic.paidAmount) || 0, Number(paymentReq.paidAmount) || 0);
     traffic.dueAmount = Math.max(0, (Number(traffic.price) || 0) - (Number(traffic.discount) || 0) - (Number(traffic.paidAmount) || 0));
     if (paymentReq.package) traffic.package = paymentReq.package;

@@ -434,7 +434,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
               <span class="meta-val">${candidateName}</span>
             </div>
             <div class="meta-row">
-              <span class="meta-label">Traffic ID</span>
+              <span class="meta-label">Client ID</span>
               <span class="meta-colon">:</span>
               <span class="meta-val">${trafficId}</span>
             </div>
@@ -765,7 +765,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                         <span className="font-bold text-slate-900 truncate">{candidateName}</span>
                       </div>
                       <div className="grid grid-cols-[90px_10px_1fr] items-center">
-                        <span className="text-slate-600 font-medium">Traffic ID</span>
+                        <span className="text-slate-600 font-medium">Client ID</span>
                         <span className="font-bold text-slate-800">:</span>
                         <span className="font-bold text-slate-900 font-mono">{trafficId}</span>
                       </div>

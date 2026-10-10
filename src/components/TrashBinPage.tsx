@@ -270,7 +270,7 @@ export const TrashBinPage: React.FC<TrashBinPageProps> = ({ token }) => {
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Central repository for removed <strong>Traffic</strong>, <strong>Paid Traffic</strong>, and <strong>Lead</strong> records.
+            Central repository for removed <strong>Client</strong>, <strong>Paid Client</strong>, and <strong>Lead</strong> records.
           </p>
         </div>
 
@@ -361,7 +361,7 @@ export const TrashBinPage: React.FC<TrashBinPageProps> = ({ token }) => {
               }`}
             >
               <GitFork className="w-3.5 h-3.5 text-blue-400" />
-              <span>Traffic</span>
+              <span>Client</span>
               <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${activeCategory === 'Traffic' ? 'bg-[#D81124] text-white' : 'bg-slate-200 text-slate-700'}`}>
                 {counts.traffic}
               </span>
@@ -377,7 +377,7 @@ export const TrashBinPage: React.FC<TrashBinPageProps> = ({ token }) => {
               }`}
             >
               <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Paid Traffic</span>
+              <span>Paid Client</span>
               <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${activeCategory === 'Paid Traffic' ? 'bg-[#D81124] text-white' : 'bg-slate-200 text-slate-700'}`}>
                 {counts.paidTraffic}
               </span>
@@ -504,7 +504,13 @@ export const TrashBinPage: React.FC<TrashBinPageProps> = ({ token }) => {
                             {item.category === 'Lead' && <Users2 className="w-2.5 h-2.5" />}
                             {item.category === 'Traffic' && <GitFork className="w-2.5 h-2.5" />}
                             {item.category === 'Paid Traffic' && <CheckCircle className="w-2.5 h-2.5" />}
-                            <span>{item.category}</span>
+                            <span>
+                              {item.category === 'Traffic'
+                                ? 'Client'
+                                : item.category === 'Paid Traffic'
+                                ? 'Paid Client'
+                                : item.category}
+                            </span>
                           </span>
                         </div>
                       </td>

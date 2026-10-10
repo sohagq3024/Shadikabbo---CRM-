@@ -90,7 +90,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
           <div className="flex items-center gap-2 text-[#181E54] font-bold">
             <ArrowRightLeft className="w-5 h-5 text-[#D81124]" />
-            <span>Transfer Traffic</span>
+            <span>Transfer Client</span>
           </div>
           <button
             onClick={onClose}

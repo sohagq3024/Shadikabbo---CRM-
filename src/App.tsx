@@ -253,8 +253,12 @@ export default function App() {
         )}
 
         {/* Existing Matrimonial CRM Pages */}
-        {activePage === 'Traffic' && <TrafficPage token={token} user={user} />}
-        {activePage === 'Paid Traffic' && <PaidTrafficPage token={token} user={user} />}
+        {(activePage === 'Client' || activePage === 'Traffic') && (
+          <TrafficPage token={token} user={user} />
+        )}
+        {(activePage === 'Paid Client' || activePage === 'Paid Clent' || activePage === 'Paid Traffic') && (
+          <PaidTrafficPage token={token} user={user} />
+        )}
         {activePage === 'Payment' && <PaymentPage token={token} user={user} />}
         {activePage === 'Lead' && <LeadPage token={token} user={user} />}
         {activePage === 'Matchmaking' && <MatchmakingPage user={user} token={token} />}

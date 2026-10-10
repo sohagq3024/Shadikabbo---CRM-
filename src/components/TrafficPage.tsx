@@ -315,6 +315,15 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token, user }) => {
 
   // Handle direct Send Payment Request from Traffic list
   const handleSendPaymentRequest = async (traffic: any) => {
+    if (!traffic.assignBy) {
+      setActionToast({
+        type: 'error',
+        message: `Cannot convert "${traffic.name}" to Paid Client: Assign By (MK Role Account) is mandatory. Please edit candidate profile and assign an MK officer first.`,
+      });
+      setActiveMenuRow(null);
+      return;
+    }
+
     try {
       const response = await fetch('/api/payments/requests', {
         method: 'POST',
@@ -331,6 +340,7 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token, user }) => {
           afterMarriageFee: traffic.afterMarriageFee,
           package: traffic.package,
           paymentMethod: traffic.paymentMethod,
+          assignBy: traffic.assignBy,
         }),
       });
 
@@ -487,20 +497,20 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token, user }) => {
       {/* Top Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#181E54]">Traffic</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-[#181E54]">Client</h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Manage matrimonial client inquiries and traffic registration
+            Manage matrimonial client inquiries and client registration
           </p>
         </div>
 
-        {/* TOP RIGHT Button: Add Traffic */}
+        {/* TOP RIGHT Button: Add Client */}
         <button
           type="button"
           onClick={() => setIsAddModalOpen(true)}
           className="flex items-center gap-1.5 px-4 py-2 sm:px-5 sm:py-2.5 bg-[#D81124] hover:bg-[#B80E1C] text-white text-xs sm:text-[13px] font-bold rounded-xl shadow-xs transition-colors cursor-pointer self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
-          <span>Add Traffic</span>
+          <span>Add Client</span>
         </button>
       </div>
 
@@ -668,18 +678,18 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token, user }) => {
                   <td colSpan={9} className="py-10 text-center text-slate-400">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <div className="w-6 h-6 border-2 border-[#181E54] border-t-transparent rounded-full animate-spin"></div>
-                      <span>Loading traffic records...</span>
+                      <span>Loading client records...</span>
                     </div>
                   </td>
                 </tr>
               ) : filteredTraffics.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-10 text-center text-slate-400">
-                    <p className="text-sm font-medium text-slate-600">No traffic records found</p>
+                    <p className="text-sm font-medium text-slate-600">No client records found</p>
                     <p className="text-xs text-slate-400 mt-1">
                       {traffics.length === 0
-                        ? 'Click "Add Traffic" above to create your first matrimonial candidate record.'
-                        : 'No traffic matches the selected filter criteria.'}
+                        ? 'Click "Add Client" above to create your first matrimonial candidate record.'
+                        : 'No client matches the selected filter criteria.'}
                     </p>
                   </td>
                 </tr>
@@ -829,6 +839,7 @@ export const TrafficPage: React.FC<TrafficPageProps> = ({ token, user }) => {
           loadTraffics();
         }}
         onPaymentRequestSuccess={loadTraffics}
+        showPaymentInfo={false}
       />
 
       {/* Transfer Modal */}

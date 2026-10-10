@@ -194,13 +194,13 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({ token, user }) => {
         throw new Error(err.error || 'Failed to accept payment request');
       }
       await loadData();
-      // Notify CRM pages (Traffic and Paid Traffic) to automatically synchronize state
+      // Notify CRM pages (Client and Paid Client) to automatically synchronize state
       window.dispatchEvent(new CustomEvent('shadikabbo:payment-accepted', {
         detail: { requestId }
       }));
       setToast({
         type: 'success',
-        message: 'Payment request approved! Candidate has been moved from Traffic to Paid Traffic section, and invoice generated.',
+        message: 'Payment request approved! Candidate has been moved from Client to Paid Client section, and invoice generated.',
       });
       setTimeout(() => setToast(null), 4000);
     } catch (err: any) {
@@ -429,7 +429,7 @@ export const PaymentPage: React.FC<PaymentPageProps> = ({ token, user }) => {
                     <p className="font-semibold text-slate-600 mb-1">No accepted payments yet</p>
                     <p className="text-[11px] text-slate-400">
                       {isSuperAdmin
-                        ? 'When a Traffic is added, accept its request in “Payment Requests” to record payments.'
+                        ? 'When a Client is added, accept its request in “Payment Requests” to record payments.'
                         : 'Verified payment records and invoices will appear here once approved by Super Admin.'}
                     </p>
                   </td>

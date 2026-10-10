@@ -53,7 +53,7 @@ export const CheckPaymentModal: React.FC<CheckPaymentModalProps> = ({
               <div>
                 <p className="font-bold text-emerald-900">Payment Request Accepted &amp; Verified</p>
                 <p className="text-[11px] text-emerald-700 mt-0.5">
-                  Traffic candidate is officially cleared and registered into Paid Traffic.
+                  Client candidate is officially cleared and registered into Paid Client.
                 </p>
               </div>
             </div>
@@ -76,7 +76,7 @@ export const CheckPaymentModal: React.FC<CheckPaymentModalProps> = ({
                     <span className="font-bold text-slate-900">{traffic.name}</span>
                   </div>
                   <div className="flex justify-between items-center pb-2 border-b border-slate-200/70">
-                    <span className="text-slate-500 font-medium">Traffic ID:</span>
+                    <span className="text-slate-500 font-medium">Client ID:</span>
                     <span className="font-mono font-bold text-[#181E54]">{traffic.id}</span>
                   </div>
                   <div className="flex justify-between items-center pb-2 border-b border-slate-200/70">
