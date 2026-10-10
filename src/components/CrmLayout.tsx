@@ -22,7 +22,13 @@ import {
   HeartHandshake,
   Wifi,
   WifiOff,
+  Clock,
+  Layers,
 } from 'lucide-react';
+import {
+  formatBangladeshTimeWithSeconds,
+  formatBangladeshDateDisplay,
+} from '../utils/bangladeshTime';
 
 export type SidebarPage =
   | 'Dashboard'
@@ -35,6 +41,7 @@ export type SidebarPage =
   | 'Payment'
   | 'Matchmaking'
   | 'Account'
+  | 'All Profile'
   | 'Tracking'
   | 'Attendance'
   | 'Daily Report'
@@ -51,6 +58,34 @@ interface CrmLayoutProps {
   onOpenScanner?: () => void;
   children: React.ReactNode;
 }
+
+// Memoized standalone Clock Badge to prevent re-rendering the parent CrmLayout every second
+const LiveBstClockBadge: React.FC = React.memo(() => {
+  const [liveBstTime, setLiveBstTime] = useState(() => formatBangladeshTimeWithSeconds(new Date()));
+  const [liveBstDate, setLiveBstDate] = useState(() => formatBangladeshDateDisplay(new Date()));
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      setLiveBstTime(formatBangladeshTimeWithSeconds(now));
+      setLiveBstDate(formatBangladeshDateDisplay(now));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div
+      className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-50 border border-slate-200/90 text-[#181E54] text-[11px] font-semibold select-none shadow-2xs hover:bg-slate-100/70 transition-colors cursor-default"
+      title={`Live Bangladesh Standard Time (BST, UTC+6 / Asia/Dhaka) · ${liveBstDate}`}
+    >
+      <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+      <span className="font-mono font-bold tracking-tight">{liveBstTime}</span>
+      <span className="text-[9px] font-extrabold uppercase px-1 py-0.5 rounded bg-[#181E54]/10 text-[#181E54]">
+        BST
+      </span>
+    </div>
+  );
+});
 
 export const CrmLayout: React.FC<CrmLayoutProps> = ({
   user,
@@ -100,9 +135,7 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
       ? [{ label: 'Matchmaking' as SidebarPage, icon: <HeartHandshake className="w-4 h-4" /> }]
       : []),
     { label: 'Account', icon: <UserCog className="w-4 h-4" /> },
-    ...(role === 'Super Admin'
-      ? [{ label: 'Tracking' as SidebarPage, icon: <MapPin className="w-4 h-4" /> }]
-      : []),
+    { label: 'All Profile' as SidebarPage, icon: <Layers className="w-4 h-4" /> },
     { label: 'Attendance', icon: <CalendarCheck className="w-4 h-4" /> },
     { label: 'Daily Report', icon: <ClipboardList className="w-4 h-4" /> },
     ...(role === 'Super Admin'
@@ -202,6 +235,9 @@ export const CrmLayout: React.FC<CrmLayoutProps> = ({
 
         {/* TOP RIGHT */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          {/* Live Bangladesh Standard Time Clock Pill */}
+          <LiveBstClockBadge />
+
           {/* Subtle Network Status Indicator (Online / Offline) */}
           <div
             className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-semibold border transition-all select-none shrink-0 ${

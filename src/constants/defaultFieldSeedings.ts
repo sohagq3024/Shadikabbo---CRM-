@@ -21,6 +21,10 @@ export interface CrmFieldSeedings {
   cities: string[];
   countries: string[];
   leadCategories: string[];
+  paymentMethods: string[];
+  qualityCategories: string[];
+  branches: string[];
+  pipelineStatuses: string[];
 }
 
 export interface AgencySettings {
@@ -211,6 +215,35 @@ export const DEFAULT_FIELD_SEEDINGS: CrmFieldSeedings = {
     'Reference',
     'Others source',
   ],
+  paymentMethods: [
+    'bKash',
+    'Nagad',
+    'Rocket',
+    'Bank Transfer',
+    'Cash',
+    'Card',
+    'Other',
+  ],
+  qualityCategories: [
+    'Normal',
+    'Average',
+    'Potential',
+    'Very potential',
+  ],
+  branches: [
+    'Uttara',
+    'Dhanmondi',
+    'Mirpur',
+    'Gulshan',
+  ],
+  pipelineStatuses: [
+    'WP Connect',
+    'CV Collect',
+    'Service',
+    'Follow up',
+    'Payment Ready',
+    'Blank',
+  ],
 };
 
 export const FIELD_CATEGORIES_META: CrmFieldCategoryMeta[] = [
@@ -304,6 +337,34 @@ export const FIELD_CATEGORIES_META: CrmFieldCategoryMeta[] = [
     icon: 'Building2',
     description: 'Employment nature (Private, Government, MNC, Business, Remote, etc.)',
     connectedSections: ['Client Form', 'Add Lead Form'],
+  },
+  {
+    key: 'paymentMethods',
+    label: 'Payment Methods',
+    icon: 'CreditCard',
+    description: 'Payment channels and gateway options (bKash, Nagad, Rocket, Bank Transfer, Cash, Card, etc.)',
+    connectedSections: ['Client Payment Form', 'Payment Requests', 'Invoice'],
+  },
+  {
+    key: 'qualityCategories',
+    label: 'Lead Quality Category',
+    icon: 'Sparkles',
+    description: 'Lead & Candidate priority classifications (Normal, Average, Potential, Very potential)',
+    connectedSections: ['Lead Table (Category)', 'Client Table (Category)', 'Lead Filter', 'Client Filter'],
+  },
+  {
+    key: 'branches',
+    label: 'Company Branches',
+    icon: 'Building2',
+    description: 'Official agency office branch locations (Uttara, Dhanmondi, Mirpur, Gulshan, etc.)',
+    connectedSections: ['Staff Account Form', 'Staff Directory', 'Attendance Profile'],
+  },
+  {
+    key: 'pipelineStatuses',
+    label: 'Pipeline Status',
+    icon: 'Activity',
+    description: 'Lead & Client sales funnel workflow stages (WP Connect, CV Collect, Service, Follow up, Payment Ready, Blank)',
+    connectedSections: ['Lead Pipeline', 'Client Pipeline', 'Activity Log', 'Pipeline Filter'],
   },
 ];
 

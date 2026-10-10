@@ -32,6 +32,7 @@ import {
   Upload,
   Copy,
   Database,
+  CreditCard,
 } from 'lucide-react';
 import { useCrmFields } from '../context/CrmFieldsContext';
 import {
@@ -146,9 +147,17 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ token }) => {
     const formatted = formatOptionValue(newOptionValue);
     if (!formatted) return;
 
-    const success = await addFieldItem(selectedCategoryKey, formatted);
+    let success = false;
+    if (selectedCategoryKey === 'packages') {
+      const priceNum = parseInt(newPackagePrice, 10) || 0;
+      success = await addPackageWithPrice(formatted, priceNum);
+    } else {
+      success = await addFieldItem(selectedCategoryKey, formatted);
+    }
+
     if (success) {
       setNewOptionValue('');
+      setNewPackagePrice('20000');
       showToast(`Added "${formatted}" to ${currentCategoryMeta.label}`);
     } else {
       showToast(`"${formatted}" already exists or could not be added`, 'error');
@@ -177,24 +186,48 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ token }) => {
   const handleStartEdit = (item: string) => {
     setEditingItem({ category: selectedCategoryKey, item });
     setEditItemValue(item);
+    if (selectedCategoryKey === 'packages') {
+      const currentPrice = fields.packagePrices?.[item] ?? 20000;
+      setEditPackagePrice(String(currentPrice));
+    }
   };
 
   // Save edited item
   const handleSaveEdit = async () => {
     if (!editingItem) return;
     const formatted = formatOptionValue(editItemValue);
-    if (!formatted || formatted === editingItem.item) {
+    if (!formatted) {
       setEditingItem(null);
       return;
     }
 
-    const success = await updateFieldItem(
-      editingItem.category,
-      editingItem.item,
-      formatted
-    );
+    const priceNum = parseInt(editPackagePrice, 10);
+    const priceChanged =
+      editingItem.category === 'packages' &&
+      !isNaN(priceNum) &&
+      priceNum !== (fields.packagePrices?.[editingItem.item] ?? 20000);
+
+    if (formatted === editingItem.item && !priceChanged) {
+      setEditingItem(null);
+      return;
+    }
+
+    let success = false;
+    if (formatted !== editingItem.item) {
+      success = await updateFieldItem(
+        editingItem.category,
+        editingItem.item,
+        formatted
+      );
+      if (success && editingItem.category === 'packages' && !isNaN(priceNum)) {
+        await updatePackagePrice(formatted, priceNum);
+      }
+    } else if (priceChanged) {
+      success = await updatePackagePrice(formatted, priceNum);
+    }
+
     if (success) {
-      showToast(`Updated "${editingItem.item}" to "${formatted}"`);
+      showToast(`Updated "${formatted}"`);
       setEditingItem(null);
     } else {
       showToast(`Could not update option`, 'error');
@@ -384,6 +417,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ token }) => {
         return <Globe className={className} />;
       case 'Layers':
         return <Layers className={className} />;
+      case 'CreditCard':
+        return <CreditCard className={className} />;
+      case 'Sparkles':
+        return <Sparkles className={className} />;
       default:
         return <Building2 className={className} />;
     }
@@ -424,7 +461,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ token }) => {
                   : 'bg-slate-100 text-slate-600'
               }`}
             >
-              12
+              {FIELD_CATEGORIES_META.length}
             </span>
           </button>
 
@@ -604,7 +641,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ token }) => {
 
             {/* Left Footer Note */}
             <div className="px-3.5 py-2 bg-slate-50 border-t border-slate-100 text-[10px] text-slate-400 flex items-center justify-between shrink-0">
-              <span>Scroll up/down to explore all 12 categories</span>
+              <span>Scroll up/down to explore all {FIELD_CATEGORIES_META.length} categories</span>
               <span className="font-semibold text-emerald-600">Auto Synced</span>
             </div>
           </div>
@@ -678,6 +715,21 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ token }) => {
                     placeholder={`Type new ${currentCategoryMeta.label.toLowerCase()}...`}
                     className="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#181E54] placeholder-slate-400 font-medium"
                   />
+                  {selectedCategoryKey === 'packages' && (
+                    <div className="w-28 relative shrink-0">
+                      <span className="text-[10px] text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 font-bold font-mono">৳</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="500"
+                        value={newPackagePrice}
+                        onChange={(e) => setNewPackagePrice(e.target.value)}
+                        placeholder="Price"
+                        className="w-full pl-5 pr-2 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#181E54] font-mono font-semibold"
+                        title="Package Default Fee in BDT"
+                      />
+                    </div>
+                  )}
                   <button
                     type="submit"
                     className="px-4 py-2 bg-[#D81124] hover:bg-[#B80E1C] text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1 cursor-pointer shrink-0"
@@ -765,6 +817,24 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ token }) => {
                                   if (e.key === 'Escape') setEditingItem(null);
                                 }}
                               />
+                              {selectedCategoryKey === 'packages' && (
+                                <div className="w-24 relative shrink-0">
+                                  <span className="text-[10px] text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 font-bold font-mono">৳</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="500"
+                                    value={editPackagePrice}
+                                    onChange={(e) => setEditPackagePrice(e.target.value)}
+                                    className="w-full pl-5 pr-2 py-1.5 bg-white border border-[#181E54] rounded-lg text-xs font-mono font-bold text-slate-900 focus:outline-none ring-2 ring-[#181E54]/20"
+                                    placeholder="Price"
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') handleSaveEdit();
+                                      if (e.key === 'Escape') setEditingItem(null);
+                                    }}
+                                  />
+                                </div>
+                              )}
                               <button
                                 type="button"
                                 onClick={handleSaveEdit}
@@ -783,9 +853,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ token }) => {
                               </button>
                             </div>
                           ) : (
-                            <span className="text-xs font-semibold text-slate-900 truncate">
-                              {item}
-                            </span>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-xs font-semibold text-slate-900 truncate">
+                                {item}
+                              </span>
+                              {selectedCategoryKey === 'packages' && fields.packagePrices?.[item] !== undefined && (
+                                <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200/80 font-mono font-bold text-[10px] shrink-0">
+                                  ৳ {fields.packagePrices[item].toLocaleString()}
+                                </span>
+                              )}
+                            </div>
                           )}
                         </div>
 

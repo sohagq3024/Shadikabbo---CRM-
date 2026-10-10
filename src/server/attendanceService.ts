@@ -52,63 +52,120 @@ export function getStaffDayOffList(user: any): string[] {
   return ['Friday']; // Standard Bangladesh business default
 }
 
+export const BANGLADESH_TIMEZONE = 'Asia/Dhaka';
+
 /**
- * Returns true if date corresponds to user's assigned weekly day-off
+ * Returns hours and minutes in Bangladesh Standard Time (UTC+6)
+ */
+export function getBangladeshHoursAndMinutes(date: Date = new Date()): {
+  hours: number;
+  minutes: number;
+  seconds: number;
+  totalMinutes: number;
+} {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: BANGLADESH_TIMEZONE,
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hour12: false,
+  }).formatToParts(date);
+
+  let hours = parseInt(parts.find((p) => p.type === 'hour')?.value || '0', 10);
+  if (hours === 24) hours = 0;
+  const minutes = parseInt(parts.find((p) => p.type === 'minute')?.value || '0', 10);
+  const seconds = parseInt(parts.find((p) => p.type === 'second')?.value || '0', 10);
+  return {
+    hours,
+    minutes,
+    seconds,
+    totalMinutes: hours * 60 + minutes,
+  };
+}
+
+/**
+ * Returns a Date object adjusted to Bangladesh Standard Time (UTC+6)
+ */
+export function getBangladeshDate(date: Date = new Date()): Date {
+  const bstStr = date.toLocaleString('en-US', { timeZone: BANGLADESH_TIMEZONE });
+  return new Date(bstStr);
+}
+
+/**
+ * Returns true if date corresponds to user's assigned weekly day-off in Bangladesh time
  */
 export function isStaffDayOff(user: any, date: Date | string): boolean {
-  const d = typeof date === 'string' ? new Date(date + 'T12:00:00') : date;
-  const dayIndex = d.getDay(); // 0 = Sunday, 1 = Monday, ..., 5 = Friday, 6 = Saturday
-  const currentDayName = DAY_NAMES[dayIndex];
+  let currentDayName = '';
+  if (typeof date === 'string') {
+    const parts = date.split('-');
+    if (parts.length === 3) {
+      // YYYY-MM-DD
+      const d = new Date(Date.UTC(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), 6, 0, 0));
+      currentDayName = new Intl.DateTimeFormat('en-US', {
+        timeZone: BANGLADESH_TIMEZONE,
+        weekday: 'long',
+      }).format(d);
+    } else {
+      currentDayName = new Intl.DateTimeFormat('en-US', {
+        timeZone: BANGLADESH_TIMEZONE,
+        weekday: 'long',
+      }).format(new Date(date));
+    }
+  } else {
+    currentDayName = new Intl.DateTimeFormat('en-US', {
+      timeZone: BANGLADESH_TIMEZONE,
+      weekday: 'long',
+    }).format(date);
+  }
 
   const offList = getStaffDayOffList(user);
   return offList.some((day) => {
-    if (typeof day === 'number') return day === dayIndex;
     const str = String(day).trim();
-    return str.toLowerCase() === currentDayName.toLowerCase() || str === String(dayIndex);
+    return str.toLowerCase() === currentDayName.toLowerCase();
   });
 }
 
-// Format 12-hour time
-export function formatTime12(date: Date): string {
-  let hours = date.getHours();
-  const minutes = date.getMinutes();
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12;
-  hours = hours ? hours : 12; // 0 becomes 12
-  const strMinutes = minutes < 10 ? '0' + minutes : minutes;
-  const strHours = hours < 10 ? '0' + hours : hours;
-  return `${strHours}:${strMinutes} ${ampm}`;
+// Format 12-hour time in Bangladesh Standard Time (Asia/Dhaka)
+export function formatTime12(date: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: BANGLADESH_TIMEZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  }).format(date);
 }
 
-// Format YYYY-MM-DD
-export function formatDateYMD(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+// Format YYYY-MM-DD in Bangladesh Standard Time (Asia/Dhaka)
+export function formatDateYMD(date: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: BANGLADESH_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const year = parts.find((p) => p.type === 'year')?.value;
+  const month = parts.find((p) => p.type === 'month')?.value;
+  const day = parts.find((p) => p.type === 'day')?.value;
+  return `${year}-${month}-${day}`;
 }
 
-export function calculateLateMinutes(date: Date): number {
-  const hours = date.getHours();
-  const minutes = date.getMinutes();
-  const currentTotal = hours * 60 + minutes;
-  const standardStart = STANDARD_START_HOUR * 60 + STANDARD_START_MINUTE; // 570 mins (09:30 AM)
-  const graceThreshold = standardStart + GRACE_MINUTE; // 585 mins (09:45 AM)
+export function calculateLateMinutes(date: Date = new Date()): number {
+  const { totalMinutes } = getBangladeshHoursAndMinutes(date);
+  const standardStart = STANDARD_START_HOUR * 60 + STANDARD_START_MINUTE; // 600 mins (10:00 AM)
+  const graceThreshold = standardStart + GRACE_MINUTE; // 615 mins (10:15 AM)
 
-  if (currentTotal > graceThreshold) {
-    return currentTotal - standardStart;
+  if (totalMinutes > graceThreshold) {
+    return totalMinutes - standardStart;
   }
   return 0;
 }
 
-export function calculateEarlyOutMinutes(date: Date): number {
-  const hours = date.getHours();
-  const minutes = date.getMinutes();
-  const currentTotal = hours * 60 + minutes;
-  const standardEnd = STANDARD_END_HOUR * 60 + STANDARD_END_MINUTE; // 1110 mins (06:30 PM)
+export function calculateEarlyOutMinutes(date: Date = new Date()): number {
+  const { totalMinutes } = getBangladeshHoursAndMinutes(date);
+  const standardEnd = STANDARD_END_HOUR * 60 + STANDARD_END_MINUTE; // 1080 mins (06:00 PM)
 
-  if (currentTotal < standardEnd) {
-    return standardEnd - currentTotal;
+  if (totalMinutes < standardEnd) {
+    return standardEnd - totalMinutes;
   }
   return 0;
 }

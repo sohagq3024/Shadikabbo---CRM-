@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, UserCheck, Calendar, Clock, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
+import { formatBangladeshDateYMD } from '../utils/bangladeshTime';
 
 interface ManualAttendanceModalProps {
   isOpen: boolean;
@@ -17,16 +18,19 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
   onSuccess,
 }) => {
   const [selectedStaffId, setSelectedStaffId] = useState(staffList[0]?.id || '');
-  const [date, setDate] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  });
+  const [date, setDate] = useState(() => formatBangladeshDateYMD(new Date()));
   const [status, setStatus] = useState<'present' | 'day_off' | 'absent'>('present');
   const [inTime, setInTime] = useState('10:00 AM');
   const [outTime, setOutTime] = useState('06:00 PM');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!selectedStaffId && staffList.length > 0) {
+      setSelectedStaffId(staffList[0].id);
+    }
+  }, [staffList, selectedStaffId]);
 
   if (!isOpen) return null;
 

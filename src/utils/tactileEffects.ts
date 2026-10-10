@@ -3,9 +3,9 @@
 let isInitialized = false;
 
 /**
- * Determines whether an element has a dark background color or dark styling
+ * Fast check whether an element has dark background styling without layout thrashing
  */
-function isElementDark(el: HTMLElement): boolean {
+function isElementDarkFast(el: HTMLElement): boolean {
   try {
     const classList = el.className || '';
     if (typeof classList === 'string') {
@@ -24,30 +24,8 @@ function isElementDark(el: HTMLElement): boolean {
         return true;
       }
     }
-
-    const style = window.getComputedStyle(el);
-    const bg = style.backgroundColor;
-    if (!bg || bg === 'transparent' || bg === 'rgba(0, 0, 0, 0)') {
-      const color = style.color;
-      // If text is white/light, background is likely dark
-      if (color && (color.includes('255, 255, 255') || color.includes('248, 250, 252'))) {
-        return true;
-      }
-      return false;
-    }
-
-    // Parse rgb(r, g, b)
-    const match = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-    if (match) {
-      const r = parseInt(match[1], 10);
-      const g = parseInt(match[2], 10);
-      const b = parseInt(match[3], 10);
-      // Brightness formula
-      const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-      return brightness < 150;
-    }
   } catch {
-    // Fallback safe
+    // Safe fallback
   }
   return false;
 }
@@ -76,9 +54,9 @@ export function initTactileEffects(): () => void {
       return;
     }
 
-    // Find the closest interactive target
+    // Only apply to interactive button / a elements
     const interactiveTarget = rawTarget.closest<HTMLElement>(
-      'button, [role="button"], a, [data-ripple], .cursor-pointer, .interactive-item, summary'
+      'button, a, [data-ripple]'
     );
 
     if (!interactiveTarget) return;
@@ -101,48 +79,37 @@ export function initTactileEffects(): () => void {
       }
     }
 
-    // Compute relative pointer coordinates
-    const rect = interactiveTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    // Defer ripple element creation to next animation frame so click isn't delayed
+    requestAnimationFrame(() => {
+      if (!interactiveTarget.isConnected) return;
+      const rect = interactiveTarget.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
 
-    // Ensure parent container has positioning and overflow containment
-    const computedStyle = window.getComputedStyle(interactiveTarget);
-    if (computedStyle.position === 'static') {
-      interactiveTarget.style.position = 'relative';
-    }
-    const hadOverflowHidden = computedStyle.overflow === 'hidden';
-    if (!hadOverflowHidden) {
-      interactiveTarget.style.overflow = 'hidden';
-    }
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const maxDim = Math.max(rect.width, rect.height);
+      const size = Math.max(maxDim * 1.5, 40);
 
-    // Calculate ripple radius to cover the entire bounding box
-    const maxDim = Math.max(rect.width, rect.height);
-    const size = Math.max(maxDim * 1.8, 48);
+      const isDark = isElementDarkFast(interactiveTarget);
 
-    const isDark = isElementDark(interactiveTarget);
+      const ripple = document.createElement('span');
+      ripple.className = `app-ripple-circle ${isDark ? 'app-ripple-light' : ''}`;
+      ripple.style.width = `${size}px`;
+      ripple.style.height = `${size}px`;
+      ripple.style.left = `${x}px`;
+      ripple.style.top = `${y}px`;
 
-    const ripple = document.createElement('span');
-    ripple.className = `app-ripple-circle ${isDark ? 'app-ripple-light' : ''}`;
-    ripple.style.width = `${size}px`;
-    ripple.style.height = `${size}px`;
-    ripple.style.left = `${x}px`;
-    ripple.style.top = `${y}px`;
+      interactiveTarget.appendChild(ripple);
 
-    interactiveTarget.appendChild(ripple);
+      const cleanup = () => {
+        if (ripple.parentNode === interactiveTarget) {
+          interactiveTarget.removeChild(ripple);
+        }
+      };
 
-    // Remove element once ripple animation finishes
-    const cleanup = () => {
-      if (ripple.parentNode === interactiveTarget) {
-        interactiveTarget.removeChild(ripple);
-      }
-      if (!hadOverflowHidden && interactiveTarget.querySelectorAll('.app-ripple-circle').length === 0) {
-        interactiveTarget.style.overflow = '';
-      }
-    };
-
-    ripple.addEventListener('animationend', cleanup, { once: true });
-    setTimeout(cleanup, 550);
+      ripple.addEventListener('animationend', cleanup, { once: true });
+      setTimeout(cleanup, 450);
+    });
   };
 
   document.addEventListener('pointerdown', handlePointerDown, { passive: true });

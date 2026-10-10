@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { DailyReportModal } from './DailyReportModal';
 import { DailyReportDetailsModal } from './DailyReportDetailsModal';
+import { formatBangladeshDateYMD } from '../utils/bangladeshTime';
 import { DailyReportRecord } from '../server/dailyReportRoutes';
 
 interface DailyReportPageProps {
@@ -96,23 +97,23 @@ export const DailyReportPage: React.FC<DailyReportPageProps> = ({ token, user })
       setFilterStartDate('');
       setFilterEndDate('');
     } else if (preset === 'today') {
-      const t = now.toISOString().substring(0, 10);
+      const t = formatBangladeshDateYMD(now);
       setFilterStartDate(t);
       setFilterEndDate(t);
     } else if (preset === 'last7') {
       const past = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000);
-      setFilterStartDate(past.toISOString().substring(0, 10));
-      setFilterEndDate(now.toISOString().substring(0, 10));
+      setFilterStartDate(formatBangladeshDateYMD(past));
+      setFilterEndDate(formatBangladeshDateYMD(now));
     } else if (preset === 'thisMonth') {
       const start = new Date(curYear, curMonth, 1);
       const end = new Date(curYear, curMonth + 1, 0);
-      setFilterStartDate(start.toISOString().substring(0, 10));
-      setFilterEndDate(end.toISOString().substring(0, 10));
+      setFilterStartDate(formatBangladeshDateYMD(start));
+      setFilterEndDate(formatBangladeshDateYMD(end));
     } else if (preset === 'lastMonth') {
       const start = new Date(curYear, curMonth - 1, 1);
       const end = new Date(curYear, curMonth, 0);
-      setFilterStartDate(start.toISOString().substring(0, 10));
-      setFilterEndDate(end.toISOString().substring(0, 10));
+      setFilterStartDate(formatBangladeshDateYMD(start));
+      setFilterEndDate(formatBangladeshDateYMD(end));
     }
   };
 

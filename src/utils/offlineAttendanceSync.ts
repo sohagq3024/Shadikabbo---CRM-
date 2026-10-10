@@ -21,27 +21,22 @@ export interface OfflineAttendanceScan {
   syncedAt?: number;
 }
 
+import {
+  formatBangladeshDateYMD,
+  formatBangladeshTime12,
+} from './bangladeshTime';
+
 const STORAGE_KEY = 'shadikabbo_offline_attendance_queue';
 const SYNC_EVENT_NAME = 'shadikabbo_attendance_queue_changed';
 
-// Helper: Format Date to YYYY-MM-DD
+// Helper: Format Date to YYYY-MM-DD in Bangladesh Time
 export function formatLocalYMD(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return formatBangladeshDateYMD(date);
 }
 
-// Helper: Format Time to 12-hour AM/PM
+// Helper: Format Time to 12-hour AM/PM in Bangladesh Time
 export function formatLocalTime12(date: Date): string {
-  let hours = date.getHours();
-  const minutes = date.getMinutes();
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12;
-  hours = hours ? hours : 12;
-  const strHours = String(hours).padStart(2, '0');
-  const strMinutes = String(minutes).padStart(2, '0');
-  return `${strHours}:${strMinutes} ${ampm}`;
+  return formatBangladeshTime12(date);
 }
 
 /**

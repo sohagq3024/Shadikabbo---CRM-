@@ -31,6 +31,7 @@ import { ShadikabboLogo } from './ShadikabboLogo';
 import { PWAInstallButton } from './PWAInstallButton';
 import { useOfflineAttendanceSync } from '../hooks/useOfflineAttendanceSync';
 import { formatLocalTime12, formatLocalYMD, OfflineAttendanceScan } from '../utils/offlineAttendanceSync';
+import { formatBangladeshTimeWithSeconds, formatBangladeshDateDisplay } from '../utils/bangladeshTime';
 
 interface StaffScannerViewProps {
   user: any;
@@ -91,7 +92,6 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const lastScanTimestamp = useRef<number>(0);
   const barcodeDetectorRef = useRef<any>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Mandatory check: CRO and MK staff must scan QR to record In-Time attendance before accessing CRM (exempt on assigned Day-Off)
   const isMandatory =
@@ -199,14 +199,7 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      setCurrentTime(
-        now.toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: true,
-        })
-      );
+      setCurrentTime(formatBangladeshTimeWithSeconds(now));
     };
     updateTime();
     const interval = setInterval(updateTime, 1000);
@@ -396,6 +389,19 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
    */
   const handleQrDetected = async (qrString: string) => {
     if (isProcessing) return;
+
+    // Strict Live Camera Check: Ensure live video stream is currently active and receiving frames
+    if (
+      !videoRef.current ||
+      !mediaStreamRef.current ||
+      !cameraActive ||
+      videoRef.current.readyState < 2 ||
+      videoRef.current.videoWidth === 0
+    ) {
+      handleScanErrorFeedback('Live Camera is required! Pre-saved photos or file uploads are strictly disabled for office security.');
+      return;
+    }
+
     setIsProcessing(true);
 
     const now = new Date();
@@ -551,52 +557,6 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
         startScanningLoop();
       }
     }, 3000);
-  };
-
-  // Real image file QR scan fallback (reads image pixels and decodes real QR code)
-  const handleImageFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsProcessing(true);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            handleScanErrorFeedback('Could not process image canvas');
-            setIsProcessing(false);
-            return;
-          }
-          ctx.drawImage(img, 0, 0);
-          const imageData = ctx.getImageData(0, 0, img.width, img.height);
-          const code = jsQR(imageData.data, img.width, img.height, {
-            inversionAttempts: 'dontInvert',
-          });
-          if (code && code.data) {
-            handleQrDetected(code.data);
-          } else {
-            handleScanErrorFeedback('No valid QR code detected in the selected image. Please point camera directly or select a clear photo of the office QR code.');
-            setIsProcessing(false);
-          }
-        } catch (err: any) {
-          handleScanErrorFeedback('Failed to decode image file');
-          setIsProcessing(false);
-        }
-      };
-      img.onerror = () => {
-        handleScanErrorFeedback('Failed to load image file');
-        setIsProcessing(false);
-      };
-      img.src = event.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
   };
 
   // Toggle Torch/Flashlight
@@ -818,9 +778,10 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
             </div>
           )}
 
-          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 text-xs ml-auto shadow-xs">
-            <Clock className="w-3.5 h-3.5 text-[#181E54]" />
+          <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-slate-200 text-xs ml-auto shadow-xs" title="Bangladesh Standard Time (BST, UTC+6 / Asia/Dhaka)">
+            <Clock className="w-3.5 h-3.5 text-amber-500" />
             <span className="font-mono font-bold text-[#181E54] text-xs">{currentTime}</span>
+            <span className="text-[10px] font-extrabold text-slate-500 uppercase">BST</span>
           </div>
         </div>
 
@@ -910,8 +871,9 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
                 <div className="absolute inset-x-2 h-0.5 bg-gradient-to-r from-transparent via-[#D81124] to-transparent shadow-[0_0_12px_#D81124] animate-bounce" />
 
                 <div className="absolute -bottom-8 inset-x-0 text-center">
-                  <span className="px-3 py-1 rounded-full bg-black/70 backdrop-blur-md text-[11px] font-medium text-white border border-white/20">
-                    Align Office QR Code within frame
+                  <span className="px-3 py-1 rounded-full bg-black/75 backdrop-blur-md text-[11px] font-medium text-white border border-white/20 inline-flex items-center gap-1.5 shadow-sm">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
+                    <span>Live Camera • Align Office QR in frame</span>
                   </span>
                 </div>
               </div>
@@ -1100,25 +1062,24 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
               </span>
             </div>
 
-            {/* Real action buttons: Photo QR Scan Fallback & Haptic Test */}
+            {/* Strict Live Camera Only Security Enforcement & Haptic Test */}
             <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleImageFileSelect}
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isProcessing}
-                className="flex-1 py-2 px-3 bg-slate-50 hover:bg-slate-100 active:scale-98 text-slate-700 rounded-xl font-bold text-[11px] border border-slate-200 flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shadow-xs"
-                title="Scan photo of office QR code from gallery or camera files"
-              >
-                <Camera className="w-3.5 h-3.5 text-[#181E54]" />
-                <span>Scan QR From Photo File</span>
-              </button>
+              <div className="flex-1 py-2 px-3 bg-emerald-50/90 border border-emerald-200 rounded-xl text-emerald-900 flex items-center gap-2.5 shadow-2xs">
+                <span className="relative flex h-2.5 w-2.5 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600" />
+                </span>
+                <div className="min-w-0">
+                  <div className="font-bold text-[11px] leading-tight flex items-center gap-1.5 text-emerald-950">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Live Camera Only</span>
+                    <span className="text-[9px] bg-emerald-200/90 text-emerald-800 px-1.5 py-0.5 rounded-sm font-extrabold tracking-wider uppercase">Active</span>
+                  </div>
+                  <p className="text-[10px] text-emerald-700 leading-tight mt-0.5 truncate">
+                    Photo upload disabled • Real-time camera scan required
+                  </p>
+                </div>
+              </div>
 
               <button
                 type="button"
@@ -1126,7 +1087,7 @@ export const StaffScannerView: React.FC<StaffScannerViewProps> = ({
                   triggerHaptic('success');
                   playSuccessChime();
                 }}
-                className="py-2 px-3 text-[11px] font-bold text-[#181E54] hover:bg-slate-100 bg-slate-50 rounded-xl border border-slate-200 transition-all cursor-pointer flex items-center gap-1 shrink-0 shadow-xs"
+                className="py-2 px-3 text-[11px] font-bold text-[#181E54] hover:bg-slate-100 bg-slate-50 rounded-xl border border-slate-200 transition-all cursor-pointer flex items-center gap-1 shrink-0 shadow-xs active:scale-95"
                 title="Test tactile vibration on your phone"
               >
                 <Vibrate className="w-3.5 h-3.5 text-emerald-600" />

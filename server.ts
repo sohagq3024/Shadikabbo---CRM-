@@ -1,4 +1,5 @@
 process.env.DISABLE_HMR = 'true';
+process.env.TZ = 'Asia/Dhaka';
 
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
@@ -100,7 +101,14 @@ function computeLeadCompleteness(data: any): { percentage: number; stars: number
   return { percentage, stars };
 }
 
+let dbCache: DatabaseSchema | null = null;
+let saveDbTimeout: NodeJS.Timeout | null = null;
+
 function loadDB(): DatabaseSchema {
+  if (dbCache) {
+    return dbCache;
+  }
+
   if (!fs.existsSync(DB_FILE)) {
     const initialData: DatabaseSchema = {
       users: [
@@ -148,7 +156,12 @@ function loadDB(): DatabaseSchema {
       nextSerial: 1,
       nextLeadSerial: 1,
     };
-    fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2), 'utf-8');
+    try {
+      fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2), 'utf-8');
+    } catch (err) {
+      console.error('Failed to write initial db:', err);
+    }
+    dbCache = initialData;
     return initialData;
   }
 
@@ -220,13 +233,18 @@ function loadDB(): DatabaseSchema {
     });
 
     if (didAutoSync) {
-      fs.writeFileSync(DB_FILE, JSON.stringify(parsed, null, 2), 'utf-8');
+      try {
+        fs.writeFileSync(DB_FILE, JSON.stringify(parsed, null, 2), 'utf-8');
+      } catch (e) {
+        console.error('Failed to sync db to disk:', e);
+      }
     }
 
+    dbCache = parsed;
     return parsed;
   } catch (err) {
     console.error('Error reading db file, resetting:', err);
-    return {
+    const fallback: DatabaseSchema = {
       users: [],
       traffics: [],
       leads: [],
@@ -236,11 +254,22 @@ function loadDB(): DatabaseSchema {
       nextSerial: 1,
       nextLeadSerial: 1,
     };
+    dbCache = fallback;
+    return fallback;
+  }
+}
+
+function flushDbToDisk(data: DatabaseSchema) {
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error writing database to disk:', err);
   }
 }
 
 function saveDB(data: DatabaseSchema) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  dbCache = data;
+  flushDbToDisk(data);
 }
 
 // Session validation middleware
@@ -1408,6 +1437,51 @@ app.post('/api/leads/:id/convert-traffic', authMiddleware, (req, res) => {
 
   saveDB(db);
   res.json({ success: true, traffic: newTraffic, lead });
+});
+
+// --- ALL PROFILES API (Replaces Tracking - Accessible by ALL ROLES without restriction) ---
+app.get('/api/all-profiles', authMiddleware, (req, res) => {
+  const db = loadDB();
+  const actor = (req as any).user;
+  const isSuperAdmin = actor && actor.role === 'Super Admin';
+
+  // Include all candidates from db.traffics who have fulfilled client requirement (not in trash)
+  // Both Client (None Paid) and Paid Client (Paid) across ALL accounts (CRO, MK, Super Admin)
+  const profiles = (db.traffics || [])
+    .filter(t => t.status !== 'trash')
+    .sort((a, b) => (a.serialNumber || 0) - (b.serialNumber || 0))
+    .map((t, index) => {
+      const isPaid = t.paymentStatus === 'accepted';
+      const baseProfile = {
+        ...t,
+        serialNumber: t.serialNumber || (index + 1),
+        status: t.status || 'WP Connect',
+        clientCategory: t.clientCategory || 'Normal',
+        activityLog: ensureTrafficActivityLog(t),
+        createdBy: t.createdBy || 'Sohag',
+        creatorRole: t.creatorRole || 'Super Admin',
+        isPaid,
+        categoryDisplay: isPaid ? 'Paid' : 'None Paid',
+      };
+
+      // Financial / Payment details restriction:
+      // STRICT RULE: Only Super Admin can view financial/payment numbers!
+      if (!isSuperAdmin) {
+        const sanitized: any = { ...baseProfile };
+        delete sanitized.price;
+        delete sanitized.discount;
+        delete sanitized.paidAmount;
+        delete sanitized.dueAmount;
+        delete sanitized.afterMarriageFee;
+        delete sanitized.paymentMethod;
+        delete sanitized.receipts;
+        return sanitized;
+      }
+
+      return baseProfile;
+    });
+
+  res.json(profiles);
 });
 
 // --- TRAFFIC API ---

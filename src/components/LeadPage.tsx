@@ -510,7 +510,7 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token, user }) => {
               className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
             >
               <option value="">All Professions</option>
-              {PROFESSIONS.map((p) => (
+              {(fields.professions && fields.professions.length > 0 ? fields.professions : PROFESSIONS).map((p) => (
                 <option key={p} value={p}>
                   {p}
                 </option>
@@ -526,12 +526,18 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token, user }) => {
               className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
             >
               <option value="">All Statuses</option>
-              <option value="WP Connect">WP Connect</option>
-              <option value="CV Collect">CV Collect</option>
-              <option value="Service">Service</option>
-              <option value="Follow up">Follow up</option>
-              <option value="Payment Ready">Payment Ready</option>
-              <option value="Blank">Blank</option>
+              {(fields.pipelineStatuses || [
+                'WP Connect',
+                'CV Collect',
+                'Service',
+                'Follow up',
+                'Payment Ready',
+                'Blank',
+              ]).map((st: string) => (
+                <option key={st} value={st}>
+                  {st}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -543,10 +549,16 @@ export const LeadPage: React.FC<LeadPageProps> = ({ token, user }) => {
               className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#181E54]"
             >
               <option value="">All Categories</option>
-              <option value="Normal">Normal</option>
-              <option value="Average">Average</option>
-              <option value="Potential">Potential</option>
-              <option value="Very potential">Very potential</option>
+              {(fields.qualityCategories || [
+                'Normal',
+                'Average',
+                'Potential',
+                'Very potential',
+              ]).map((qc: string) => (
+                <option key={qc} value={qc}>
+                  {qc}
+                </option>
+              ))}
             </select>
           </div>
 

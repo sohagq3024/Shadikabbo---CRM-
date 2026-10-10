@@ -151,7 +151,24 @@
           "assignedAt": 1791457687150
         }
       ],
-      "assignedAt": 1791457687150
+      "assignedAt": 1791457687150,
+      "activityLog": [
+        {
+          "id": "act_SK-0001_created",
+          "leadId": "SK-0001",
+          "type": "created",
+          "previousStatus": null,
+          "newStatus": "active",
+          "timestamp": 1791011890561,
+          "formattedDate": "2026-10-03 10:00",
+          "user": {
+            "id": "usr_super_admin",
+            "name": "Sohag",
+            "role": "Super Admin"
+          },
+          "comment": "Candidate converted from Lead (LD-0001)"
+        }
+      ]
     },
     {
       "id": "SK-0002",
@@ -590,6 +607,71 @@
       "token": "26aee017fa8ef06f5bb120653bb57412b5bb7c823dc85eadf04f04bb7c270ff9",
       "userId": "usr_super_admin",
       "createdAt": 1791535149834
+    },
+    {
+      "token": "7c6d4477d89237838abdc409685d2d7e92bcb791afc69960e738b3cad4171959",
+      "userId": "usr_super_admin",
+      "createdAt": 1791616700970
+    },
+    {
+      "token": "0053b35632979d0b4bb920d793cffe42d82a8c58c87b32e784e529950e1f290e",
+      "userId": "usr_super_admin",
+      "createdAt": 1791617642311
+    },
+    {
+      "token": "b3162a8e7819e990d3e56510884c7a93af00b2a619acc7fdaa96746c7fd0efad",
+      "userId": "usr_mk_1",
+      "createdAt": 1791617651396
+    },
+    {
+      "token": "2a7f004ee8a8cc2cd639108e9c0c2478dea1a25597122970219a416fb1990bf8",
+      "userId": "usr_cro_1",
+      "createdAt": 1791617651762
+    },
+    {
+      "token": "3b45b29831fc467b880acccfa3a6f16b4aed0ba4642493e698ec18c9001fa1a1",
+      "userId": "usr_mk_1",
+      "createdAt": 1791617719746
+    },
+    {
+      "token": "95d38e6f8d7aba976693913c5bd9c067ab3a77da935602168bd3601bf538987a",
+      "userId": "usr_mk_1",
+      "createdAt": 1791617728490
+    },
+    {
+      "token": "dde5a65f88cd8581cdd14e7adb54b60e3a34d5e2374e7b664dcae5a2338e3dbd",
+      "userId": "usr_mk_1",
+      "createdAt": 1791617755126
+    },
+    {
+      "token": "1df518cd4876f5d7dc93e8cbe2e838d0e266c81b26300367d5436d3a86b22556",
+      "userId": "usr_super_admin",
+      "createdAt": 1791618082813
+    },
+    {
+      "token": "ed7eac0c4a5ee0828371f874a21b65dd2b221340cfc2d27380d87c9a2bfd85f1",
+      "userId": "usr_mk_1",
+      "createdAt": 1791618200293
+    },
+    {
+      "token": "9b16f5bd63dc3f14bc65fe86406cf0ba62209948ef23582e9fa40ae3853d953f",
+      "userId": "usr_super_admin",
+      "createdAt": 1791620010308
+    },
+    {
+      "token": "bd0240d2c3bae2f97a7840fe100ad2d5e5e7e2efaa987e96ef0f5ffc7712f6d1",
+      "userId": "usr_super_admin",
+      "createdAt": 1791628862518
+    },
+    {
+      "token": "d27ca058f4d77886cf80e31af6f774b0eb0b6458e6cd4926109725d65d159d1e",
+      "userId": "usr_super_admin",
+      "createdAt": 1791634724502
+    },
+    {
+      "token": "ed3b07d520fa55ee452e10dada83aa5e185838aa252fe0bb92aad6fb0c78ebba",
+      "userId": "usr_cro_1",
+      "createdAt": 1791634724572
     }
   ],
   "nextSerial": 5,
@@ -1201,52 +1283,26 @@
       "scanMethod": "qr_scanner",
       "notes": "Late by 23 minutes; Early departure by 514 mins",
       "workDurationMinutes": 2
-    }
-  ],
-  "dailyReports": [
+    },
     {
-      "id": "DLR-20261008-usr_mk_1",
-      "date": "2026-10-08",
-      "userId": "usr_mk_1",
-      "userName": "MK - Tanvir Ahmed",
+      "id": "att_2026-10-10_usr_super_admin",
+      "date": "2026-10-10",
+      "userId": "usr_super_admin",
+      "userName": "Sohag",
       "userRole": "MK",
-      "userPhone": "01700000001",
-      "attendance": {
-        "status": "Present",
-        "inTime": "-",
-        "outTime": "-",
-        "lateMinutes": 0,
-        "scanMethod": "qr_scanner",
-        "notes": ""
-      },
-      "metrics": {
-        "leadsAddedCount": 2,
-        "leadSources": {
-          "FB Message": 2
-        },
-        "trafficsAddedCount": 1,
-        "leadsTransferredToTrafficCount": 1,
-        "paidTrafficsCount": 1,
-        "sellingAmount": 15000,
-        "matchmaking": {
-          "totalServicesCount": 4,
-          "uniqueClientsCount": 3,
-          "pendingServicesCount": 1,
-          "serviceTypeBreakdown": {
-            "Incoming Call": 2,
-            "CV Send": 2
-          }
-        }
-      },
-      "manualInputs": {
-        "receivedCalls": 18,
-        "messagesAssigned": 32,
-        "notes": "Active followups with clients"
-      },
-      "submittedAt": 1791458495002,
-      "updatedAt": 1791458495002
+      "userPhone": "01723867646",
+      "inTime": "07:59 AM",
+      "inTimestamp": 1791619191390,
+      "outTime": null,
+      "outTimestamp": null,
+      "status": "present",
+      "lateMinutes": 0,
+      "earlyOutMinutes": 0,
+      "scanMethod": "qr_scanner",
+      "notes": "On time arrival"
     }
   ],
+  "dailyReports": [],
   "matchmakingLevels": [
     "Level 1",
     "Level 2",

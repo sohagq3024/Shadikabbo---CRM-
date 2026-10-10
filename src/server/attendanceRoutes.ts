@@ -12,6 +12,7 @@ import {
   isStaffDayOff,
   getStaffDayOffList,
   DAY_NAMES,
+  BANGLADESH_TIMEZONE,
 } from './attendanceService';
 
 export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, saveDB: (db: any) => void, authMiddleware: any) {
@@ -349,8 +350,12 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
 
     // Build real summary rows based on each staff member's configured weekly day-off
     const summaryList = Array.from(datesSet).map((dateStr) => {
-      const d = new Date(dateStr + 'T12:00:00');
-      const isFriday = d.getDay() === 5;
+      const parts = dateStr.split('-');
+      const d = parts.length === 3
+        ? new Date(Date.UTC(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), 6, 0, 0))
+        : new Date(dateStr + 'T12:00:00');
+      const dayName = new Intl.DateTimeFormat('en-US', { timeZone: BANGLADESH_TIMEZONE, weekday: 'short' }).format(d);
+      const isFriday = dayName.toLowerCase().startsWith('fri');
 
       const dateRecords = (db.attendance || []).filter(
         (att: AttendanceRecord) => att.date === dateStr && staff.some((s: any) => s.id === att.userId)
@@ -362,7 +367,7 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
 
       staff.forEach((member: any) => {
         const record = dateRecords.find((r: AttendanceRecord) => r.userId === member.id);
-        const isOff = isStaffDayOff(member, d);
+        const isOff = isStaffDayOff(member, dateStr);
 
         if (record && record.status === 'present') {
           presentTotal++;
@@ -379,7 +384,7 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
 
       return {
         date: dateStr,
-        dayName: d.toLocaleDateString('en-US', { weekday: 'short' }),
+        dayName,
         totalEmployees: totalStaffCount, // Only MK and CRO counted
         presentTotal,
         absentTotal,
@@ -405,8 +410,11 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
 
     const { date } = req.params;
     const staff = getStaffMembers(db);
-    const d = new Date(date + 'T12:00:00');
-    const dayOfWeekName = d.toLocaleDateString('en-US', { weekday: 'long' });
+    const dateParts = date.split('-');
+    const d = dateParts.length === 3
+      ? new Date(Date.UTC(parseInt(dateParts[0], 10), parseInt(dateParts[1], 10) - 1, parseInt(dateParts[2], 10), 6, 0, 0))
+      : new Date(date + 'T12:00:00');
+    const dayOfWeekName = new Intl.DateTimeFormat('en-US', { timeZone: BANGLADESH_TIMEZONE, weekday: 'long' }).format(d);
 
     const presentList: any[] = [];
     const absentList: any[] = [];
@@ -462,7 +470,13 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
 
     res.json({
       date,
-      dayName: d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
+      dayName: new Intl.DateTimeFormat('en-US', {
+        timeZone: BANGLADESH_TIMEZONE,
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      }).format(d),
       totalEmployees: staff.length,
       presentCount: presentList.length,
       absentCount: absentList.length,
@@ -508,8 +522,8 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
       const dateStr = formatDateYMD(dayDate);
       const isFuture = dateStr > todayStr;
       const isIndividualDayOff = isStaffDayOff(user, dayDate);
-      const dayNameShort = dayDate.toLocaleDateString('en-US', { weekday: 'short' });
-      const dayNameFull = dayDate.toLocaleDateString('en-US', { weekday: 'long' });
+      const dayNameShort = new Intl.DateTimeFormat('en-US', { timeZone: BANGLADESH_TIMEZONE, weekday: 'short' }).format(dayDate);
+      const dayNameFull = new Intl.DateTimeFormat('en-US', { timeZone: BANGLADESH_TIMEZONE, weekday: 'long' }).format(dayDate);
 
       const record = (db.attendance || []).find(
         (a: AttendanceRecord) => a.date === dateStr && a.userId === user.id
@@ -561,10 +575,11 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
       });
     }
 
-    const monthName = new Date(year, monthIndex, 1).toLocaleDateString('en-US', {
+    const monthName = new Intl.DateTimeFormat('en-US', {
+      timeZone: BANGLADESH_TIMEZONE,
       month: 'long',
       year: 'numeric',
-    });
+    }).format(new Date(year, monthIndex, 1));
 
     res.json({
       employee: {
@@ -578,6 +593,14 @@ export function setupAttendanceRoutes(app: express.Express, loadDB: () => any, s
       monthName,
       userWeeklyOffDays: userOffDays,
       stats: {
+        totalDays: daysInMonth,
+        presentCount,
+        absentCount,
+        dayOffCount,
+        totalLateMinutes,
+        totalEarlyOutMinutes,
+      },
+      summary: {
         totalDays: daysInMonth,
         presentCount,
         absentCount,

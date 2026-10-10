@@ -22,6 +22,7 @@ import {
   X,
   RefreshCw,
   Power,
+  Rows3,
 } from 'lucide-react';
 
 interface AccountUser {
@@ -56,6 +57,25 @@ export const AccountPage: React.FC<AccountPageProps> = ({ user, token, onUpdateC
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  // Compact mode for data table (persisted to localStorage)
+  const [isCompact, setIsCompact] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('crm_account_compact') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleCompact = () => {
+    setIsCompact((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('crm_account_compact', String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -147,15 +167,15 @@ export const AccountPage: React.FC<AccountPageProps> = ({ user, token, onUpdateC
   });
 
   return (
-    <div className="space-y-4 max-w-7xl mx-auto pb-12">
+    <div className="space-y-4 pb-12">
       {/* ==================================================
           PAGE HEADER: Title, Summary & "Add Account" Button
       ================================================== */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-xs">
+      <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-[#181E54] text-white flex items-center justify-center shadow-xs">
+              <div className="w-10 h-10 rounded-xl bg-[#181E54] text-white flex items-center justify-center shadow-xs">
                 <Shield className="w-5 h-5 text-amber-400" />
               </div>
               <div>
@@ -171,12 +191,38 @@ export const AccountPage: React.FC<AccountPageProps> = ({ user, token, onUpdateC
             </div>
           </div>
 
-          {/* Top Right Action: "Add Account" Button (Super Admin only) */}
-          <div className="flex items-center gap-2.5 shrink-0">
+          {/* Top Right Actions & Quick Stats */}
+          <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+            {/* Quick Count Badge */}
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-600">
+              <span>Total Staff:</span>
+              <span className="font-bold font-mono text-[#181E54]">{accounts.length}</span>
+              <span className="text-slate-300">|</span>
+              <span className="text-emerald-700 font-semibold">{accounts.filter(a => a.status !== 'suspended').length} Active</span>
+            </div>
+
+            {/* Compact Mode Toggle */}
+            <button
+              type="button"
+              onClick={toggleCompact}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                isCompact
+                  ? 'bg-[#181E54] text-white border-[#181E54] shadow-2xs'
+                  : 'bg-white text-slate-700 border-slate-200/80 hover:bg-slate-50 hover:text-slate-900'
+              }`}
+              title={isCompact ? 'Compact mode active (click for standard view)' : 'Click to enable compact mode'}
+            >
+              <Rows3 className="w-3.5 h-3.5" />
+              <span>Compact</span>
+              {isCompact && (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              )}
+            </button>
+
             <button
               type="button"
               onClick={loadAccounts}
-              className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl border border-slate-200/80 transition-colors cursor-pointer"
               title="Refresh Accounts"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -195,18 +241,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({ user, token, onUpdateC
           </div>
         </div>
 
-        {/* Notice for CRO / MK */}
-        {!isSuperAdmin && (
-          <div className="mt-3.5 p-3 rounded-xl bg-blue-50 border border-blue-200/70 text-xs text-blue-900 flex items-start gap-2.5">
-            <Lock className="w-4 h-4 text-[#181E54] shrink-0 mt-0.5" />
-            <div>
-              <span className="font-bold">Staff Account Notice:</span> You can update your basic profile
-              information (Name, Gender, Personal Phone, Locations, Email, Picture). Official login number
-              and password are secure and managed exclusively by Super Admin.
-            </div>
-          </div>
-        )}
-
         {/* Search & Filters (Super Admin only or multiple accounts) */}
         {isSuperAdmin && (
           <div className="mt-4 pt-3.5 border-t border-slate-100 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
@@ -223,11 +257,11 @@ export const AccountPage: React.FC<AccountPageProps> = ({ user, token, onUpdateC
             </div>
 
             {/* Filter Controls */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium focus:outline-none focus:border-[#181E54]"
+                className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-semibold focus:outline-none focus:border-[#181E54]"
               >
                 <option value="all">All Roles</option>
                 <option value="Super Admin">Super Admin</option>
@@ -238,12 +272,26 @@ export const AccountPage: React.FC<AccountPageProps> = ({ user, token, onUpdateC
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium focus:outline-none focus:border-[#181E54]"
+                className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-semibold focus:outline-none focus:border-[#181E54]"
               >
                 <option value="all">All Status</option>
                 <option value="active">Active</option>
                 <option value="suspended">Suspended</option>
               </select>
+
+              {(searchQuery || roleFilter !== 'all' || statusFilter !== 'all') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setRoleFilter('all');
+                    setStatusFilter('all');
+                  }}
+                  className="px-2.5 py-1.5 text-xs text-[#D81124] hover:underline font-semibold cursor-pointer"
+                >
+                  Reset
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -251,17 +299,23 @@ export const AccountPage: React.FC<AccountPageProps> = ({ user, token, onUpdateC
 
       {/* ==================================================
           ACCOUNTS TABLE
-          Columns:
-          1. Name (with profile picture on the far left)
-          2. Role (CRO, MK, Super Admin)
-          3. Joining Date
-          4. Action (Update & edit Account, Suspend and active Account)
+          Columns matching CRM standard style:
+          - Serial (1, 2, 3...)
+          - Employee / Staff Name with Avatar & Subtitle
+          - Role (CRO, MK, Super Admin)
+          - Branch
+          - Official Phone (Login)
+          - Joining Date
+          - Status (Active / Suspended)
+          - Action (Update & edit, Suspend/Activate, Delete)
       ================================================== */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+      <div className="-mt-1 sm:-mt-1.5 bg-white rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
         {loading ? (
-          <div className="py-16 text-center">
-            <div className="w-8 h-8 border-3 border-[#181E54] border-t-[#D81124] rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-xs text-slate-500 font-medium">Loading account records...</p>
+          <div className="py-16 text-center text-slate-400">
+            <div className="flex flex-col items-center justify-center gap-2">
+              <div className="w-7 h-7 border-2 border-[#181E54] border-t-transparent rounded-full animate-spin" />
+              <span className="text-xs font-medium text-slate-500">Loading account records...</span>
+            </div>
           </div>
         ) : error ? (
           <div className="py-12 text-center text-red-600 px-4">
@@ -277,9 +331,9 @@ export const AccountPage: React.FC<AccountPageProps> = ({ user, token, onUpdateC
         ) : filteredAccounts.length === 0 ? (
           <div className="py-16 text-center text-slate-500 px-4">
             <User className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-            <p className="text-xs font-semibold text-slate-700">No account records found</p>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              {searchQuery ? 'Try adjusting your search criteria' : 'Click "Add Account" to register staff'}
+            <p className="text-sm font-semibold text-slate-700">No account records found</p>
+            <p className="text-xs text-slate-400 mt-1">
+              {searchQuery ? 'Try adjusting your search criteria' : 'Click "Add Account" above to register staff'}
             </p>
             {isSuperAdmin && !searchQuery && (
               <button
@@ -294,19 +348,20 @@ export const AccountPage: React.FC<AccountPageProps> = ({ user, token, onUpdateC
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                  <th className="py-3 px-4 min-w-[220px]">Employee Name</th>
-                  <th className="py-3 px-3.5">Role</th>
-                  <th className="py-3 px-3.5">Branch</th>
-                  <th className="py-3 px-3.5">Official Number (Login)</th>
-                  <th className="py-3 px-3.5">Joining Date</th>
-                  <th className="py-3 px-3.5">Status</th>
-                  <th className="py-3 px-4 text-right min-w-[140px]">Action</th>
+            <table className="w-full text-left text-xs min-w-[1050px]">
+              <thead className="bg-[#181E54] text-white uppercase tracking-wider font-semibold">
+                <tr>
+                  <th className={`${isCompact ? 'py-1.5 px-2 sm:px-2.5 text-[9.5px]' : 'py-2.5 px-2.5 sm:px-3 text-[10px]'} font-semibold w-14`}>Serial</th>
+                  <th className={`${isCompact ? 'py-1.5 px-2 sm:px-2.5 text-[9.5px]' : 'py-2.5 px-2.5 sm:px-3 text-[10px]'} font-semibold min-w-[220px]`}>Employee / Staff</th>
+                  <th className={`${isCompact ? 'py-1.5 px-2 sm:px-2.5 text-[9.5px]' : 'py-2.5 px-2.5 sm:px-3 text-[10px]'} font-semibold w-28`}>Role</th>
+                  <th className={`${isCompact ? 'py-1.5 px-2 sm:px-2.5 text-[9.5px]' : 'py-2.5 px-2.5 sm:px-3 text-[10px]'} font-semibold w-28`}>Branch</th>
+                  <th className={`${isCompact ? 'py-1.5 px-2 sm:px-2.5 text-[9.5px]' : 'py-2.5 px-2.5 sm:px-3 text-[10px]'} font-semibold w-40`}>Official Number (Login)</th>
+                  <th className={`${isCompact ? 'py-1.5 px-2 sm:px-2.5 text-[9.5px]' : 'py-2.5 px-2.5 sm:px-3 text-[10px]'} font-semibold w-32`}>Joining Date</th>
+                  <th className={`${isCompact ? 'py-1.5 px-2 sm:px-2.5 text-[9.5px]' : 'py-2.5 px-2.5 sm:px-3 text-[10px]'} font-semibold w-28`}>Status</th>
+                  <th className={`${isCompact ? 'py-1.5 px-2 sm:px-2.5 text-[9.5px]' : 'py-2.5 px-2.5 sm:px-3 text-[10px]'} font-semibold text-right w-28`}>Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-xs">
+              <tbody className="divide-y divide-slate-100 text-slate-700">
                 {filteredAccounts.map((acc, index) => {
                   const isSuspended = acc.status === 'suspended';
                   const isPrimaryAdmin = acc.id === 'usr_super_admin';
@@ -314,16 +369,21 @@ export const AccountPage: React.FC<AccountPageProps> = ({ user, token, onUpdateC
                   return (
                     <tr
                       key={acc.id}
-                      className={`hover:bg-slate-50/70 transition-colors ${
-                        isSuspended ? 'bg-rose-50/20' : ''
-                      }`}
+                      className={`hover:bg-slate-50/80 transition-colors ${
+                        isSuspended ? 'bg-rose-50/30' : ''
+                      } ${isCompact ? 'text-[11px]' : 'text-xs'}`}
                     >
+                      {/* Serial Number */}
+                      <td className={`${isCompact ? 'py-1.5 px-2 sm:px-2.5 text-[11px]' : 'py-3 px-2.5 sm:px-3 text-xs'} font-mono font-semibold text-slate-500 w-14`}>
+                        {index + 1}
+                      </td>
+
                       {/* 1. Name with Profile Picture on the far left */}
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-3">
+                      <td className={`${isCompact ? 'py-1.5 px-2 sm:px-2.5' : 'py-3 px-2.5 sm:px-3'} min-w-[220px]`}>
+                        <div className={`flex items-center ${isCompact ? 'gap-2' : 'gap-3'}`}>
                           {/* Profile Picture Thumbnail */}
                           <div className="relative shrink-0">
-                            <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-200 shadow-2xs bg-slate-100 flex items-center justify-center">
+                            <div className={`${isCompact ? 'w-7 h-7 sm:w-8 sm:h-8' : 'w-10 h-10'} rounded-full overflow-hidden border border-slate-200 shadow-2xs bg-slate-100 flex items-center justify-center`}>
                               {acc.profilePicture ? (
                                 <img
                                   src={acc.profilePicture}
@@ -332,7 +392,9 @@ export const AccountPage: React.FC<AccountPageProps> = ({ user, token, onUpdateC
                                 />
                               ) : (
                                 <div
-                                  className={`w-full h-full flex items-center justify-center font-bold text-xs ${
+                                  className={`w-full h-full flex items-center justify-center font-bold ${
+                                    isCompact ? 'text-[10px]' : 'text-xs'
+                                  } ${
                                     acc.role === 'Super Admin'
                                       ? 'bg-amber-100 text-amber-900'
                                       : acc.role === 'CRO'
@@ -346,7 +408,9 @@ export const AccountPage: React.FC<AccountPageProps> = ({ user, token, onUpdateC
                             </div>
                             {/* Online / Status dot */}
                             <span
-                              className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
+                              className={`absolute -bottom-0.5 -right-0.5 ${
+                                isCompact ? 'w-2.5 h-2.5 border-[1.5px]' : 'w-3 h-3 border-2'
+                              } rounded-full border-white ${
                                 isSuspended ? 'bg-red-500' : 'bg-emerald-500'
                               }`}
                               title={isSuspended ? 'Suspended' : 'Active Account'}
@@ -355,23 +419,29 @@ export const AccountPage: React.FC<AccountPageProps> = ({ user, token, onUpdateC
 
                           {/* Name & Contact preview */}
                           <div className="min-w-0">
-                            <div className="font-bold text-slate-900 text-xs truncate flex items-center gap-1.5">
+                            <div className={`font-bold text-[#181E54] truncate flex items-center gap-1.5 ${
+                              isCompact ? 'text-xs' : 'text-xs sm:text-sm'
+                            }`}>
                               <span>{acc.name}</span>
                               {acc.id === user?.id && (
-                                <span className="px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded text-[9px] font-semibold">
+                                <span className={`bg-blue-50 text-blue-700 rounded font-bold border border-blue-200/60 ${
+                                  isCompact ? 'px-1 py-0.2 text-[9px]' : 'px-1.5 py-0.5 text-[10px]'
+                                }`}>
                                   You
                                 </span>
                               )}
                             </div>
-                            <div className="text-[11px] text-slate-500 truncate flex items-center gap-1 mt-0.5">
+                            <div className={`text-slate-500 truncate flex items-center gap-1.5 ${
+                              isCompact ? 'text-[10px]' : 'text-[11px] mt-0.5'
+                            }`}>
                               {acc.email ? (
                                 <>
-                                  <Mail className="w-3 h-3 text-slate-400" />
-                                  <span>{acc.email}</span>
+                                  <Mail className={`${isCompact ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-slate-400 shrink-0`} />
+                                  <span className="truncate">{acc.email}</span>
                                 </>
                               ) : acc.personalPhone ? (
                                 <>
-                                  <Phone className="w-3 h-3 text-slate-400" />
+                                  <Phone className={`${isCompact ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-slate-400 shrink-0`} />
                                   <span>{acc.personalPhone}</span>
                                 </>
                               ) : (
@@ -383,9 +453,11 @@ export const AccountPage: React.FC<AccountPageProps> = ({ user, token, onUpdateC
                       </td>
 
                       {/* 2. Role (Super Admin, CRO, MK) */}
-                      <td className="py-3 px-3.5">
+                      <td className={`${isCompact ? 'py-1.5 px-2 sm:px-2.5' : 'py-3 px-2.5 sm:px-3'} w-28`}>
                         <span
-                          className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold ${
+                          className={`inline-flex items-center rounded-lg font-bold ${
+                            isCompact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'
+                          } ${
                             acc.role === 'Super Admin'
                               ? 'bg-amber-50 text-amber-800 border border-amber-200'
                               : acc.role === 'CRO'
@@ -398,55 +470,63 @@ export const AccountPage: React.FC<AccountPageProps> = ({ user, token, onUpdateC
                       </td>
 
                       {/* Branch */}
-                      <td className="py-3 px-3.5">
-                        <div className="flex items-center gap-1.5 text-slate-700 font-medium">
-                          <Building className="w-3.5 h-3.5 text-slate-400" />
+                      <td className={`${isCompact ? 'py-1.5 px-2 sm:px-2.5' : 'py-3 px-2.5 sm:px-3'} w-28`}>
+                        <div className={`flex items-center gap-1.5 text-slate-800 font-semibold ${
+                          isCompact ? 'text-[11px]' : 'text-xs'
+                        }`}>
+                          <Building className={`${isCompact ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-slate-400 shrink-0`} />
                           <span>{acc.branch || 'Uttara'}</span>
                         </div>
                       </td>
 
                       {/* 3. Official Number (Login number) */}
-                      <td className="py-3 px-3.5 font-mono font-semibold text-slate-800">
+                      <td className={`${isCompact ? 'py-1.5 px-2 sm:px-2.5 text-[11px]' : 'py-3 px-2.5 sm:px-3 text-xs'} w-40 font-mono font-semibold text-slate-800`}>
                         <div className="flex items-center gap-1.5">
-                          <Phone className="w-3.5 h-3.5 text-[#181E54]" />
+                          <Phone className={`${isCompact ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-[#181E54] shrink-0`} />
                           <span>{acc.phone}</span>
                         </div>
                       </td>
 
                       {/* 4. Joining Date */}
-                      <td className="py-3 px-3.5 text-slate-600">
-                        <div className="flex items-center gap-1.5 font-mono text-[11px]">
-                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                      <td className={`${isCompact ? 'py-1.5 px-2 sm:px-2.5 text-[11px]' : 'py-3 px-2.5 sm:px-3 text-xs'} w-32 text-slate-600 font-mono`}>
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className={`${isCompact ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-slate-400 shrink-0`} />
                           <span>{acc.joiningDate || '2024-01-15'}</span>
                         </div>
                       </td>
 
                       {/* Status */}
-                      <td className="py-3 px-3.5">
+                      <td className={`${isCompact ? 'py-1.5 px-2 sm:px-2.5' : 'py-3 px-2.5 sm:px-3'} w-28`}>
                         {isSuspended ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">
-                            <XCircle className="w-3 h-3" />
-                            Suspended
+                          <span className={`inline-flex items-center gap-1 rounded-full font-bold bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs ${
+                            isCompact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'
+                          }`}>
+                            <XCircle className={`${isCompact ? 'w-3 h-3' : 'w-3.5 h-3.5'} shrink-0`} />
+                            <span>Suspended</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">
-                            <CheckCircle className="w-3 h-3" />
-                            Active
+                          <span className={`inline-flex items-center gap-1 rounded-full font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs ${
+                            isCompact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'
+                          }`}>
+                            <CheckCircle className={`${isCompact ? 'w-3 h-3' : 'w-3.5 h-3.5'} shrink-0`} />
+                            <span>Active</span>
                           </span>
                         )}
                       </td>
 
                       {/* 5. Action (Update & edit Account, Suspend and active Account) */}
-                      <td className="py-3 px-4 text-right">
+                      <td className={`${isCompact ? 'py-1.5 px-2 sm:px-2.5' : 'py-3 px-2.5 sm:px-3'} text-right w-28`}>
                         <div className="flex items-center justify-end gap-1.5">
                           {/* Edit / Update Button */}
                           <button
                             type="button"
                             onClick={() => setEditingAccount(acc)}
-                            className="p-1.5 rounded-lg text-slate-600 hover:text-[#181E54] hover:bg-slate-100 transition-colors cursor-pointer"
+                            className={`${
+                              isCompact ? 'p-1 sm:p-1.5' : 'p-1.5 sm:p-2'
+                            } rounded-lg text-slate-600 hover:text-[#181E54] hover:bg-slate-100 border border-slate-200/80 transition-colors cursor-pointer`}
                             title={isSuperAdmin ? 'Update and edit Account' : 'Edit profile info'}
                           >
-                            <Edit className="w-3.5 h-3.5" />
+                            <Edit className={`${isCompact ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
                           </button>
 
                           {/* Super Admin specific actions: Suspend / Active & Delete */}
@@ -456,14 +536,16 @@ export const AccountPage: React.FC<AccountPageProps> = ({ user, token, onUpdateC
                               <button
                                 type="button"
                                 onClick={() => setAccountToSuspend(acc)}
-                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                                className={`${
+                                  isCompact ? 'p-1 sm:p-1.5' : 'p-1.5 sm:p-2'
+                                } rounded-lg border border-slate-200/80 transition-colors cursor-pointer ${
                                   isSuspended
                                     ? 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
                                     : 'text-amber-600 hover:text-amber-700 hover:bg-amber-50'
                                 }`}
                                 title={isSuspended ? 'Activate Account' : 'Suspend Account'}
                               >
-                                <Power className="w-3.5 h-3.5" />
+                                <Power className={`${isCompact ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
                               </button>
 
                               {/* Delete Account */}
@@ -471,10 +553,12 @@ export const AccountPage: React.FC<AccountPageProps> = ({ user, token, onUpdateC
                                 <button
                                   type="button"
                                   onClick={() => setAccountToDelete(acc)}
-                                  className="p-1.5 rounded-lg text-slate-400 hover:text-[#D81124] hover:bg-rose-50 transition-colors cursor-pointer"
+                                  className={`${
+                                    isCompact ? 'p-1 sm:p-1.5' : 'p-1.5 sm:p-2'
+                                  } rounded-lg text-slate-400 hover:text-[#D81124] hover:bg-rose-50 border border-slate-200/80 transition-colors cursor-pointer`}
                                   title="Delete Account"
                                 >
-                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <Trash2 className={`${isCompact ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
                                 </button>
                               )}
                             </>

@@ -11,6 +11,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { PWAInstallButton } from './PWAInstallButton';
+import { formatBangladeshDateYMD } from '../utils/bangladeshTime';
 
 interface StaffAttendancePageProps {
   user: any;
@@ -24,8 +25,7 @@ export const StaffAttendancePage: React.FC<StaffAttendancePageProps> = ({
   onOpenScanner,
 }) => {
   const currentMonthStr = () => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    return formatBangladeshDateYMD(new Date()).substring(0, 7);
   };
 
   const [selectedMonth, setSelectedMonth] = useState(currentMonthStr);
@@ -58,7 +58,7 @@ export const StaffAttendancePage: React.FC<StaffAttendancePageProps> = ({
     }
   }, [user?.id, selectedMonth, token]);
 
-  const summary = attendanceData?.summary || {
+  const summary = attendanceData?.stats || attendanceData?.summary || {
     presentCount: 0,
     absentCount: 0,
     dayOffCount: 0,

@@ -15,6 +15,7 @@ import { AccountPage } from './components/AccountPage';
 import { MatchmakingPage } from './components/MatchmakingPage';
 import { DashboardPage } from './components/DashboardPage';
 import { DailyReportPage } from './components/DailyReportPage';
+import { AllProfilePage } from './components/AllProfilePage';
 import { CrmFieldsProvider } from './context/CrmFieldsContext';
 import { initTactileEffects } from './utils/tactileEffects';
 
@@ -273,7 +274,9 @@ export default function App() {
         {/* Super Admin specific sections */}
         {(activePage === 'Trash Bin' || activePage === 'Trush bin') && <TrashBinPage token={token} />}
         {activePage === 'Settings' && <SettingsPage token={token} />}
-        {activePage === 'Tracking' && <EmptyPage title="Tracking" />}
+        {(activePage === 'All Profile' || activePage === 'Tracking') && (
+          <AllProfilePage token={token} user={user} />
+        )}
       </CrmLayout>
     </CrmFieldsProvider>
   );

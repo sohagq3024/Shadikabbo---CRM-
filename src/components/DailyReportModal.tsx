@@ -64,7 +64,11 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
       });
       if (!res.ok) throw new Error('Failed to load real-time daily metrics');
       const json = await res.json();
-      setLiveData(json.liveData || {});
+      setLiveData({
+        ...(json.liveData || {}),
+        date: json.date,
+        user: json.user,
+      });
       setExistingReport(json.existingReport || null);
 
       if (json.existingReport) {
