@@ -76,7 +76,29 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
     setZoomLevel(78);
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
+    let logoDataUrl: string;
+    try {
+      const logoResponse = await fetch('/shadikabbo-logo.png');
+      if (!logoResponse.ok) throw new Error('Official logo request failed.');
+      const logoBlob = await logoResponse.blob();
+      if (!logoBlob.type.startsWith('image/') || logoBlob.size === 0) {
+        throw new Error('Official logo response was not a valid image.');
+      }
+      logoDataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (typeof reader.result === 'string') resolve(reader.result);
+          else reject(new Error('Could not encode the official logo.'));
+        };
+        reader.onerror = () => reject(new Error('Could not read the official logo.'));
+        reader.readAsDataURL(logoBlob);
+      });
+    } catch {
+      window.alert('The official Shadikabbo logo could not be loaded, so the invoice was not downloaded. Check your connection and try again.');
+      return;
+    }
+
     // Generate an authentic standalone HTML invoice document
     const htmlContent = `<!DOCTYPE html>
 <html lang="en">
@@ -397,10 +419,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
       <!-- HEADER -->
       <div class="header-row">
         <div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="font-family: 'Outfit', sans-serif; font-size: 26px; font-weight: 900; color: #181e54; letter-spacing: -0.5px;">SHADI</span>
-            <span style="font-family: 'Outfit', sans-serif; font-size: 26px; font-weight: 900; color: #d81124; letter-spacing: -0.5px;">KABBO.COM</span>
-          </div>
+          <img src="${logoDataUrl}" alt="Shadikabbo.com" style="display: block; width: 205px; max-width: 100%; height: auto;" />
           <div class="brand-subtitle">Premium Matrimonial CRM &amp; Matchmaking Consultancy</div>
         </div>
 

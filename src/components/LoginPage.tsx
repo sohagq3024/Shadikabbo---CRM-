@@ -67,8 +67,27 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             <ShadikabboLogo size="xl" />
           </div>
 
-          <div className="w-full">
+          <div className="w-full login-carousel-brand">
             <LoginSlideCarousel />
+            <style>{`
+              .login-carousel-brand > div > div:first-child > div:first-child > svg {
+                opacity: 0;
+              }
+              .login-carousel-brand > div > div:first-child > div:first-child::after {
+                content: "";
+                position: absolute;
+                width: 84%;
+                height: 54%;
+                border-radius: 18px;
+                background-color: #fff;
+                background-image: url("/shadikabbo-logo.png");
+                background-position: center;
+                background-repeat: no-repeat;
+                background-size: 88% auto;
+                box-shadow: 0 14px 34px rgba(6, 12, 45, 0.18);
+                pointer-events: none;
+              }
+            `}</style>
           </div>
         </div>
 
@@ -99,6 +118,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   </div>
                   <input
                     type="tel"
+                    autoComplete="username"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
                     placeholder="Enter official phone number"
@@ -119,6 +139,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   </div>
                   <input
                     type="password"
+                    autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••••••"

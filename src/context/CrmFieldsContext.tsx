@@ -35,6 +35,7 @@ export const CrmFieldsProvider: React.FC<{ children: React.ReactNode; token?: st
   const [error, setError] = useState<string | null>(null);
 
   const fetchSettings = useCallback(async () => {
+    setError(null);
     setIsLoading(true);
     setError(null);
     try {
@@ -42,6 +43,7 @@ export const CrmFieldsProvider: React.FC<{ children: React.ReactNode; token?: st
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
       const res = await fetch('/api/settings/fields', { headers });
+      if (!res.ok) throw new Error('Live settings could not be loaded. Please retry.');
       if (res.ok) {
         const data = await res.json();
         if (data.fields) {
@@ -58,7 +60,7 @@ export const CrmFieldsProvider: React.FC<{ children: React.ReactNode; token?: st
         }
       }
     } catch (err: any) {
-      console.warn('Using default seedings due to network/server response:', err);
+      setError(err.message || 'Live settings are unavailable. Changes have not been saved.');
     } finally {
       setIsLoading(false);
     }
@@ -69,6 +71,7 @@ export const CrmFieldsProvider: React.FC<{ children: React.ReactNode; token?: st
   }, [fetchSettings]);
 
   const saveFieldsToServer = async (newFields: CrmFieldSeedings): Promise<boolean> => {
+    setError(null);
     try {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -82,12 +85,12 @@ export const CrmFieldsProvider: React.FC<{ children: React.ReactNode; token?: st
       });
 
       if (!res.ok) throw new Error('Failed to save field settings');
-      setFields(newFields);
+      const confirmed = await res.json();
+      if (!confirmed.fields || typeof confirmed.fields !== 'object') throw new Error('The server did not confirm the saved field settings.');
+      setFields({ ...DEFAULT_FIELD_SEEDINGS, ...confirmed.fields });
       return true;
     } catch (err: any) {
       setError(err.message || 'Error saving fields');
-      // Local optimistic fallback
-      setFields(newFields);
       return false;
     }
   };
@@ -213,6 +216,7 @@ export const CrmFieldsProvider: React.FC<{ children: React.ReactNode; token?: st
   };
 
   const updateAgencySettings = async (newSettings: Partial<AgencySettings>): Promise<boolean> => {
+    setError(null);
     const updated = {
       ...agencySettings,
       ...newSettings,
@@ -230,11 +234,12 @@ export const CrmFieldsProvider: React.FC<{ children: React.ReactNode; token?: st
       });
 
       if (!res.ok) throw new Error('Failed to save agency settings');
-      setAgencySettings(updated);
+      const confirmed = await res.json();
+      if (!confirmed.agencySettings || typeof confirmed.agencySettings !== 'object') throw new Error('The server did not confirm the saved agency settings.');
+      setAgencySettings({ ...DEFAULT_AGENCY_SETTINGS, ...confirmed.agencySettings });
       return true;
     } catch (err: any) {
       setError(err.message || 'Error saving agency settings');
-      setAgencySettings(updated);
       return false;
     }
   };

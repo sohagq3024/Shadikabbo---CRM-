@@ -76,7 +76,11 @@ export function mediaSession(req: Request): string | null {
 
 export class MediaStorage {
   private storageClient?: StorageClient;
-  constructor(client?: StorageClient) { this.storageClient = client; }
+  private readonly injected: boolean;
+  constructor(client?: StorageClient) {
+    this.storageClient = client;
+    this.injected = !!client;
+  }
 
   private get client(): StorageClient {
     // The SDK starts asynchronous initialization in its constructor. Construct
@@ -86,7 +90,60 @@ export class MediaStorage {
   }
 
   async ready(): Promise<boolean> {
-    try { return (await this.client.list({ maxResults: 1 })).ok; } catch { return false; }
+    try {
+      const ready = (await this.client.list({ maxResults: 1 })).ok;
+      if (!ready && !this.injected) this.storageClient = undefined;
+      return ready;
+    } catch {
+      if (!this.injected) this.storageClient = undefined;
+      return false;
+    }
+  }
+
+  async listKeys(): Promise<string[]> {
+    try {
+      const result = await this.client.list();
+      if (!result.ok) throw new Error('List unavailable');
+      return result.value.map(item => item.name);
+    } catch { throw new MediaError('Replit Default App Storage is unavailable.', 503); }
+  }
+
+  async removeObject(key: string): Promise<boolean> {
+    if (!mediaKey(PREFIX + key)) return false;
+    try { return (await this.client.delete(key, { ignoreNotFound: true })).ok; } catch { return false; }
+  }
+
+  async inlineBackup(value: any): Promise<any> {
+    const downloaded = new Map<string, string>();
+    let total = 0;
+    const walk = async (item: any, fileField = false): Promise<any> => {
+      if (typeof item === 'string') {
+        const key = fileField && mediaKey(item);
+        if (!key) return item;
+        if (downloaded.has(key)) return downloaded.get(key);
+        try {
+          const result = await this.client.downloadAsBytes(key);
+          if (!result.ok) throw new Error('Download failed');
+          const bytes = result.value[0];
+          total += bytes.length;
+          if (total > 100 * 1024 * 1024) throw new MediaError('This backup exceeds 100MB. Use a larger provider export rather than a partial backup.', 413);
+          const uri = `data:${TYPES[key.split('.').pop()!]};base64,${bytes.toString('base64')}`;
+          downloaded.set(key, uri);
+          return uri;
+        } catch (error) {
+          if (error instanceof MediaError) throw error;
+          throw new MediaError('A customer file could not be included. No partial backup was downloaded.', 503);
+        }
+      }
+      if (Array.isArray(item)) return Promise.all(item.map(child => walk(child, fileField)));
+      if (item && typeof item === 'object') {
+        const output: Record<string, any> = {};
+        for (const [key, child] of Object.entries(item)) output[key] = await walk(child, FILE_FIELDS.has(key));
+        return output;
+      }
+      return item;
+    };
+    return walk(value);
   }
 
   async externalize(value: any, uploaded: string[] = [], depth = 0, fileField = false, shared = new Map<string, string>()): Promise<{ value: any; count: number }> {
@@ -160,6 +217,7 @@ export class MediaStorage {
       try {
         const result = await this.externalize(req.body, uploaded);
         req.body = result.value;
+        res.locals.mediaUploaded = uploaded;
         res.once('finish', () => { if (res.statusCode >= 400) void this.cleanup(uploaded); });
         next();
       } catch (error) {

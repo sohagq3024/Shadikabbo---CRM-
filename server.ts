@@ -17,6 +17,9 @@ import { setupDailyReportRoutes } from './src/server/dailyReportRoutes';
 import { NeonStore } from './src/server/neonStore';
 import { cleanupImportedDemos } from './src/server/demoCleanup';
 import { MediaStorage, mediaKey, mediaCookie, mediaSession } from './src/server/mediaStorage';
+import { collectMediaKeys, migrateLegacyMedia, trackUploadedMedia } from './src/server/mediaLifecycle';
+import { registerSystemRoutes, startMediaMaintenance } from './src/server/systemRoutes';
+import { hashPassword, verifyPassword } from './src/server/passwords';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,10 +33,6 @@ app.use(express.urlencoded({ extended: true, limit: '60mb' }));
 // Used only to import existing records into an empty Neon database.
 const DATA_DIR = path.resolve(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'crm_store.json');
-
-function hashPassword(password: string): string {
-  return crypto.createHash('sha256').update(password + '_shadikabbo_salt_2026').digest('hex');
-}
 
 // Initial DB initialization
 interface SystemUser {
@@ -106,9 +105,26 @@ app.use('/api', mediaStorage.middleware(async req => {
   const token = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null;
   return !!token && !!await neonStore.sessionUser(token);
 }));
+// These routes use independent read/maintenance operations, not nested CRM locks.
+registerSystemRoutes(app, neonStore, mediaStorage);
 // Authenticate/uploads before acquiring the CRM write lock. Slow file
 // transfers must not hold the Neon transaction open.
 app.use('/api', neonStore.middleware);
+app.use('/api', (req, res, next) => {
+  const incoming = collectMediaKeys(req.body);
+  if (!incoming.size) return next();
+  const current = neonStore.load();
+  const referenced = collectMediaKeys(current);
+  const uploaded = new Set<string>(res.locals.mediaUploaded || []);
+  if ([...incoming].some(key => !referenced.has(key) && !uploaded.has(key))) {
+    return void res.status(400).json({ error: 'An attachment is no longer available. Reload the record or upload the file again. No changes were saved.' });
+  }
+  if (uploaded.size) {
+    trackUploadedMedia(current, [...uploaded]);
+    neonStore.save(current);
+  }
+  next();
+});
 
 // Private media is outside the CRM transaction middleware, so downloading a
 // PDF does not lock every CRM request while bytes are retrieved from storage.
@@ -233,9 +249,9 @@ function sanitizeUser(u: SystemUser) {
     phone: u.phone,
     name: u.name,
     role: u.role,
-    gender: u.gender || 'Male',
-    joiningDate: u.joiningDate || '2024-01-15',
-    branch: u.branch || (u.role === 'CRO' ? 'Dhanmondi' : 'Uttara'),
+    gender: u.gender || '',
+    joiningDate: u.joiningDate || '',
+    branch: u.branch || '',
     personalPhone: u.personalPhone || '',
     presentLocation: u.presentLocation || '',
     currentLocation: u.currentLocation || '',
@@ -249,7 +265,7 @@ function sanitizeUser(u: SystemUser) {
 // --- AUTHENTICATION API ---
 app.post('/api/auth/login', (req, res) => {
   const { phone, password } = req.body;
-  if (!phone || !password) {
+  if (typeof phone !== 'string' || typeof password !== 'string' || !phone || !password || password.length > 512) {
     return res.status(400).json({ error: 'Official phone number and password are required' });
   }
 
@@ -265,10 +281,11 @@ app.post('/api/auth/login', (req, res) => {
     return res.status(403).json({ error: 'This account has been suspended. Please contact Super Admin.' });
   }
 
-  const hashed = hashPassword(password);
-  if (user.passwordHash !== hashed) {
+  if (!verifyPassword(password, user.passwordHash)) {
     return res.status(401).json({ error: 'Invalid phone number or password' });
   }
+  // Upgrade imported hashes on successful login without changing credentials.
+  if (!user.passwordHash.startsWith('scrypt$')) user.passwordHash = hashPassword(password);
 
   const token = crypto.randomBytes(32).toString('hex');
   db.sessions.push({
@@ -3168,9 +3185,13 @@ app.get('/api/settings/fields', (req, res) => {
 
 // 2. Update dynamic field options (save customized professions, qualifications, etc.)
 app.put('/api/settings/fields', authMiddleware, (req, res) => {
-  const { fields } = req.body;
-  if (!fields || typeof fields !== 'object') {
+  if ((req as any).user.role !== 'Super Admin') return void res.status(403).json({ error: 'Only Super Admin can change CRM configuration.' });
+  const { fields, agencySettings } = req.body;
+  if (!fields || typeof fields !== 'object' || Array.isArray(fields)) {
     return res.status(400).json({ error: 'Valid fields object is required' });
+  }
+  if (agencySettings !== undefined && (!agencySettings || typeof agencySettings !== 'object' || Array.isArray(agencySettings))) {
+    return void res.status(400).json({ error: 'Valid agency settings are required; no configuration was changed.' });
   }
 
   const db = loadDB();
@@ -3179,17 +3200,20 @@ app.put('/api/settings/fields', authMiddleware, (req, res) => {
     ...(db.customFields || {}),
     ...fields,
   };
+  if (agencySettings) db.agencySettings = { ...DEFAULT_AGENCY_SETTINGS, ...(db.agencySettings || {}), ...agencySettings };
 
   saveDB(db);
   res.json({
     success: true,
     message: 'Field options updated successfully',
     fields: db.customFields,
+    agencySettings: db.agencySettings,
   });
 });
 
 // 3. Reset dynamic fields to default seedings (either single category or all)
 app.post('/api/settings/fields/reset', authMiddleware, (req, res) => {
+  if ((req as any).user.role !== 'Super Admin') return void res.status(403).json({ error: 'Only Super Admin can reset CRM configuration.' });
   const { category } = req.body;
   const db = loadDB();
 
@@ -3225,6 +3249,7 @@ app.get('/api/settings/agency', (req, res) => {
 
 // 5. Update agency profile settings
 app.put('/api/settings/agency', authMiddleware, (req, res) => {
+  if ((req as any).user.role !== 'Super Admin') return void res.status(403).json({ error: 'Only Super Admin can change agency settings.' });
   const { agencySettings } = req.body;
   if (!agencySettings || typeof agencySettings !== 'object') {
     return res.status(400).json({ error: 'Valid agencySettings object is required' });
@@ -3257,21 +3282,16 @@ async function startServer() {
   const removed = await neonStore.migrate(cleanupImportedDemos);
   if (removed) console.log('Confirmed imported demo accounts and sample clients removed; Super Admin and unmarked CRM records preserved.');
   if (await mediaStorage.ready()) {
-    const uploaded: string[] = [];
     try {
-      const moved = await neonStore.migrate(async data => {
-        const result = await mediaStorage.externalize(data, uploaded);
-        if (result.count) Object.assign(data, result.value);
-        return result.count;
-      });
+      const moved = await migrateLegacyMedia(neonStore, mediaStorage);
       if (moved) console.log(`${moved} legacy CRM files moved into private Replit App Storage.`);
     } catch {
-      await mediaStorage.cleanup(uploaded);
       throw new Error('Legacy media migration failed without changing the stored CRM records.');
     }
   } else {
     console.warn('Replit App Storage has no available default bucket. New file uploads fail explicitly; existing files are preserved until storage is provisioned.');
   }
+  startMediaMaintenance(neonStore, mediaStorage);
   if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.resolve(__dirname, 'dist')));
     app.get('*', (req, res) => {

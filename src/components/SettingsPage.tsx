@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
+import { StorageSafetyPanel } from './StorageSafetyPanel';
 import {
   Settings as SettingsIcon,
   Sliders,
@@ -367,12 +368,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ token }) => {
           const res = await fetch('/api/settings/fields', {
             method: 'PUT',
             headers,
-            body: JSON.stringify({ fields: parsed.fields }),
+            body: JSON.stringify({ fields: parsed.fields, ...(parsed.agencySettings ? { agencySettings: parsed.agencySettings } : {}) }),
           });
-
-          if (parsed.agencySettings && typeof parsed.agencySettings === 'object') {
-            await updateAgencySettings(parsed.agencySettings);
-          }
 
           if (res.ok) {
             await refreshFields();
@@ -1096,12 +1093,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ token }) => {
                 type="button"
                 onClick={handleExportBackup}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-[#181E54] hover:bg-[#121642] text-white rounded-xl shadow-xs cursor-pointer"
+                title="Export field settings only; use the secure backup action below for complete CRM data"
               >
                 <Download className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Download Backup</span>
+                <span>Export settings</span>
               </button>
             </div>
           </div>
+
+          <StorageSafetyPanel token={token} />
 
           {/* Audit breakdown table */}
           <div className="space-y-3">

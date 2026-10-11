@@ -4,6 +4,13 @@ import './index.css';
 import { registerSW } from 'virtual:pwa-register';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 
+// Old attendance API caches were not partitioned by staff account. Remove
+// them; live CRM/API and private media are network-only, not offline truth.
+if ('caches' in window) {
+  void Promise.all(['attendance-status-cache', 'staff-list-cache'].map(name => caches.delete(name)))
+    .catch(() => console.warn('Legacy API caches could not be cleared on this device.'));
+}
+
 // Register Service Worker for offline PWA attendance functionality
 registerSW({
   immediate: true,

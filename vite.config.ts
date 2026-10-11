@@ -11,7 +11,7 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'logo.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
+        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'logo.svg', 'shadikabbo-logo.png', 'pwa-192x192.png', 'pwa-512x512.png'],
         manifest: {
           id: '/',
           name: 'Shadikabbo CRM',
@@ -47,6 +47,10 @@ export default defineConfig(() => {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           runtimeCaching: [
             {
+              urlPattern: ({ url }: { url: URL }) => url.pathname.startsWith('/api/') || url.pathname.startsWith('/media/'),
+              handler: 'NetworkOnly',
+            },
+            {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
               handler: 'CacheFirst',
               options: {
@@ -68,36 +72,6 @@ export default defineConfig(() => {
                 expiration: {
                   maxEntries: 10,
                   maxAgeSeconds: 60 * 60 * 24 * 365,
-                },
-                cacheableResponse: {
-                  statuses: [0, 200],
-                },
-              },
-            },
-            {
-              urlPattern: /\/api\/attendance\/my-status/,
-              handler: 'NetworkFirst',
-              options: {
-                cacheName: 'attendance-status-cache',
-                networkTimeoutSeconds: 3,
-                expiration: {
-                  maxEntries: 5,
-                  maxAgeSeconds: 60 * 60 * 24,
-                },
-                cacheableResponse: {
-                  statuses: [0, 200],
-                },
-              },
-            },
-            {
-              urlPattern: /\/api\/attendance\/staff-list/,
-              handler: 'NetworkFirst',
-              options: {
-                cacheName: 'staff-list-cache',
-                networkTimeoutSeconds: 3,
-                expiration: {
-                  maxEntries: 5,
-                  maxAgeSeconds: 60 * 60 * 24,
                 },
                 cacheableResponse: {
                   statuses: [0, 200],

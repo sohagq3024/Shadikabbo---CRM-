@@ -33,5 +33,14 @@
 - Media downloads do not hold the CRM row lock. Invalid sessions, deleted accounts, and suspended accounts cannot read private files.
 - Enforce 15MB images and 25MB PDFs with server-side content signatures, strict object-key validation, and no HTML/SVG serving.
 - When storage is available at startup, legacy inline files are externalized in a Neon transaction. An upload or migration failure never silently stores new base64 files in Neon.
-- If the default bucket is missing, existing records/files are retained and new file uploads return a clear 503. After provisioning App Storage, restart the workflow to migrate the legacy files.
+- If the default bucket is missing, existing records/files are retained and new file uploads return a clear 503. App Storage bucket creation belongs to the Replit Tools > App Storage panel. Settings > Backup & Restore exposes live readiness checks and a retryable migration action, so the user can finish provisioning without source edits or a workflow restart.
 - API responses are private URLs, never session tokens in query parameters or public bucket URLs.
+
+## Data safety and honest browser behavior
+- Settings values are updated only from a successful, confirmed server response. Failed saves must not become a local optimistic success. Configuration restore applies fields and agency settings in one Neon transaction; only Super Admin may change them.
+- Offline attendance is a temporary device queue, not a cloud save. Blocked/corrupted local storage must not be overwritten or acknowledged as saved. Only explicit server-acknowledged scan IDs are marked synced.
+- CRM/API and private media requests are network-only in the PWA. Old unpartitioned attendance/staff-list browser caches are purged; browser preferences/auth session state are not the CRM database.
+- Imported password hashes upgrade transparently to salted scrypt after a valid login; existing account credentials are unchanged.
+- Super Admin can download a complete, private CRM JSON backup with media bytes included and session tokens omitted. Missing customer files or oversized exports fail explicitly instead of generating a partial success. Backups contain private records and must be stored securely.
+- Known unused CRM files get a 24-hour grace period and small hourly cleanup batches. References across every collection, including payments and trash, protect shared documents. Writers reject resurrection of unavailable old references. The ownership safety constraint is documented in `.agents/memory/media-ownership.md`.
+- Do not promise zero future data loss. Provider outages, accidental account deletion, device loss before offline sync, and backup retention must be handled openly.

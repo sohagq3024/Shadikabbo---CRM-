@@ -96,6 +96,7 @@ export class NeonStore<T extends object> {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
+      await client.query("SET LOCAL idle_in_transaction_session_timeout = '120s'");
       const result = await client.query(`SELECT data FROM ${this.table} WHERE id = 1 FOR UPDATE`);
       if (result.rowCount !== 1) throw new Error('CRM data is missing.');
       const data = result.rows[0].data as T;
@@ -123,6 +124,12 @@ export class NeonStore<T extends object> {
     `, [token]);
     const user = result.rows[0]?.account;
     return user && user.status !== 'suspended' ? user : null;
+  }
+
+  async readSnapshot(): Promise<T> {
+    const result = await this.pool.query(`SELECT data FROM ${this.table} WHERE id = 1`);
+    if (result.rowCount !== 1) throw new Error('CRM data is missing.');
+    return result.rows[0].data;
   }
 
   // Existing synchronous route handlers work on a request-local snapshot.

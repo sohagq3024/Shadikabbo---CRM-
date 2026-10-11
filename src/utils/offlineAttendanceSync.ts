@@ -42,13 +42,16 @@ export function formatLocalTime12(date: Date): string {
 /**
  * Retrieve all scans from local storage
  */
-export function getAllOfflineScans(): OfflineAttendanceScan[] {
+export function getAllOfflineScans(strict = false): OfflineAttendanceScan[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw);
+    const scans = JSON.parse(raw);
+    if (!Array.isArray(scans)) throw new Error('Offline attendance queue is invalid.');
+    return scans;
   } catch (err) {
-    console.error('Failed to parse offline scans from localStorage:', err);
+    if (strict) throw new Error('The existing offline queue could not be read. It has not been replaced or synced.');
+    console.warn('Offline queue is unavailable; its existing contents were not replaced.');
     return [];
   }
 }
@@ -65,11 +68,13 @@ export function getPendingOfflineScans(): OfflineAttendanceScan[] {
  */
 function setOfflineScans(scans: OfflineAttendanceScan[]) {
   try {
+    const existing = localStorage.getItem(STORAGE_KEY);
+    if (existing && !Array.isArray(JSON.parse(existing))) throw new Error('Existing queue is invalid; do not overwrite it.');
     localStorage.setItem(STORAGE_KEY, JSON.stringify(scans));
-    window.dispatchEvent(new CustomEvent(SYNC_EVENT_NAME, { detail: { count: scans.filter(s => !s.synced).length } }));
   } catch (err) {
-    console.error('Failed to persist offline scans:', err);
+    throw new Error('Offline attendance could not be saved on this device. Keep the app online and retry; this scan is not saved.');
   }
+  window.dispatchEvent(new CustomEvent(SYNC_EVENT_NAME, { detail: { count: scans.filter(s => !s.synced).length } }));
 }
 
 /**
@@ -84,7 +89,7 @@ export function enqueueOfflineScan(data: {
   type: 'in' | 'out';
   customTimestamp?: number;
 }): OfflineAttendanceScan {
-  const scans = getAllOfflineScans();
+  const scans = getAllOfflineScans(true);
   const timestamp = data.customTimestamp || Date.now();
   const scanDate = new Date(timestamp);
 
@@ -177,7 +182,11 @@ export async function syncPendingScans(token: string): Promise<{
     return { success: false, syncedCount: 0, failedCount: 0, errors: ['Device is currently offline'] };
   }
 
-  const pending = getPendingOfflineScans();
+  let pending: OfflineAttendanceScan[];
+  try { pending = getAllOfflineScans(true).filter(item => !item.synced); }
+  catch (error) {
+    return { success: false, syncedCount: 0, failedCount: 0, errors: [(error as Error).message] };
+  }
   if (pending.length === 0) {
     return { success: true, syncedCount: 0, failedCount: 0, errors: [] };
   }
@@ -198,20 +207,26 @@ export async function syncPendingScans(token: string): Promise<{
     }
 
     const data = await response.json();
-    const syncedIds: string[] = data.syncedIds || pending.map((p) => p.id);
+    const pendingIds = new Set(pending.map(item => item.id));
+    if (!Array.isArray(data.syncedIds) || data.syncedIds.some((id: unknown) => typeof id !== 'string' || !pendingIds.has(id))) {
+      throw new Error('The server did not confirm which attendance scans were saved. Pending scans have been retained.');
+    }
+    const syncedIds = [...new Set<string>(data.syncedIds)];
 
     // Mark successful items
     syncedIds.forEach((id) => markScanAsSynced(id));
 
     return {
-      success: true,
+      success: syncedIds.length === pending.length,
       syncedCount: syncedIds.length,
       failedCount: pending.length - syncedIds.length,
-      errors: [],
+      errors: syncedIds.length === pending.length ? [] : ['Some scans are still pending server confirmation.'],
     };
   } catch (err: any) {
     console.error('Failed to sync offline scans:', err);
-    pending.forEach((item) => markScanSyncFailed(item.id, err.message || 'Network sync failed'));
+    for (const item of pending) {
+      try { markScanSyncFailed(item.id, err.message || 'Network sync failed'); } catch { /* Never discard the previous stored queue. */ }
+    }
     return {
       success: false,
       syncedCount: 0,
