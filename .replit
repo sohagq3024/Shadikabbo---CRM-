@@ -46,3 +46,6 @@ externalPort = 3001
 deploymentTarget = "autoscale"
 run = ["bash", "-lc", "NODE_ENV=production PORT=5000 npm run start"]
 build = ["npm", "run", "build"]
+
+[objectStorage]
+defaultBucketID = "replit-objstore-d7ed63d2-949c-4968-9f4f-a1bf27c1ff8f"
