@@ -64,7 +64,7 @@ export function mediaCookie(res: Response, token?: string): void {
   // Partitioned cookies support the proxied Replit preview iframe. This cookie
   // grants only immutable file reads, not API mutations.
   const policy = tls ? '; SameSite=None; Secure; Partitioned' : '; SameSite=Lax';
-  res.append('Set-Cookie', `shadikabbo_media=${token || ''}; Path=/media; HttpOnly; Max-Age=${token ? 2592000 : 0}${policy}`);
+  res.append('Set-Cookie', `shadikabbo_media=${token || ''}; Path=/media; HttpOnly; Max-Age=${token ? 604800 : 0}${policy}`);
 }
 
 export function mediaSession(req: Request): string | null {

@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import { randomUUID } from 'node:crypto';
+import { consumeLoginAttempt, SESSION_MAX_AGE_MS } from './authSecurity';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { readFile } from 'node:fs/promises';
 import type { RequestHandler } from 'express';
@@ -33,11 +35,13 @@ export function neonConnectionString(raw: string | undefined): string {
 export class NeonStore<T extends object> {
   private readonly pool: pg.Pool;
   private readonly table: string;
+  private readonly loginTable: string;
   private readonly context = new AsyncLocalStorage<RequestStore<T>>();
 
   constructor(pool?: pg.Pool, schema = 'public') {
     if (!/^[a-z][a-z0-9_]*$/.test(schema)) throw new Error('Invalid CRM database schema.');
     this.table = `"${schema}"."shadikabbo_crm_store"`;
+    this.loginTable = `"${schema}"."shadikabbo_login_attempts"`;
     this.pool = pool ?? new pg.Pool({
       connectionString: neonConnectionString(process.env.NEON_DATABASE_URL),
       max: 5,
@@ -58,8 +62,19 @@ export class NeonStore<T extends object> {
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
-    const existing = await this.pool.query(`SELECT id FROM ${this.table} WHERE id = 1`);
-    if (existing.rowCount) return;
+    const existing = await this.pool.query(`SELECT id, data->>'crmInstanceId' AS identity FROM ${this.table} WHERE id = 1`);
+    if (process.env.NODE_ENV === 'production') {
+      if (!existing.rowCount || !process.env.CRM_INSTANCE_ID || existing.rows[0].identity !== process.env.CRM_INSTANCE_ID) {
+        throw new Error('Production Neon does not match the approved CRM database. Local records will not be imported.');
+      }
+    }
+    if (existing.rowCount) {
+      if (!existing.rows[0].identity) {
+        await this.pool.query(`UPDATE ${this.table} SET data = jsonb_set(data, '{crmInstanceId}', to_jsonb($1::text)) WHERE id = 1 AND COALESCE(data->>'crmInstanceId', '') = ''`, [randomUUID()]);
+      }
+      await this.initializeLoginLimits();
+      return;
+    }
 
     // This is a one-time import, never a runtime fallback. Keep the source intact.
     let data: T;
@@ -72,11 +87,29 @@ export class NeonStore<T extends object> {
     if (!Array.isArray(source.users) || !Array.isArray(source.leads) || !Array.isArray(source.traffics)) {
       throw new Error('The CRM import must contain users, leads, and traffics arrays.');
     }
+    source.crmInstanceId = randomUUID();
     const imported = await this.pool.query(
       `INSERT INTO ${this.table} (id, data) VALUES (1, $1::jsonb) ON CONFLICT (id) DO NOTHING`,
       [JSON.stringify(data)],
     );
     console.log(imported.rowCount ? 'Existing CRM records imported into external Neon.' : 'Using existing Neon CRM records.');
+    await this.initializeLoginLimits();
+  }
+
+  private async initializeLoginLimits(): Promise<void> {
+    await this.pool.query(`CREATE TABLE IF NOT EXISTS ${this.loginTable} (
+      key TEXT PRIMARY KEY, attempts INTEGER NOT NULL, expires_at TIMESTAMPTZ NOT NULL
+    )`);
+  }
+
+  async loginAttempt(phone: string) {
+    return consumeLoginAttempt(this.pool, this.loginTable, phone);
+  }
+
+  async databaseIdentity(): Promise<string> {
+    const result = await this.pool.query(`SELECT data->>'crmInstanceId' AS identity FROM ${this.table} WHERE id = 1`);
+    if (!result.rows[0]?.identity) throw new Error('CRM identity is missing.');
+    return result.rows[0].identity;
   }
 
   load(): T {
@@ -120,8 +153,11 @@ export class NeonStore<T extends object> {
       WHERE crm.id = 1 AND EXISTS (
         SELECT 1 FROM jsonb_array_elements(crm.data->'sessions') AS s(value)
         WHERE s.value->>'token' = $1 AND s.value->>'userId' = u.value->>'id'
+        AND CASE WHEN jsonb_typeof(s.value->'createdAt') = 'number'
+          THEN (s.value->>'createdAt')::numeric > $2 AND (s.value->>'createdAt')::numeric <= $3
+          ELSE FALSE END
       )
-    `, [token]);
+    `, [token, Date.now() - SESSION_MAX_AGE_MS, Date.now()]);
     const user = result.rows[0]?.account;
     return user && user.status !== 'suspended' ? user : null;
   }

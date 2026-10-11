@@ -20,6 +20,7 @@ import { MediaStorage, mediaKey, mediaCookie, mediaSession } from './src/server/
 import { collectMediaKeys, migrateLegacyMedia, trackUploadedMedia } from './src/server/mediaLifecycle';
 import { registerSystemRoutes, startMediaMaintenance } from './src/server/systemRoutes';
 import { hashPassword, verifyPassword } from './src/server/passwords';
+import { isSessionActive } from './src/server/authSecurity';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,6 +28,15 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 
+app.disable('x-powered-by');
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'same-origin');
+  if (req.path.startsWith('/api/') || req.path.startsWith('/media/')) res.setHeader('Cache-Control', 'no-store');
+  if (process.env.NODE_ENV === 'production') res.setHeader('Strict-Transport-Security', 'max-age=31536000');
+  next();
+});
+app.use('/api/auth', express.json({ limit: '8kb' }), express.urlencoded({ extended: false, limit: '8kb' }));
 app.use(express.json({ limit: '60mb' }));
 app.use(express.urlencoded({ extended: true, limit: '60mb' }));
 
@@ -107,6 +117,23 @@ app.use('/api', mediaStorage.middleware(async req => {
 }));
 // These routes use independent read/maintenance operations, not nested CRM locks.
 registerSystemRoutes(app, neonStore, mediaStorage);
+app.post('/api/auth/login', async (req, res, next) => {
+  const { phone, password } = req.body || {};
+  if (typeof phone !== 'string' || !phone.trim() || phone.length > 64
+    || typeof password !== 'string' || !password || password.length > 512) {
+    return void res.status(400).json({ error: 'Official phone number and password are required' });
+  }
+  try {
+    const attempt = await neonStore.loginAttempt(phone);
+    if (!attempt.allowed) {
+      res.setHeader('Retry-After', String(attempt.retryAfter));
+      return void res.status(429).json({ error: 'Too many login attempts. Please wait and try again.' });
+    }
+    next();
+  } catch {
+    res.status(503).json({ error: 'Login security is temporarily unavailable. Please try again.' });
+  }
+});
 // Authenticate/uploads before acquiring the CRM write lock. Slow file
 // transfers must not hold the Neon transaction open.
 app.use('/api', neonStore.middleware);
@@ -224,7 +251,7 @@ function authMiddleware(req: express.Request, res: express.Response, next: expre
   const token = authHeader.split(' ')[1];
   const db = loadDB();
   const session = db.sessions.find(s => s.token === token);
-  if (!session) {
+  if (!session || !isSessionActive(session)) {
     return res.status(401).json({ error: 'Unauthorized: Invalid or expired session' });
   }
 
@@ -263,6 +290,7 @@ function sanitizeUser(u: SystemUser) {
 }
 
 // --- AUTHENTICATION API ---
+const unknownAccountHash = hashPassword(crypto.randomBytes(32).toString('hex'));
 app.post('/api/auth/login', (req, res) => {
   const { phone, password } = req.body;
   if (typeof phone !== 'string' || typeof password !== 'string' || !phone || !password || password.length > 512) {
@@ -273,7 +301,7 @@ app.post('/api/auth/login', (req, res) => {
   const cleanPhone = String(phone).trim();
   const user = db.users.find(u => u.phone === cleanPhone);
 
-  if (!user) {
+  if (!verifyPassword(password, user?.passwordHash || unknownAccountHash) || !user) {
     return res.status(401).json({ error: 'Invalid phone number or password' });
   }
 
@@ -281,13 +309,11 @@ app.post('/api/auth/login', (req, res) => {
     return res.status(403).json({ error: 'This account has been suspended. Please contact Super Admin.' });
   }
 
-  if (!verifyPassword(password, user.passwordHash)) {
-    return res.status(401).json({ error: 'Invalid phone number or password' });
-  }
   // Upgrade imported hashes on successful login without changing credentials.
   if (!user.passwordHash.startsWith('scrypt$')) user.passwordHash = hashPassword(password);
 
   const token = crypto.randomBytes(32).toString('hex');
+  db.sessions = db.sessions.filter(session => isSessionActive(session));
   db.sessions.push({
     token,
     userId: user.id,

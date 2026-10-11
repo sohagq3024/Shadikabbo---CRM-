@@ -35,6 +35,10 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
+localPort = 5057
+externalPort = 3003
+
+[[ports]]
 localPort = 5177
 externalPort = 3000
 
@@ -49,3 +53,8 @@ build = ["npm", "run", "build"]
 
 [objectStorage]
 defaultBucketID = "replit-objstore-d7ed63d2-949c-4968-9f4f-a1bf27c1ff8f"
+
+[userenv]
+
+[userenv.production]
+CRM_INSTANCE_ID = "ab4419c7-6ec5-46a7-a6f2-b553164a63f0"

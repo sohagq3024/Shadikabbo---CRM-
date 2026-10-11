@@ -89,6 +89,30 @@ test('Neon storage integration (isolated temporary schema, no real CRM changes)'
     });
 
     const second = await launch('/missing-import-file.json');
+    await t.test('production refuses a different CRM identity and accepts only the approved database', async () => {
+      const oldMode = process.env.NODE_ENV;
+      const oldIdentity = process.env.CRM_INSTANCE_ID;
+      try {
+        process.env.NODE_ENV = 'production';
+        process.env.CRM_INSTANCE_ID = 'not-the-approved-crm';
+        await assert.rejects(stores[1].initialize('/missing-import-file.json'), /does not match/);
+        process.env.CRM_INSTANCE_ID = await stores[0].databaseIdentity();
+        await stores[1].initialize('/missing-import-file.json');
+      } finally {
+        if (oldMode === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = oldMode;
+        if (oldIdentity === undefined) delete process.env.CRM_INSTANCE_ID; else process.env.CRM_INSTANCE_ID = oldIdentity;
+      }
+    });
+    await t.test('login throttling persists across instances and expires without changing CRM records', async () => {
+      for (let i = 0; i < 10; i++) {
+        assert.equal((await stores[i % 2].loginAttempt('synthetic-security-test')).allowed, true);
+      }
+      const blocked = await stores[1].loginAttempt('synthetic-security-test');
+      assert.equal(blocked.allowed, false);
+      assert.ok(blocked.retryAfter > 0 && blocked.retryAfter <= 900);
+      await admin.query(`UPDATE ${schema}.shadikabbo_login_attempts SET expires_at = NOW() - INTERVAL '1 second' WHERE key <> 'global'`);
+      assert.equal((await stores[0].loginAttempt('synthetic-security-test')).allowed, true);
+    });
     await t.test('new instances use Neon records without reading a local import file', async () => {
       assert.deepEqual(await (await fetch(`${second}/state`)).json(), { counter: 1 });
     });

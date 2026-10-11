@@ -4,3 +4,5 @@
 - [Preview forwarding](preview-forwarding.md) — Vite's separate HMR port can take over the public preview; verify API forwarding after runtime installs.
 - [Media ownership](media-ownership.md) — shared/default-bucket cleanup requires upload provenance; UUID filenames are not proof of ownership.
 - [Screenshot annotation scale](screenshot-annotation-scale.md) — image previews may be resized; check original dimensions before placing pixel-based annotations.
+- [Dependency advisory review](dependency-advisory-review.md) — patched official SheetJS CDN releases can still get stale npm vulnerability matches; verify and disclose.
+- [Production database approval](production-database-verification.md) — never change the approved CRM identity to bypass a wrong production Neon target.
