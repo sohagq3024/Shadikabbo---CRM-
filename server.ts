@@ -4,7 +4,6 @@ process.env.TZ = 'Asia/Dhaka';
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
-import fs from 'fs';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import {
@@ -15,21 +14,19 @@ import {
 } from './src/constants/defaultFieldSeedings';
 import { setupAttendanceRoutes } from './src/server/attendanceRoutes';
 import { setupDailyReportRoutes } from './src/server/dailyReportRoutes';
+import { NeonStore } from './src/server/neonStore';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT || 3000);
 
 app.use(express.json({ limit: '60mb' }));
 app.use(express.urlencoded({ extended: true, limit: '60mb' }));
 
-// Ensure data folder exists
+// Used only to import existing records into an empty Neon database.
 const DATA_DIR = path.resolve(__dirname, 'data');
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
 const DB_FILE = path.join(DATA_DIR, 'crm_store.json');
 
 function hashPassword(password: string): string {
@@ -101,73 +98,11 @@ function computeLeadCompleteness(data: any): { percentage: number; stars: number
   return { percentage, stars };
 }
 
-let dbCache: DatabaseSchema | null = null;
-let saveDbTimeout: NodeJS.Timeout | null = null;
+const neonStore = new NeonStore<DatabaseSchema>();
+app.use('/api', neonStore.middleware);
 
 function loadDB(): DatabaseSchema {
-  if (dbCache) {
-    return dbCache;
-  }
-
-  if (!fs.existsSync(DB_FILE)) {
-    const initialData: DatabaseSchema = {
-      users: [
-        {
-          id: 'usr_super_admin',
-          phone: '01723867646',
-          name: 'Sohag',
-          role: 'Super Admin',
-          passwordHash: hashPassword('sohag12345'),
-        },
-        {
-          id: 'usr_mk_1',
-          phone: '01700000001',
-          name: 'MK - Tanvir Ahmed',
-          role: 'MK',
-          passwordHash: hashPassword('mk12345'),
-        },
-        {
-          id: 'usr_mk_2',
-          phone: '01700000002',
-          name: 'MK - Rashedul Islam',
-          role: 'MK',
-          passwordHash: hashPassword('mk12345'),
-        },
-        {
-          id: 'usr_cro_1',
-          phone: '01800000001',
-          name: 'CRO - Farhana Khan',
-          role: 'CRO',
-          passwordHash: hashPassword('cro12345'),
-        },
-        {
-          id: 'usr_cro_2',
-          phone: '01800000002',
-          name: 'CRO - Mahmud Hasan',
-          role: 'CRO',
-          passwordHash: hashPassword('cro12345'),
-        },
-      ],
-      traffics: [],
-      leads: [],
-      paymentRequests: [],
-      payments: [],
-      sessions: [],
-      nextSerial: 1,
-      nextLeadSerial: 1,
-    };
-    try {
-      fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2), 'utf-8');
-    } catch (err) {
-      console.error('Failed to write initial db:', err);
-    }
-    dbCache = initialData;
-    return initialData;
-  }
-
-  try {
-    const content = fs.readFileSync(DB_FILE, 'utf-8');
-    const parsed = JSON.parse(content);
+    const parsed = neonStore.load();
     if (!parsed.traffics) parsed.traffics = [];
     if (!parsed.leads) parsed.leads = [];
     if (!parsed.paymentRequests) parsed.paymentRequests = [];
@@ -233,43 +168,14 @@ function loadDB(): DatabaseSchema {
     });
 
     if (didAutoSync) {
-      try {
-        fs.writeFileSync(DB_FILE, JSON.stringify(parsed, null, 2), 'utf-8');
-      } catch (e) {
-        console.error('Failed to sync db to disk:', e);
-      }
+      neonStore.save(parsed);
     }
 
-    dbCache = parsed;
     return parsed;
-  } catch (err) {
-    console.error('Error reading db file, resetting:', err);
-    const fallback: DatabaseSchema = {
-      users: [],
-      traffics: [],
-      leads: [],
-      paymentRequests: [],
-      payments: [],
-      sessions: [],
-      nextSerial: 1,
-      nextLeadSerial: 1,
-    };
-    dbCache = fallback;
-    return fallback;
-  }
-}
-
-function flushDbToDisk(data: DatabaseSchema) {
-  try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (err) {
-    console.error('Error writing database to disk:', err);
-  }
 }
 
 function saveDB(data: DatabaseSchema) {
-  dbCache = data;
-  flushDbToDisk(data);
+  neonStore.save(data);
 }
 
 // Session validation middleware
@@ -3325,6 +3231,7 @@ setupDailyReportRoutes(app, loadDB, saveDB, authMiddleware);
 
 // --- START SERVER WITH VITE MIDDLEWARE ---
 async function startServer() {
+  await neonStore.initialize(DB_FILE);
   if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.resolve(__dirname, 'dist')));
     app.get('*', (req, res) => {
@@ -3346,4 +3253,8 @@ async function startServer() {
   });
 }
 
-startServer();
+startServer().catch(async () => {
+  console.error('Server startup failed. Check NEON_DATABASE_URL, Neon availability, and the CRM import file.');
+  await neonStore.close();
+  process.exitCode = 1;
+});

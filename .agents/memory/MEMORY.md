@@ -1,0 +1,1 @@
+- [Neon pooled connections](neon-pooling.md) — pooled Neon rejects search_path startup options; use schema-qualified queries for isolated tests.
