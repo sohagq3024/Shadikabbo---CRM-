@@ -28,6 +28,12 @@ The scanner can still report both advisories for 0.20.3 because its matching dat
 
 These two alerts were verified as version-matching false positives for the installed official 0.20.3 release. Re-evaluate this conclusion when versions or advisory descriptions change; it is not a general scanner exemption.
 
+## UUID and esbuild dependency fixes
+
+- UUID is overridden to 11.1.1 for the cloud-storage dependency tree. This is the patched CommonJS-compatible release for [GHSA-w5hq-g745-h8pq](https://github.com/advisories/GHSA-w5hq-g745-h8pq); UUID 12.0.0 and 13.0.0 are also affected and must not be selected during future upgrades.
+- esbuild is locked at 0.28.2 with a minimum declared version of 0.28.2. [GHSA-g7r4-m6w7-qqqr](https://github.com/advisories/GHSA-g7r4-m6w7-qqqr) affects 0.27.3 through 0.28.0 and is fixed in 0.28.1.
+- `npm test` includes dependency regression checks for every locked copy, spreadsheet round-trip fidelity, UUID output-buffer bounds, and TypeScript transformation. Keep the official SheetJS source and lockfile integrity rather than suppressing scanner findings.
+
 ## Before and after publishing
 
 Before publishing, run type checking, the test suite, build, scans, production-mode startup, and private API/media checks. Keep backups of both Neon records and media bytes; no deployment or storage service guarantees zero future loss.
