@@ -1,1 +1,4 @@
 - [Neon pooled connections](neon-pooling.md) — pooled Neon rejects search_path startup options; use schema-qualified queries for isolated tests.
+- [Safe demo detection](demo-detection.md) — words inside base64 are not demo labels; require structured fixture evidence before deleting records.
+- [Storage initialization](storage-initialization.md) — the SDK starts async initialization in its constructor; await it immediately to catch missing-bucket failures.
+- [Preview forwarding](preview-forwarding.md) — Vite's separate HMR port can take over the public preview; verify API forwarding after runtime installs.

@@ -92,6 +92,39 @@ export class NeonStore<T extends object> {
     store.dirty = true;
   }
 
+  async migrate(transform: (data: T) => Promise<number> | number): Promise<number> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const result = await client.query(`SELECT data FROM ${this.table} WHERE id = 1 FOR UPDATE`);
+      if (result.rowCount !== 1) throw new Error('CRM data is missing.');
+      const data = result.rows[0].data as T;
+      const changed = await transform(data);
+      if (changed) {
+        await client.query(`UPDATE ${this.table} SET data = $1::jsonb, updated_at = NOW() WHERE id = 1`, [JSON.stringify(data)]);
+      }
+      await client.query('COMMIT');
+      return changed;
+    } catch (error) {
+      try { await client.query('ROLLBACK'); } catch { /* The connection may already be closed. */ }
+      throw error;
+    } finally { client.release(); }
+  }
+
+  async sessionUser(token: string): Promise<Record<string, any> | null> {
+    const result = await this.pool.query(`
+      SELECT u.value AS account
+      FROM ${this.table} AS crm
+      CROSS JOIN LATERAL jsonb_array_elements(crm.data->'users') AS u(value)
+      WHERE crm.id = 1 AND EXISTS (
+        SELECT 1 FROM jsonb_array_elements(crm.data->'sessions') AS s(value)
+        WHERE s.value->>'token' = $1 AND s.value->>'userId' = u.value->>'id'
+      )
+    `, [token]);
+    const user = result.rows[0]?.account;
+    return user && user.status !== 'suspended' ? user : null;
+  }
+
   // Existing synchronous route handlers work on a request-local snapshot.
   // Lock the row across instances and commit BEFORE sending the response.
   // API routes must use buffered responses, not streaming or flushHeaders().

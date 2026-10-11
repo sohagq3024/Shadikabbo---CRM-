@@ -15,6 +15,8 @@ import {
 import { setupAttendanceRoutes } from './src/server/attendanceRoutes';
 import { setupDailyReportRoutes } from './src/server/dailyReportRoutes';
 import { NeonStore } from './src/server/neonStore';
+import { cleanupImportedDemos } from './src/server/demoCleanup';
+import { MediaStorage, mediaKey, mediaCookie, mediaSession } from './src/server/mediaStorage';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -99,7 +101,25 @@ function computeLeadCompleteness(data: any): { percentage: number; stars: number
 }
 
 const neonStore = new NeonStore<DatabaseSchema>();
+const mediaStorage = new MediaStorage();
+app.use('/api', mediaStorage.middleware(async req => {
+  const token = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null;
+  return !!token && !!await neonStore.sessionUser(token);
+}));
+// Authenticate/uploads before acquiring the CRM write lock. Slow file
+// transfers must not hold the Neon transaction open.
 app.use('/api', neonStore.middleware);
+
+// Private media is outside the CRM transaction middleware, so downloading a
+// PDF does not lock every CRM request while bytes are retrieved from storage.
+app.get('/media/:objectName', async (req, res) => {
+  const token = mediaSession(req);
+  if (!token) return void res.status(401).json({ error: 'Sign in to access files.' });
+  try {
+    if (!await neonStore.sessionUser(token)) return void res.status(401).json({ error: 'Session is invalid or the account is suspended.' });
+    await mediaStorage.download(req, res, () => {});
+  } catch { res.status(503).json({ error: 'Unable to authorize file access.' }); }
+});
 
 function loadDB(): DatabaseSchema {
     const parsed = neonStore.load();
@@ -258,6 +278,7 @@ app.post('/api/auth/login', (req, res) => {
   });
   saveDB(db);
 
+  mediaCookie(res, token);
   return res.json({
     success: true,
     token,
@@ -278,6 +299,7 @@ app.post('/api/auth/logout', authMiddleware, (req, res) => {
   const db = loadDB();
   db.sessions = db.sessions.filter(s => s.token !== token);
   saveDB(db);
+  mediaCookie(res);
   res.json({ success: true });
 });
 
@@ -1442,7 +1464,7 @@ app.post('/api/traffic', authMiddleware, (req, res) => {
     if (!data.pdf.name || !data.pdf.name.toLowerCase().endsWith('.pdf')) {
       return res.status(400).json({ error: 'Security validation failed: Only authentic PDF format (.pdf) is permitted for PDF document upload.' });
     }
-    if (data.pdf.dataUrl && !data.pdf.dataUrl.startsWith('data:application/pdf')) {
+    if (data.pdf.dataUrl && !data.pdf.dataUrl.startsWith('data:application/pdf') && !mediaKey(data.pdf.dataUrl)) {
       return res.status(400).json({ error: 'Security validation failed: PDF data payload is invalid or spoofed.' });
     }
   }
@@ -1450,7 +1472,7 @@ app.post('/api/traffic', authMiddleware, (req, res) => {
   if (Array.isArray(data.images)) {
     for (let i = 0; i < data.images.length; i++) {
       const img = data.images[i];
-      if (typeof img !== 'string' || !img.startsWith('data:image/')) {
+      if (typeof img !== 'string' || (!img.startsWith('data:image/') && !mediaKey(img))) {
         return res.status(400).json({ error: 'Security validation failed: Uploaded file is not an image.' });
       }
     }
@@ -3232,6 +3254,24 @@ setupDailyReportRoutes(app, loadDB, saveDB, authMiddleware);
 // --- START SERVER WITH VITE MIDDLEWARE ---
 async function startServer() {
   await neonStore.initialize(DB_FILE);
+  const removed = await neonStore.migrate(cleanupImportedDemos);
+  if (removed) console.log('Confirmed imported demo accounts and sample clients removed; Super Admin and unmarked CRM records preserved.');
+  if (await mediaStorage.ready()) {
+    const uploaded: string[] = [];
+    try {
+      const moved = await neonStore.migrate(async data => {
+        const result = await mediaStorage.externalize(data, uploaded);
+        if (result.count) Object.assign(data, result.value);
+        return result.count;
+      });
+      if (moved) console.log(`${moved} legacy CRM files moved into private Replit App Storage.`);
+    } catch {
+      await mediaStorage.cleanup(uploaded);
+      throw new Error('Legacy media migration failed without changing the stored CRM records.');
+    }
+  } else {
+    console.warn('Replit App Storage has no available default bucket. New file uploads fail explicitly; existing files are preserved until storage is provisioned.');
+  }
   if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.resolve(__dirname, 'dist')));
     app.get('*', (req, res) => {
