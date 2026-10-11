@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "6nAfTpHoyfFpWOYv95GBd"
+uri = "file://attached_assets/storage-menu-guide.png"
+type = "image"
+title = "App Storage খোলার চিহ্নিত screenshot"
+description = "১: Project details বন্ধ করুন। ২: উপরের Tools খুলে App Storage খুঁজুন।"
+logical_id = "39ffa140-fdac-489d-ac38-44cea91ba69a"
+content_hash = "sha256:34642ba8a45a74330455a9a11e3b3c791510a3c756604b51a5394374095469ed"
+size = 140404
+mtime_ms = 1791710700709
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:aaab5c6f-e8fa-4591-9449-3b27838bbb48/39ffa140-fdac-489d-ac38-44cea91ba69a/a8d697ea-6797-465a-bf94-c07ec09aab86"
+storage_version_token = "1791710736221212"
+content_type = "image/png"

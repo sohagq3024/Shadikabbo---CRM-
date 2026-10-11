@@ -3,3 +3,4 @@
 - [Storage initialization](storage-initialization.md) — the SDK starts async initialization in its constructor; await it immediately to catch missing-bucket failures.
 - [Preview forwarding](preview-forwarding.md) — Vite's separate HMR port can take over the public preview; verify API forwarding after runtime installs.
 - [Media ownership](media-ownership.md) — shared/default-bucket cleanup requires upload provenance; UUID filenames are not proof of ownership.
+- [Screenshot annotation scale](screenshot-annotation-scale.md) — image previews may be resized; check original dimensions before placing pixel-based annotations.
